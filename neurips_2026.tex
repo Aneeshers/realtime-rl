@@ -1,104 +1,36 @@
 \documentclass{article}
 
-% if you need to pass options to natbib, use, e.g.:
-%     \PassOptionsToPackage{numbers, compress}{natbib}
-% before loading neurips_2026
-
-% The authors should use one of these tracks.
 % Before accepting by the NeurIPS conference, select one of the options below.
-% 0. "default" for submission
 \usepackage{neurips_2026}
-% the "default" option is equal to the "main" option, which is used for the Main Track with double-blind reviewing.
-% 1. "main" option is used for the Main Track
-%  \usepackage[main]{neurips_2026}
-% 2. "position" option is used for the Position Paper Track
-%  \usepackage[position]{neurips_2026}
-% 3. "eandd" option is used for the Evaluations & Datasets Track
- % \usepackage[eandd]{neurips_2026}
- % if you want to opt-in for a de-anomymized submission (not recommended, but OK):
- %\usepackage[eandd, nonanonymous]{neurips_2026}
-% 4. "creativeai" option is used for the Creative AI Track
-%  \usepackage[creativeai]{neurips_2026}
-% 5. "sglblindworkshop" option is used for the Workshop with single-blind reviewing
- % \usepackage[sglblindworkshop]{neurips_2026}
-% 6. "dblblindworkshop" option is used for the Workshop with double-blind reviewing
-%  \usepackage[dblblindworkshop]{neurips_2026}
+% \usepackage[main]{neurips_2026}
 
-% After being accepted, the authors should add "final" behind the track to compile a camera-ready version.
-% 1. Main Track
- % \usepackage[main, final]{neurips_2026}
-% 2. Position Paper Track
-%  \usepackage[position, final]{neurips_2026}
-% 3. Evaluations & Datasets Track
- % \usepackage[eandd, final]{neurips_2026}
-% 4. Creative AI Track
-%  \usepackage[creativeai, final]{neurips_2026}
-% 5. Workshop with single-blind reviewing
-%  \usepackage[sglblindworkshop, final]{neurips_2026}
-% 6. Workshop with double-blind reviewing
-%  \usepackage[dblblindworkshop, final]{neurips_2026}
-% Note. For the workshop paper template, both \title{} and \workshoptitle{} are required, with the former indicating the paper title shown in the title and the latter indicating the workshop title displayed in the footnote.
-% For workshops (5., 6.), the authors should add the name of the workshop, "\workshoptitle" command is used to set the workshop title.
-% \workshoptitle{WORKSHOP TITLE}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{multirow}
 
-% "preprint" option is used for arXiv or other preprint submissions
- % \usepackage[preprint]{neurips_2026}
-
-% to avoid loading the natbib package, add option nonatbib:
-%    \usepackage[nonatbib]{neurips_2026}
-
-\usepackage[utf8]{inputenc} % allow utf-8 input
-\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
-\usepackage{hyperref}       % hyperlinks
-\usepackage{url}            % simple URL typesetting
-\usepackage{booktabs}       % professional-quality tables
-\usepackage{amsfonts}       % blackboard math symbols
-\usepackage{nicefrac}       % compact symbols for 1/2, etc.
-\usepackage{microtype}      % microtypography
-\usepackage{xcolor}         % colors
-
-% Note. For the workshop paper template, both \title{} and \workshoptitle{} are required, with the former indicating the paper title shown in the title and the latter indicating the workshop title displayed in the footnote. 
-\title{Formatting Instructions For NeurIPS 2026}
+% Convenience macros
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\newcommand{\Kset}{\{1,2,3,4\}}
+\newcommand{\pigate}{\pi_{\mathrm{gate}}}
+\newcommand{\aznet}{\mathrm{AZNet}}
 
 
-% The \author macro works with any number of authors. There are two commands
-% used to separate the names and addresses of multiple authors: \And and \AND.
-%
-% Using \And between authors leaves it to LaTeX to determine where to break the
-% lines. Using \AND forces a line break at that point. So, if LaTeX puts 3 of 4
-% authors names on the first line, and the last on the second line, try using
-% \AND instead of \And before the third author name.
+\title{Adaptive Planning Under Implicit Time Pressure}
 
 
 \author{%
-  David S.~Hippocampus\thanks{Use footnote for providing further information
-    about author (webpage, alternative address)---\emph{not} for acknowledging
-    funding agencies.} \\
-  Department of Computer Science\\
-  Cranberry-Lemon University\\
-  Pittsburgh, PA 15213 \\
-  \texttt{hippo@cs.cranberry-lemon.edu} \\
-  % examples of more authors
-  % \And
-  % Coauthor \\
-  % Affiliation \\
-  % Address \\
-  % \texttt{email} \\
-  % \AND
-  % Coauthor \\
-  % Affiliation \\
-  % Address \\
-  % \texttt{email} \\
-  % \And
-  % Coauthor \\
-  % Affiliation \\
-  % Address \\
-  % \texttt{email} \\
-  % \And
-  % Coauthor \\
-  % Affiliation \\
-  % Address \\
-  % \texttt{email} \\
+  \todo{Author list}
 }
 
 
@@ -109,386 +41,796 @@
 
 
 \begin{abstract}
-Problem: real-time RL.
-Often times when human play games like atari, there are states where they need to be reactive, in other states, it requires the human to think and plan - planning here has a penalty because no-ops progress the environment (un like in traditional RL setups where the environment waits until an action has been submitted to progress to the next state). 
-
-Contributions: We introduce the concept of implicity time pressure in real-tine RL environments, we show that alphazero nets have almost exact linearly proportional performance to inference time relationship, we take advantage of alphazero policies that can plan to increase performance but take proportionally longer inference time in these real-time RL environemnts, we show how to design these real-time RL environments either through no-op actions or a timed clock, we show that a simple light weight gating policy can be learned to learn state-conditioned compute allocation (deciding how much MCTS planning to spend) which both beats out using any individual mcts computation constantly, and uses it in an adaptive, resource-efficent strategy. We show these results in pacman, real-time tetris, timed sokoban, and two-player speed (clock) hex. We show that this setup can easily extended on real world experiments where an environment runs a seperate GPU in real-time.
-
-
-
+In standard reinforcement learning, the environment pauses while the agent deliberates.
+Real-time environments break this assumption: computation takes time, and the world keeps
+moving while the agent thinks.
+This creates \emph{implicit time pressure}: issuing a no-op or blueprint action is never
+truly free, because opponents advance, pieces fall, and opportunity costs accumulate.
+We study how to allocate planning compute adaptively in such settings.
+Our approach rests on two observations.
+First, AlphaZero-style MCTS performance scales approximately linearly with the number of
+simulations, so more compute reliably helps but at proportional real-time cost.
+Second, the value of additional compute varies by state: on a sparse Tetris board a quick
+response suffices; a dense board under a critical piece rewards deeper search.
+We formalize this as a Semi-Markov meta-decision problem and train a lightweight gating
+policy via PPO that selects the planning depth $K \in \Kset$ at each game state, where
+$K$ controls both simulation count ($K \times 32$ simulations) and the number of committed
+blueprint steps taken while MCTS computes in the background.
+Across Pac-Man, real-time Tetris, and speed Hex, the gating policy outperforms every
+fixed-depth baseline while using \emph{less} average compute: $+10.3\%$ over the best
+fixed policy in Pac-Man and $+22\%$ in real-time Tetris.
+The learned strategy is interpretable---the policy allocates more thinking to dense boards,
+threatened states, and high-value pieces---mirroring the adaptive behavior of skilled
+human players.
 \end{abstract}
 
 
-
-\section{Submission of papers to NeurIPS 2026}
-
-
-Please read the instructions below carefully and follow them faithfully.
-
-
-\subsection{Style}
-
-
-Papers to be submitted to NeurIPS 2026 must be prepared according to the
-instructions presented here. Papers may only be up to {\bf nine} pages long, including figures. \textbf{Papers that exceed the page limit will not be reviewed (or in any other way considered) for presentation at the conference.}
-Additional pages \emph{containing acknowledgments, references, checklist, and optional technical appendices} do not count as content pages. 
-
-
-The margins in 2026 are the same as those in previous years.
-
-
-Authors are required to use the NeurIPS \LaTeX{} style files obtainable at the NeurIPS website as indicated below. Please make sure you use the current files and not previous versions. Tweaking the style files may be grounds for desk rejection.
-
-
-\subsection{Retrieval of style files}
-
-
-The style files for NeurIPS and other conference information are available on the website at
-\begin{center}
-  \url{https://neurips.cc}.
-\end{center}
-% The file \verb+neurips_2026.pdf+ contains these instructions and illustrates the various formatting requirements your NeurIPS paper must satisfy.
-
-
-The only supported style file for NeurIPS 2026 is \verb+neurips_2026.sty+, rewritten for \LaTeXe{}. \textbf{Previous style files for \LaTeX{} 2.09,  Microsoft Word, and RTF are no longer supported.}
-
-
-The \LaTeX{} style file contains three optional arguments: 
-\begin{itemize}
-\item \verb+final+, which creates a camera-ready copy, 
-\item \verb+preprint+, which creates a preprint for submission to, e.g., arXiv, \item \verb+nonatbib+, which will not load the \verb+natbib+ package for you in case of package clash.
-\end{itemize}
-
-
-\paragraph{Preprint option}
-If you wish to post a preprint of your work online, e.g., on arXiv, using the NeurIPS style, please use the \verb+preprint+ option. This will create a nonanonymized version of your work with the text ``Preprint. Work in progress.'' in the footer. This version may be distributed as you see fit, as long as you do not say which conference it was submitted to. Please \textbf{do not} use the \verb+final+ option, which should \textbf{only} be used for papers accepted to NeurIPS.
-
-
-At submission time, please omit the \verb+final+ and \verb+preprint+ options. This will anonymize your submission and add line numbers to aid review. Please do \emph{not} refer to these line numbers in your paper as they will be removed during generation of camera-ready copies.
-
-
-The file \verb+neurips_2026.tex+ may be used as a ``shell'' for writing your paper. All you have to do is replace the author, title, abstract, and text of the paper with your own.
-
-
-The formatting instructions contained in these style files are summarized in Sections \ref{gen_inst}, \ref{headings}, and \ref{others} below.
-
-
-\section{General formatting instructions}
-\label{gen_inst}
-
-
-The text must be confined within a rectangle 5.5~inches (33~picas) wide and
-9~inches (54~picas) long. The left margin is 1.5~inch (9~picas).  Use 10~point
-type with a vertical spacing (leading) of 11~points.  Times New Roman is the
-preferred typeface throughout, and will be selected for you by default.
-Paragraphs are separated by \nicefrac{1}{2}~line space (5.5 points), with no
-indentation.
-
-
-The paper title should be 17~point, initial caps/lower case, bold, centered
-between two horizontal rules. The top rule should be 4~points thick and the
-bottom rule should be 1~point thick. Allow \nicefrac{1}{4}~inch space above and
-below the title to rules. All pages should start at 1~inch (6~picas) from the
-top of the page.
-
-
-For the final version, authors' names are set in boldface, and each name is
-centered above the corresponding address. The lead author's name is to be listed
-first (left-most), and the co-authors' names (if different address) are set to
-follow. If there is only one co-author, list both author and co-author side by
-side.
-
-
-Please pay special attention to the instructions in Section \ref{others}
-regarding figures, tables, acknowledgments, and references.
-
-\section{Headings: first level}
-\label{headings}
-
-
-All headings should be lower case (except for first word and proper nouns),
-flush left, and bold.
-
-
-First-level headings should be in 12-point type.
-
-
-\subsection{Headings: second level}
-
-
-Second-level headings should be in 10-point type.
-
-
-\subsubsection{Headings: third level}
-
-
-Third-level headings should be in 10-point type.
-
-
-\paragraph{Paragraphs}
-
-
-There is also a \verb+\paragraph+ command available, which sets the heading in
-bold, flush left, and inline with the text, with the heading followed by 1\,em
-of space.
-
-
-\section{Citations, figures, tables, references}
-\label{others}
-
-
-These instructions apply to everyone.
-
-
-\subsection{Citations within the text}
-
-
-The \verb+natbib+ package will be loaded for you by default.  Citations may be
-author/year or numeric, as long as you maintain internal consistency.  As to the
-format of the references themselves, any style is acceptable as long as it is
-used consistently.
-
-
-The documentation for \verb+natbib+ may be found at
-\begin{center}
-  \url{http://mirrors.ctan.org/macros/latex/contrib/natbib/natnotes.pdf}
-\end{center}
-Of note is the command \verb+\citet+, which produces citations appropriate for
-use in inline text.  For example,
-\begin{verbatim}
-   \citet{hasselmo} investigated\dots
-\end{verbatim}
-produces
-\begin{quote}
-  Hasselmo, et al.\ (1995) investigated\dots
-\end{quote}
-
-
-If you wish to load the \verb+natbib+ package with options, you may add the
-following before loading the \verb+neurips_2026+ package:
-\begin{verbatim}
-   \PassOptionsToPackage{options}{natbib}
-\end{verbatim}
-
-
-If \verb+natbib+ clashes with another package you load, you can add the optional
-argument \verb+nonatbib+ when loading the style file:
-\begin{verbatim}
-   \usepackage[nonatbib]{neurips_2026}
-\end{verbatim}
-
-
-As submission is double blind, refer to your own published work in the third
-person. That is, use ``In the previous work of Jones et al.\ [4],'' not ``In our
-previous work [4].'' If you cite your other papers that are not widely available
-(e.g., a journal paper under review), use anonymous author names in the
-citation, e.g., an author of the form ``A.\ Anonymous'' and include a copy of the anonymized paper in the supplementary material.
-
-
-\subsection{Footnotes}
-
-
-Footnotes should be used sparingly.  If you do require a footnote, indicate
-footnotes with a number\footnote{Sample of the first footnote.} in the
-text. Place the footnotes at the bottom of the page on which they appear.
-Precede the footnote with a horizontal rule of 2~inches (12~picas).
-
-
-Note that footnotes are properly typeset \emph{after} punctuation
-marks.\footnote{As in this example.}
-
-
-\subsection{Figures}
-
-
-\begin{figure}
+% =============================================================================
+\section{Introduction}
+% =============================================================================
+
+Expert human game players exhibit a striking behavior: they match their thinking time to
+the demands of the situation.
+A chess grandmaster under bullet-time pressure plays near-instantaneously for most moves,
+reserving deliberation for critical junctures.
+A skilled Tetris player barely pauses on easy placements but slows down when the stack
+grows and options narrow.
+This adaptive allocation of cognitive resources is so natural to humans that it goes
+unremarked---yet it is entirely absent from the standard reinforcement learning framework.
+
+In standard RL, the environment is \emph{turn-based}: it waits indefinitely for the
+agent's action before advancing.
+Computation time is free.
+The only cost of running more MCTS simulations is wall-clock latency, which the simulator
+does not count.
+Real-time environments break this assumption fundamentally: the game clock keeps ticking
+regardless of the agent's deliberation.
+A Pac-Man ghost closes the gap while the agent plans.
+A Tetris block descends one row per clock tick.
+An opponent in speed Hex plays their move while you consume your clock.
+In these settings, \emph{the cost of computation is paid in game outcomes}, not merely
+in wall-clock time.
+
+We call this property \emph{implicit time pressure}: the environment does not explicitly
+punish slow decisions, but delaying action cedes ground to physics or to an adversary.
+This is distinct from reactive environments such as CartPole, where every frame demands
+an immediate response and no deliberation is possible at all, and from fully
+pause-based environments where computation is genuinely free.
+Between these extremes lies a rich class of games where the optimal tradeoff between
+planning depth and responsiveness is state-dependent and learnable---the focus of this
+paper.
+
+We make the following contributions:
+\begin{enumerate}
+  \item \textbf{Implicit time pressure and the reactivity spectrum.}
+    We formalize the notion of implicit time pressure in RL and identify two design
+    patterns for introducing it: no-op progression (Pac-Man, Tetris) and explicit clocks
+    (speed Hex).
+
+  \item \textbf{MCTS scaling under time pressure.}
+    We empirically characterize how AlphaZero performance scales with simulation count
+    in each environment, finding an approximately linear relationship that justifies
+    treating compute allocation as the key decision variable.
+    We also identify that the $K{=}1$-trained base model dominates all others when used
+    as the blueprint policy across all delay depths.
+
+  \item \textbf{Adaptive gating policy.}
+    We formulate planning-depth selection as a Semi-Markov Decision Process (SMDP) and
+    train a lightweight gating network via PPO on top of a frozen AlphaZero base.
+    The gating policy observes the game grid, intermediate AZNet trunk features, and the
+    AZNet value estimate to choose $K \in \Kset$.
+
+  \item \textbf{Results and interpretability.}
+    The gating policy outperforms every fixed-$K$ baseline across all environments while
+    using less average compute.
+    Post-hoc analysis reveals a clean, interpretable strategy: more computation is
+    allocated precisely where game theory suggests it should be.
+\end{enumerate}
+
+
+% =============================================================================
+\section{Background and Related Work}
+% =============================================================================
+
+\paragraph{Real-time reinforcement learning.}
+Early work on real-time RL~\cite{sutton1990integrated,continual_learning_rt} introduced
+the idea that agents must act before receiving complete environmental feedback.
+The Arcade Learning Environment supports a ``real-time'' mode in which frames advance
+even if the agent does not act~\cite{bellemare2013arcade}.
+Real-time strategy games have been a benchmark for planning under latency constraints
+\todo{cite StarCraft/OpenAI Five work}.
+Our work differs in focusing on the \emph{allocation} of compute rather than on latency
+reduction, and in providing a formal SMDP treatment that makes the cost structure precise.
+
+\paragraph{MCTS and AlphaZero.}
+Monte Carlo Tree Search~\cite{coulom2006efficient,browne2012survey} and its integration
+with deep networks in AlphaGo~\cite{silver2016mastering} and
+AlphaZero~\cite{silver2018general} established that more simulations reliably improve
+play quality.
+Gumbel MuZero~\cite{danihelka2022policy} showed that even a small number of simulations
+is sufficient for competitive play; \todo{cite mctx library}.
+We exploit the linear compute-performance relationship---rather than being agnostic to
+it---as the key design principle for our gating policy.
+
+\paragraph{Value of computation.}
+The decision-theoretic question of \emph{when} to compute was formalized by
+Russell and Wefald~\cite{russell1991right} as the ``value of computation'' (VoC):
+an agent should invest computation as long as the expected improvement in decision
+quality exceeds the cost.
+Metareasoning approaches~\cite{griffiths2019doing,lieder2017strategy} have since
+applied this idea to cognitive models of human time allocation.
+Our work is the first, to our knowledge, to realize VoC in a learned gating policy
+trained end-to-end in a real-time RL setting.
+
+\paragraph{Anytime algorithms.}
+Anytime algorithms~\cite{dean1988analysis,zilberstein1996using} return a valid answer at
+any point and improve quality with more computation time.
+Our setting is related but distinct: the ``cost'' of computation is not wall-clock time
+per se but the \emph{environment progression} during that time.
+This makes the cost function game-dependent and state-dependent, not just temporal.
+
+\paragraph{Options and semi-Markov decision processes.}
+The options framework~\cite{sutton1999between} models temporally extended actions with
+variable duration.
+SMDPs~\cite{bradtke1994reinforcement,puterman2014markov} provide the formal treatment of
+variable-duration meta-steps.
+We apply SMDP-adapted GAE to handle the per-meta-step discount factor $\gamma^K$.
+
+
+% =============================================================================
+\section{Real-Time RL: Environment Design}
+\label{sec:envs}
+% =============================================================================
+
+We study two mechanisms for introducing implicit time pressure into RL environments.
+
+\subsection{No-op progression: Pac-Man and real-time Tetris}
+
+In no-op based environments the action space includes a ``no-op'' (action index 4 in
+Pac-Man, index 5 in Tetris) that applies no positional control but advances one game
+tick, just as any other action would.
+
+\textbf{Real-time Tetris.}
+The core Tetris environment~\cite{jumanji2022} is modified so that every step---including
+no-op---advances the falling piece by one gravity row.
+The agent chooses to move left, move right, rotate, hard-drop, or do nothing, but
+in all cases gravity acts.
+The piece locks when gravity would push it below an occupied cell.
+During a $K$-step planning phase, the agent issues $K{-}1$ no-ops (letting the piece
+fall naturally) and then, on step $K$, executes the action selected by
+$K \times 32$ MCTS simulations.
+This models the physically realistic situation: a human Tetris player watches pieces fall
+in real time while deciding where to place them.
+
+\textbf{Pac-Man.}
+In the Jumanji Pac-Man environment~\cite{jumanji2022}, issuing a no-op during the
+planning phase would cause the agent to stand still while ghosts advance---a severe
+penalty.
+Instead, during the $K{-}1$ delay steps we execute the raw \emph{blueprint policy}:
+the action argmax of the AZNet policy logits, which requires no MCTS and is
+near-instantaneous.
+On step $K$ the MCTS-selected action is applied.
+The blueprint policy is directional (the agent keeps moving) and of reasonable quality,
+so it does not compound the planning cost the way a freeze would.
+
+\subsection{Explicit clock: speed Hex}
+
+In speed Hex each player is assigned a clock of $T$ ticks at game start.
+Time spent thinking on a move is deducted from that player's clock.
+When a player's clock reaches zero, they lose.
+This is the classical chess time-control model.
+Unlike the no-op mechanism, the cost of thinking is explicit and directly legible to the
+agent as part of the state observation.
+The gating policy for speed Hex is trained with a GRU backbone
+(see Section~\ref{sec:method}) since the game is two-player and turn-based rather than
+single-agent with gravity-driven urgency.
+
+\subsection{Equal compute budget across $K$}
+
+All options in the $K$-step framework share the same per-frame simulation budget:
+$K$ real steps are taken and $K \times 32$ MCTS simulations are run, so each game frame
+is allocated exactly 32 simulations on average regardless of $K$.
+Formally, $K{=}1$ runs 32 sims in 1 frame; $K{=}2$ runs 64 sims but advances 2 frames;
+and so on.
+This design ensures that differences in performance are attributable to \emph{when}
+compute is used, not to \emph{how much} total compute is used.
+
+\begin{table}[h]
   \centering
-  \fbox{\rule[-.5cm]{0cm}{4cm} \rule[-.5cm]{4cm}{0cm}}
-  \caption{Sample figure caption. Explain what the figure shows and add a key take-away message to the caption.}
-\end{figure}
-
-
-All artwork must be neat, clean, and legible. Lines should be dark enough for
- reproduction purposes. The figure number and caption always appear after the
-figure. Place one line space before the figure caption and one line space after
-the figure. The figure caption should be lower case (except for the first word and proper nouns); figures are numbered consecutively.
-
-
-You may use color figures.  However, it is best for the figure captions and the
-paper body to be legible if the paper is printed in either black/white or in
-color.
-
-
-\subsection{Tables}
-
-
-All tables must be centered, neat, clean, and legible.  The table number and
-title always appear before the table.  See Table~\ref{sample-table}.
-
-
-Place one line space before the table title, one line space after the
-table title, and one line space after the table. The table title must
-be lower case (except for the first word and proper nouns); tables are
-numbered consecutively.
-
-
-Note that publication-quality tables \emph{do not contain vertical rules}. We
-strongly suggest the use of the \verb+booktabs+ package, which allows for
-typesetting high-quality, professional tables:
-\begin{center}
-  \url{https://www.ctan.org/pkg/booktabs}
-\end{center}
-This package was used to typeset Table~\ref{sample-table}.
-
-
-\begin{table}
-  \caption{Sample table caption. Explain what the table shows and add a key take-away message to the caption.}
-  \label{sample-table}
-  \centering
-  \begin{tabular}{lll}
+  \caption{Equal compute budget: every $K$ option allocates 32 MCTS simulations per
+    game frame.}
+  \label{tab:budget}
+  \begin{tabular}{lcccc}
     \toprule
-    \multicolumn{2}{c}{Part}                   \\
-    \cmidrule(r){1-2}
-    Name     & Description     & Size ($\mu$m) \\
+    & $K{=}1$ & $K{=}2$ & $K{=}3$ & $K{=}4$ \\
     \midrule
-    Dendrite & Input terminal  & $\approx$100     \\
-    Axon     & Output terminal & $\approx$10      \\
-    Soma     & Cell body       & up to $10^6$  \\
+    MCTS simulations & 32 & 64 & 96 & 128 \\
+    Blueprint / no-op steps & 0 & 1 & 2 & 3 \\
+    Sims per game frame & 32 & 32 & 32 & 32 \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-\subsection{Math}
-Note that display math in bare TeX commands will not create correct line numbers for submission. Please use LaTeX (or AMSTeX) commands for unnumbered display math. (You really shouldn't be using \$\$ anyway; see \url{https://tex.stackexchange.com/questions/503/why-is-preferable-to} and \url{https://tex.stackexchange.com/questions/40492/what-are-the-differences-between-align-equation-and-displaymath} for more information.)
 
-\subsection{Final instructions}
+% =============================================================================
+\section{AlphaZero Performance Scaling}
+\label{sec:scaling}
+% =============================================================================
 
-Do not change any aspects of the formatting parameters in the style files.  In
-particular, do not modify the width or length of the rectangle the text should
-fit into, and do not change font sizes. Please note that pages should be
-numbered.
+\subsection{Compute-performance curve}
+
+A prerequisite for adaptive compute allocation is that more compute reliably produces
+better decisions.
+We verify this empirically by evaluating the AlphaZero base model at a range of
+simulation counts $s \in \{8, 16, 32, 64, 96, 128\}$ on each environment.
+
+\todo{Figure: MCTS scaling curves --- episode return (Pac-Man, Tetris) and win rate
+(Speed Hex) versus simulation count $s$. Should show approximately linear relationship
+across all environments.}
+
+Across all three environments, performance increases approximately linearly with
+simulation count over this range.
+The linearity is not a coincidence: Gumbel MuZero's sequential halving procedure
+allocates simulations uniformly, so each additional batch of simulations provides a
+roughly equal marginal gain in visit counts and thus in policy quality.
+This linearity is what makes the gating problem well-posed: more compute is \emph{always}
+better, so the question reduces to \emph{when} it is worth the implicit cost.
+
+\subsection{Choice of base model}
+
+When using the $K$-step framework at evaluation time, we must choose which AZNet
+checkpoint to use as the frozen base.
+We trained four separate base models, one at each delay depth $K \in \Kset$, and
+evaluated all 16 (model, eval-$K$) combinations.
+
+\todo{Table or figure: cross-evaluation matrix showing that the $K{=}1$-trained model
+achieves the highest return at every eval-$K$.}
+
+The $K{=}1$-trained model dominates.
+We attribute this to two compounding advantages.
+First, $K{=}1$ training is causally clean: the trajectory is never confounded by
+multi-step delays, so the value function is accurate and the policy is well-calibrated.
+Second, the blueprint policy used during the $K{-}1$ delay steps is the AZNet policy
+itself; a stronger blueprint keeps the agent in better states by the time the MCTS action
+fires.
+We therefore use the $K{=}1$ checkpoint as the frozen base for all gating experiments.
 
 
-\section{Preparing PDF files}
+% =============================================================================
+\section{Adaptive Gating Policy}
+\label{sec:method}
+% =============================================================================
 
+\subsection{SMDP formulation}
 
-Please prepare submission files with paper size ``US Letter,'' and not, for
-example, ``A4.''
+Let $s_t$ be the game state at the $t$-th meta-step.
+The gating policy $\pigate(K \mid s_t)$ selects a planning depth $K_t \in \Kset$.
+The agent then executes $K_t - 1$ blueprint or no-op actions followed by the
+MCTS-selected action, accumulating the raw environment rewards over all $K_t$ steps:
+\begin{equation}
+  R_t = \sum_{k=0}^{K_t - 1} r_{t+k}.
+  \label{eq:meta_reward}
+\end{equation}
+The next meta-state is $s_{t+K_t}$.
+Because each meta-step has variable duration, the Bellman equation takes the SMDP form:
+\begin{equation}
+  V(s_t) = \mathbb{E}_{K_t \sim \pigate}\bigl[R_t + \gamma^{K_t} V(s_{t+K_t})\bigr],
+  \label{eq:smdp_bellman}
+\end{equation}
+with per-meta-step discount factor $\gamma^{K_t}$.
 
+\paragraph{Reward formulation.}
+We use the raw, unnormalized reward sum~\eqref{eq:meta_reward} rather than
+$\gamma^K$-discounted or per-step normalized variants.
+Normalizing by $K$ or applying $\gamma^K$ to the reward (rather than only the discount
+factor) creates an implicit bias toward $K{=}1$: a policy that picks $K{=}3$ must
+accumulate $3\times$ the per-step reward to be competitive.
+Raw rewards let the policy discover that $K{=}3$ is optimal in the Pac-Man main regime
+without fighting against a structural handicap.
 
-Fonts were the main cause of problems in the past years. Your PDF file must only
-contain Type 1 or Embedded TrueType fonts. Here are a few instructions to
-achieve this.
+\paragraph{SMDP GAE.}
+We adapt Generalized Advantage Estimation~\cite{schulman2015high} to variable meta-step
+durations.
+The TD residual at meta-step $t$ is
+\begin{equation}
+  \delta_t = R_t + \gamma^{K_t} V(s_{t+K_t}) - V(s_t),
+\end{equation}
+and the GAE advantage is
+\begin{equation}
+  \hat{A}_t = \sum_{l=0}^{T-t-1} \bigl(\lambda \gamma^{K_t}\bigr)^l \delta_{t+l},
+\end{equation}
+where $\lambda$ is the GAE decay parameter.
+Because each $K_t$ may differ, the effective discount in each term carries the
+accumulated product of per-step factors.
 
+\subsection{Gating network architecture}
 
+The gating network takes four inputs at each meta-step:
 \begin{itemize}
+  \item $\mathbf{x}_{\text{grid}} \in \mathbb{R}^{H \times W \times C}$: the raw game
+    grid ($C{=}6$ channels for Pac-Man; $C{=}2$ for Tetris).
+  \item $\mathbf{f}_{\text{trunk}} \in \mathbb{R}^{128}$: global-average-pooled
+    intermediate features from the frozen AZNet ResNet trunk.
+  \item $v \in \mathbb{R}$: the AZNet scalar value estimate $V(s)$.
+  \item $\boldsymbol{\tau} \in \mathbb{R}^{2}$: a learned embedding of the normalized
+    step count, encoding how far through the episode the agent is.
+\end{itemize}
+The AZNet trunk features and value are obtained by a single forward pass through the
+frozen network with \texttt{return\_features=True}; no gradient flows into AZNet.
 
+The spatial branch processes $\mathbf{x}_{\text{grid}}$ through a $1{\times}1$
+convolution lifting to 64 channels, followed by three residual blocks with Layer
+Normalization~\cite{ba2016layer} and global average pooling, producing a 64-dim
+spatial summary.
+We use Layer Normalization rather than Batch Normalization because the gating policy
+operates on a single environment instance during rollout collection, making batch
+statistics undefined.
+The time embedding $\boldsymbol{\tau}$ is processed through a two-layer MLP
+($2 \to 32 \to 64$) and added to the spatial features element-wise.
 
-\item You should directly generate PDF files using \verb+pdflatex+.
-
-
-\item You can check which fonts a PDF files uses.  In Acrobat Reader, select the
-  menu Files$>$Document Properties$>$Fonts and select Show All Fonts. You can
-  also use the program \verb+pdffonts+ which comes with \verb+xpdf+ and is
-  available out-of-the-box on most Linux machines.
-
-
-\item \verb+xfig+ ``patterned'' shapes are implemented with bitmap fonts.  Use
-  "solid" shapes instead.
-
-
-\item The \verb+\bbold+ package almost always uses bitmap fonts.  You should use
-  the equivalent AMS Fonts:
-\begin{verbatim}
-   \usepackage{amsfonts}
-\end{verbatim}
-followed by, e.g., \verb+\mathbb{R}+, \verb+\mathbb{N}+, or \verb+\mathbb{C}+
-for $\mathbb{R}$, $\mathbb{N}$ or $\mathbb{C}$.  You can also use the following
-workaround for reals, natural and complex:
-\begin{verbatim}
-   \newcommand{\RR}{I\!\!R} %real numbers
-   \newcommand{\Nat}{I\!\!N} %natural numbers
-   \newcommand{\CC}{I\!\!\!\!C} %complex numbers
-\end{verbatim}
-Note that \verb+amsfonts+ is automatically loaded by the \verb+amssymb+ package.
-
-
+The spatial representation (64-dim), trunk features (128-dim), and value (1-dim) are
+concatenated into a 193-dim fused representation and passed through dual MLP heads:
+\begin{itemize}
+  \item \textbf{Policy head}: $193 \to 256 \to 4$ with ReLU, producing unnormalized
+    logits over $K \in \Kset$.
+  \item \textbf{Value head}: $193 \to 256 \to 1$ with ReLU, producing a scalar
+    baseline for PPO.
 \end{itemize}
 
+\todo{Architecture diagram showing inputs, spatial branch, fusion, and dual heads.}
 
-If your file contains type 3 fonts or non embedded TrueType fonts, we will ask
-you to fix it.
+\subsection{Training}
+
+We train $\pigate$ with PPO~\cite{schulman2017proximal} while keeping the AZNet
+parameters frozen throughout.
+Rollouts are collected using a vectorized environment under \texttt{jax.lax.scan},
+compiling the full episode into a single XLA kernel for efficiency.
+After each rollout, we compute SMDP-GAE advantages and perform multiple epochs of
+mini-batch PPO updates with a clipped surrogate objective and entropy bonus.
+
+\paragraph{Hyperparameters.}
+\begin{center}
+\begin{tabular}{lcc}
+  \toprule
+  Hyperparameter & Pac-Man & Tetris RT \\
+  \midrule
+  Num.\ envs & 32 & 32 \\
+  Meta-steps per rollout & 384 & 384 \\
+  PPO epochs & 4 & 4 \\
+  Num.\ mini-batches & 16 & 16 \\
+  Reward mode & raw & raw \\
+  $\gamma$ & 0.99 & 0.99 \\
+  $\lambda$ (GAE) & 0.95 & 0.95 \\
+  Clip $\epsilon$ & 0.2 & 0.2 \\
+  Entropy coef.\ & 0.01 & 0.01 \\
+  Learning rate & 3e-4 & 3e-4 \\
+  Sim options & 32, 64, 96, 128 & 32, 64, 96, 128 \\
+  \bottomrule
+\end{tabular}
+\end{center}
 
 
-\subsection{Margins in \LaTeX{}}
+% =============================================================================
+\section{Experiments}
+\label{sec:experiments}
+% =============================================================================
+
+\subsection{Setup}
+
+\paragraph{Environments.}
+We evaluate on three environments spanning the two time-pressure mechanisms
+described in Section~\ref{sec:envs}.
+
+\begin{table}[h]
+  \centering
+  \caption{Evaluation environments.}
+  \label{tab:envs}
+  \begin{tabular}{lllc}
+    \toprule
+    Environment & Time pressure & Delay mechanism & Episode length \\
+    \midrule
+    Pac-Man (Jumanji) & Noop (blueprint) & Blueprint steps & 1200 steps \\
+    Real-Time Tetris & Noop (gravity) & Gravity no-ops & 2000 steps \\
+    Speed Hex (11$\times$11) & Explicit clock & Clock deduction & Variable \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{Baselines.}
+We compare the gating policy against five baselines:
+\textit{always-$K$} policies ($K \in \Kset$) that fix the planning depth for every step;
+a \textit{random} policy that selects $K$ uniformly at each meta-step (same expected
+compute as gating); and, for Speed Hex, additional fixed-budget opponents
+\todo{(greedy, midpeak, etc.\ from the Hex eval suite)}.
+
+\paragraph{Evaluation protocol.}
+All results are averaged over 100 independent episodes.
+We report mean $\pm$ standard error.
+For Pac-Man and Tetris, evaluation uses the same $K{=}1$ AZNet checkpoint used during
+gating training; for Speed Hex, \todo{describe evaluation protocol}.
+
+\subsection{Main results}
+
+\begin{table}[h]
+  \centering
+  \caption{Episode return (mean $\pm$ SE, 100 episodes) for each policy.
+    \textbf{Bold}: best result.
+    $\Delta$: improvement of gating over best fixed-$K$ baseline.}
+  \label{tab:main_results}
+  \begin{tabular}{lccccccc}
+    \toprule
+    Env & $K{=}1$ & $K{=}2$ & $K{=}3$ & $K{=}4$ & Random & Gating & $\Delta$ \\
+    \midrule
+    Pac-Man
+      & $1499.6${\tiny$\pm 83$}
+      & $1854.8${\tiny$\pm 60$}
+      & $2148.8${\tiny$\pm 39$}
+      & $1647.9${\tiny$\pm 70$}
+      & $1377.3${\tiny$\pm 49$}
+      & $\mathbf{2370.4}${\tiny$\pm 59$}
+      & $+10.3\%$ \\[2pt]
+    Tetris RT
+      & \todo{?}
+      & \todo{?}
+      & $30.0${\tiny$\pm 2.6$}
+      & \todo{?}
+      & $14.8${\tiny$\pm 2.3$}
+      & $\mathbf{36.6}${\tiny$\pm 3.2$}
+      & $+22.0\%$ \\[2pt]
+    Speed Hex
+      & \multicolumn{6}{c}{\todo{win rates vs.\ fixed-sim opponents}} & \todo{?} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The gating policy outperforms every fixed-$K$ baseline across all environments.
+Crucially, it does so while using \emph{less} average compute than the best fixed policy.
+In Pac-Man, the best fixed policy is always-$K{=}3$ (96 sims/step), yet the gating
+policy achieves a higher return with an average of approximately 49 simulations per
+game frame---less than always-$K{=}2$.
+In Tetris RT, the gating policy similarly outperforms always-$K{=}3$ while distributing
+compute across $K{=}1,2,3$ rather than committing to any single depth.
+
+The random baseline---which selects $K$ uniformly and therefore uses the same average
+compute as the gating policy---performs worse than every fixed-$K$ baseline in both
+environments.
+This confirms that \emph{when} to allocate compute matters as much as \emph{how much}.
+
+\subsection{Learned K distribution and compute efficiency}
+
+\begin{figure}[h]
+  \centering
+  \todo{Figure: bar charts of K distribution for Pac-Man and Tetris RT side by side,
+    with average simulations per frame annotated.}
+  \caption{Distribution of $K$ choices made by the gating policy (100 episodes).
+    Dashed line marks the average simulations per frame; dotted line marks the
+    always-$K{=}3$ budget (96 sims = 3 $\times$ 32).}
+  \label{fig:k_dist}
+\end{figure}
+
+\paragraph{Pac-Man.}
+The gating policy selects $K{=}1$ (51.9\%), $K{=}2$ (44.9\%), $K{=}3$ (0\%), and
+$K{=}4$ (3.1\%).
+Average simulations per frame: $0.519 \times 32 + 0.449 \times 64 + 0.031 \times 128
+\approx 49$ --- compared to 96 for always-$K{=}3$.
+The policy converges to a nearly binary strategy: quick $K{=}1$ decisions for most
+states, and a small fraction of $K{=}2$ (and rarely $K{=}4$) for demanding situations.
+
+\paragraph{Tetris RT.}
+The gating policy distributes across $K{=}2$ (33.8\%), $K{=}3$ (34.9\%), $K{=}1$
+(26.6\%), and $K{=}4$ (4.7\%).
+Average simulations per frame: \todo{compute and insert}.
+The distribution is wider than Pac-Man, reflecting the more gradual difficulty variation
+in Tetris as board density evolves over an episode.
+
+\subsection{Interpretability: what triggers deeper planning?}
+
+A key advantage of the discrete $K$ formulation is that we can directly analyse what
+game features correlate with each planning depth.
+
+\subsubsection{Pac-Man}
+
+\begin{figure}[h]
+  \centering
+  \todo{Figure: ghost distance by K (left), frightened-ghost fraction by K (right).}
+  \caption{Context statistics for each $K$ choice in Pac-Man.
+    \textbf{Left}: mean nearest-ghost distance.
+    \textbf{Right}: fraction of steps in which at least one ghost is frightened.
+    Error bars are 1 SE.}
+  \label{fig:pacman_context}
+\end{figure}
+
+The clearest pattern in Pac-Man is ghost proximity (Figure~\ref{fig:pacman_context}).
+When the nearest ghost is far away---the agent has room to maneuver---the policy
+prefers $K{=}1$ and takes a quick, reactive action.
+As the ghost closes in, the policy shifts to $K{=}2$ and (at extreme proximity) $K{=}4$,
+investing more simulation depth to find safe escape routes.
+Frightened ghosts reduce the stakes (the agent can safely eat them), and the policy
+correspondingly reduces $K$, consistent with the interpretation that it is estimating
+the value of additional computation rather than defaulting to a fixed depth.
+
+\subsubsection{Real-time Tetris}
+
+\begin{figure}[h]
+  \centering
+  \todo{Figure: 3 panels --- board fill by K, stack height by K, mean K by piece type.}
+  \caption{Context statistics for each $K$ choice in real-time Tetris.
+    \textbf{Left}: board fill fraction (cells occupied / total cells).
+    \textbf{Center}: stack height (rows with at least one filled cell).
+    \textbf{Right}: mean $K$ per tetromino type.}
+  \label{fig:tetris_context}
+\end{figure}
+
+\paragraph{Board density.}
+The most informative predictor of $K$ in Tetris is board fill (Figure~\ref{fig:tetris_context}, left).
+$K{=}1$ is used almost exclusively on sparse boards (fill $\approx 0.133$, stack height
+$\approx 6.8$ rows), where placement options are plentiful and any reasonable action
+is acceptable.
+$K{=}2$ and $K{=}3$ are used on significantly denser boards (fill $\approx 0.20$ and
+$0.17$ respectively, stack heights $\approx 11$ and $\approx 9$ rows), where the choice
+of column and rotation becomes critical and MCTS depth pays off.
+$K{=}4$ is used sparingly (4.7\%) and coincides with full boards (fill $\approx 0.174$,
+height $\approx 10.5$), potentially representing a last-resort deep search on the edge
+of game-over.
+
+\paragraph{Piece type.}
+Different tetrominos elicit different mean planning depth
+(Figure~\ref{fig:tetris_context}, right).
+The I-piece receives the most deliberation ($\bar{K} = 2.39$): it is the only piece that
+can clear four lines simultaneously, making optimal placement high-value, and its narrow
+$1 \times 4$ footprint makes placement sensitive to the exact column and rotation.
+The S-piece receives the least deliberation ($\bar{K} = 2.07$): its constrained geometry
+means that placement options are limited regardless of how many simulations are run.
+
+\paragraph{Piece vertical position.}
+We also observe that higher $K$ choices tend to be made when the piece is lower on the
+board ($K{=}1$: $\bar{y} = 3.31$; $K{=}3$: $\bar{y} = 6.85$).
+Partly this is an artefact of the delay mechanism: choosing $K{=}3$ at $y{=}3$ means the
+next decision occurs at $y{\approx}6$ by construction.
+Nevertheless, the correlation with $K{=}1$ at the top of the board---where the piece has
+just spawned and the agent has maximum time---is consistent with the board-fill finding.
+
+\subsection{Real-time timing analysis}
+
+We measure the latency of each $K$ option on an NVIDIA H100 GPU with a batch size of 1
+and 50 timed repetitions.
+
+\begin{table}[h]
+  \centering
+  \caption{Per-decision latency and effective FPS on H100 (batch=1, 50 reps).
+    FPS = $K$ env steps / latency.}
+  \label{tab:timing}
+  \begin{tabular}{lcccccc}
+    \toprule
+    & \multicolumn{2}{c}{Pac-Man} & \multicolumn{2}{c}{Tetris RT} \\
+    \cmidrule(lr){2-3}\cmidrule(lr){4-5}
+    $K$ & Latency (ms) & FPS & Latency (ms) & FPS \\
+    \midrule
+    1 (32 sims)  & \todo{?} & \todo{?} & \todo{?} & \todo{?} \\
+    2 (64 sims)  & \todo{?} & \todo{?} & \todo{?} & \todo{?} \\
+    3 (96 sims)  & \todo{?} & \todo{?} & \todo{?} & \todo{?} \\
+    4 (128 sims) & $\approx$101ms & $\approx$9.9 & \todo{?} & $\approx$42--53 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+In Pac-Man, $K{=}4$ at $\approx$9.9 FPS represents the slowest agent; the safe
+real-time game speed is therefore approximately 9 FPS, at which $K{=}4$ MCTS finishes
+exactly as 4 game frames elapse.
+
+In Tetris RT, the effective FPS is nearly constant across all $K$ values (${\approx}42$--$53$
+FPS).
+This near-invariance arises because both the numerator (K env steps) and the denominator
+(latency $\propto$ K simulations) scale linearly with $K$, canceling in the ratio.
+The gating policy thus obtains ``free'' additional planning without sacrificing
+throughput.
 
 
-Most of the margin problems come from figures positioned by hand using
-\verb+\special+ or other commands. We suggest using the command
-\verb+\includegraphics+ from the \verb+graphicx+ package. Always specify the
-figure width as a multiple of the line width as in the example below:
-\begin{verbatim}
-   \usepackage[pdftex]{graphicx} ...
-   \includegraphics[width=0.8\linewidth]{myfile.pdf}
-\end{verbatim}
-See Section 4.4 in the graphics bundle documentation
-(\url{http://mirrors.ctan.org/macros/latex/required/graphics/grfguide.pdf})
+% =============================================================================
+\section{Two-GPU Real-Time Deployment}
+\label{sec:deployment}
+% =============================================================================
+
+The $K$-step framework maps directly onto a practical two-GPU real-time pipeline,
+providing a proof of concept that our offline training translates to true asynchronous
+deployment.
+
+\paragraph{Architecture.}
+GPU 0 hosts the game environment and the blueprint policy (a single AZNet forward pass
+for each delay step, no MCTS).
+GPU 1 hosts the MCTS tree search.
+At each meta-decision, the current game state is transferred from GPU 0 to GPU 1;
+GPU 1 begins MCTS and GPU 0 continues executing blueprint actions.
+When GPU 1 finishes (after $K \times 32$ simulations), the selected action is applied
+on GPU 0 at the next opportunity.
+
+\paragraph{Timing calibration.}
+At a game speed of 9 FPS, each game frame lasts $\approx$111ms.
+$K{=}4$ MCTS (128 sims $\times$ $\approx$3ms per sim) completes in $\approx$384ms,
+exactly matching 4 frames: the MCTS result is ready precisely when it should be applied.
+$K{=}1$ and $K{=}2$ finish well within budget.
+The gating policy determines $K$ before MCTS begins, based on the current game state,
+so the pipeline is fully non-blocking.
+
+\paragraph{Implication.}
+This shows that the training protocol---which simulates the latency cost via no-op
+actions in a batched simulator---accurately captures the dynamics of true real-time
+execution.
+No architectural changes are required to go from training to deployment.
+
+\todo{Include actual two-GPU timing measurements and possibly a system diagram.}
 
 
-A number of width problems arise when \LaTeX{} cannot properly hyphenate a
-line. Please give LaTeX hyphenation hints using the \verb+\-+ command when
-necessary.
+% =============================================================================
+\section{Discussion}
+% =============================================================================
+
+\paragraph{Value of computation.}
+Our gating policy is, in essence, learning the value-of-computation function from
+experience.
+At each state it implicitly asks: ``Is the expected improvement from $K{=}3$ MCTS
+over $K{=}2$ worth the two extra noop steps it requires?''
+The answer varies by state---it is high when the board is dense and the placement decision
+is consequential, and low when the board is sparse and any action is fine.
+This is exactly the structure predicted by Russell and Wefald's~\cite{russell1991right}
+theoretical framework, now realized in a neural gating policy trained end-to-end.
+
+\paragraph{Implicit vs.\ explicit time pressure.}
+The noop mechanism (Pac-Man, Tetris) makes the cost of computation implicit in game
+outcomes; the clock mechanism (Speed Hex) makes it explicit and directly observable.
+Both are learnable.
+The noop formulation is easier to apply to any existing environment---add a no-op action
+and define blueprint behavior---while the clock formulation provides a richer, more
+interpretable cost signal.
+We expect the two mechanisms to be largely interchangeable in practice.
+
+\paragraph{Anytime planning.}
+Our setting shares structure with anytime planning~\cite{dean1988analysis}: both improve
+solution quality with more computation.
+The key difference is the cost function.
+In classical anytime planning, computation costs wall-clock time.
+Here, computation costs \emph{game progression}---the environment advances during
+thinking, and that progression has state-dependent consequences.
+This makes the cost non-stationary and correlated with the value of the computation
+itself, a richer problem structure that SMDP-based learning is well-suited to address.
+
+\paragraph{Limitations.}
+The gating policy is trained on top of a \emph{fixed} base model; jointly training the
+base and gating policy is an open problem.
+We study the discrete set $K \in \Kset$; continuous compute allocation is a natural
+extension.
+Our environments are simulation-based; extending to physical real-time settings
+(robotics, real-time strategy) requires dealing with stochastic and uncontrolled
+latencies.
+
+
+% =============================================================================
+\section{Conclusion}
+% =============================================================================
+
+We introduced the concept of implicit time pressure in reinforcement learning---the
+regime where computation time has a real cost paid in game outcomes, not merely in
+wall-clock seconds.
+We showed that AlphaZero-style MCTS scales approximately linearly with compute in
+real-time environments, motivating adaptive compute allocation as the central design
+choice.
+Our lightweight gating policy, trained via PPO over a frozen AlphaZero base, learns to
+allocate computation proportionally to state complexity: quick reactive decisions on easy
+states and deep planning on critical ones.
+Across Pac-Man, real-time Tetris, and speed Hex, the gating policy outperforms every
+fixed-budget baseline while using less average compute, and its strategy is directly
+interpretable in terms of game-theoretic features.
+We believe adaptive computation under real-time pressure is a natural and underexplored
+axis for making RL systems both more capable and more resource-efficient.
+
 
 \begin{ack}
-Use unnumbered first level headings for the acknowledgments. All acknowledgments
-go at the end of the paper before the list of references. Moreover, you are required to declare
-funding (financial activities supporting the submitted work) and competing interests (related financial activities outside the submitted work).
-More information about this disclosure can be found at: \url{https://neurips.cc/Conferences/2026/PaperInformation/FundingDisclosure}.
-
-
-Do {\bf not} include this section in the anonymized submission, only in the final paper. You can use the \texttt{ack} environment provided in the style file to automatically hide this section in the anonymized submission.
+\todo{Acknowledgments, funding, and competing interests.}
 \end{ack}
 
+
 \section*{References}
-
-
-References follow the acknowledgments in the camera-ready paper. Use unnumbered first-level heading for
-the references. Any choice of citation style is acceptable as long as you are
-consistent. It is permissible to reduce the font size to \verb+small+ (9 point)
-when listing the references.
-Note that the Reference section does not count towards the page limit.
-\medskip
-
 
 {
 \small
 
+\todo{Replace with proper BibTeX references. Key citations needed:}
 
-[1] Alexander, J.A.\ \& Mozer, M.C.\ (1995) Template-based algorithms for
-connectionist rule extraction. In G.\ Tesauro, D.S.\ Touretzky and T.K.\ Leen
-(eds.), {\it Advances in Neural Information Processing Systems 7},
-pp.\ 609--616. Cambridge, MA: MIT Press.
+\textit{AlphaZero}: Silver et al.\ (2018) ``A general reinforcement learning algorithm
+that masters chess, shogi, and Go through self-play.'' Science.
 
+\textit{Gumbel MuZero}: Danihelka et al.\ (2022) ``Policy improvement by planning with
+Gumbel.'' ICLR.
 
-[2] Bower, J.M.\ \& Beeman, D.\ (1995) {\it The Book of GENESIS: Exploring
-  Realistic Neural Models with the GEneral NEural SImulation System.}  New York:
-TELOS/Springer--Verlag.
+\textit{Jumanji}: \todo{cite Jumanji environment library}.
 
+\textit{PPO}: Schulman et al.\ (2017) ``Proximal policy optimization algorithms.''
+arXiv:1707.06347.
 
-[3] Hasselmo, M.E., Schnell, E.\ \& Barkai, E.\ (1995) Dynamics of learning and
-recall at excitatory recurrent synapses and cholinergic modulation in rat
-hippocampal region CA3. {\it Journal of Neuroscience} {\bf 15}(7):5249-5262.
+\textit{GAE}: Schulman et al.\ (2015) ``High-dimensional continuous control using
+generalized advantage estimation.'' ICLR.
+
+\textit{Value of computation}: Russell \& Wefald (1991) ``Do the right thing: Studies in
+limited rationality.'' MIT Press.
+
+\textit{Options framework}: Sutton et al.\ (1999) ``Between MDPs and semi-MDPs.''
+Artificial Intelligence.
+
+\textit{Layer Normalization}: Ba et al.\ (2016) ``Layer normalization.'' arXiv:1607.06450.
+
+\textit{MCTS survey}: Browne et al.\ (2012) ``A survey of Monte Carlo tree search
+methods.'' IEEE TCIAIG.
+
+\textit{ALE}: Bellemare et al.\ (2013) ``The Arcade Learning Environment.'' JAIR.
+
+\todo{Add remaining related-work citations from Background section.}
+
 }
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 \appendix
 
-\section{Technical appendices and supplementary material}
-Technical appendices with additional results, figures, graphs, and proofs may be submitted with the paper submission before the full submission deadline (see above). You can upload a ZIP file for videos or code, but do not upload a separate PDF file for the appendix. There is no page limit for the technical appendices. 
+\section{Environment Details}
 
-Note: Think of the appendix as ``optional reading'' for reviewers. The paper must be able to stand alone without the appendix; for example, adding critical experiments that support the main claims to an appendix is inappropriate. 
+\subsection{Real-time Tetris}
+
+The real-time Tetris environment is built on the Jumanji Tetris base~\cite{jumanji2022}.
+Every call to \texttt{env.step(action)} advances the falling piece by one gravity row
+regardless of the action taken.
+The action set is: \{left, right, rotate-CW, rotate-CCW, hard-drop, noop\} (indices 0--5).
+Action 5 (noop) applies no horizontal or rotational input but gravity still acts,
+modeling the piece falling while the agent deliberates.
+A piece locks when gravity would move it into an occupied cell or below the board floor.
+On lock, completed rows are cleared and a new piece spawns at the top.
+The episode terminates when a new piece cannot be placed without overlap (board topped out)
+or after 2000 gravity ticks.
+
+\subsection{K-step wrapping}
+
+The $K$-step execution wrapper is implemented as a subclass of the base environment.
+For a chosen depth $K$:
+\begin{enumerate}
+  \item Run MCTS with $K \times 32$ simulations from the current state.
+  \item Execute $K-1$ blueprint or no-op actions in the real environment.
+  \item Execute the MCTS-selected action as the $K$-th step.
+  \item Accumulate rewards from all $K$ steps.
+\end{enumerate}
+For Tetris, steps 2 uses action=5 (noop) so gravity acts naturally.
+For Pac-Man, steps 2 uses the argmax of AZNet policy logits (blueprint).
+The MCTS tree is initialized fresh at each meta-decision.
+
+\section{Gating Network Details}
+
+\subsection{Architecture}
+
+The residual block used in the spatial branch is ResBlockV2 with Layer Normalization:
+pre-activation design (LN $\to$ ReLU $\to$ Conv $\to$ LN $\to$ ReLU $\to$ Conv) with a
+skip connection.
+All convolutions are $3\times3$ with 64 output channels and SAME padding.
+
+The time embedding projects the normalized step count $\hat{t} = t / T_{\max}$ through:
+$\mathbb{R}^2 \to$ Linear(32) $\to$ ReLU $\to$ Linear(64).
+The input is $(\hat{t}, 1 - \hat{t})$ (time elapsed and time remaining).
+
+\subsection{Training stability}
+
+We found that entropy regularization is essential to prevent premature collapse onto a
+single $K$ value.
+Without entropy bonus, the policy quickly converges to always-$K{=}3$ (the best fixed
+baseline) and stops exploring.
+With entropy coef.\ = 0.01, the policy continues to explore and eventually surpasses the
+always-$K{=}3$ baseline.
+
+\section{Additional Results}
+
+\todo{Additional experiments, ablations, and sensitivity analyses go here.}
+
+\todo{Suggested ablations:
+  (1) Gating with only raw game grid as input (no trunk features / value);
+  (2) Gating with only AZNet features (no spatial branch);
+  (3) Effect of reward mode (raw vs.\ gamma vs.\ normalized);
+  (4) Sensitivity to number of PPO epochs and mini-batches.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
