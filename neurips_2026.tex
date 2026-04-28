@@ -35,10 +35,8 @@
 \begin{abstract}
 % =============================================================================
 
-Deliberating takes time, and in real-time settings that time is not free.
-Standard reinforcement learning sidesteps this, as the environment waits indefinitely
-for the agent's decision, so computation is costless.
-We study environments where this assumption fails---where the environment progresses
+In standard reinforcement learning (RL), the environment waits indefinitely
+for the agent's decision, so computation is costless. We study real-time RL environments where this assumption fails, where the environment progresses
 while the agent plans, and the cost of deliberation is paid in outcomes rather than
 wall-clock seconds.
 In this regime, planning quality improves with computation, but deeper planning also
