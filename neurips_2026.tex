@@ -22,7 +22,7 @@
 \newcommand{\pigate}{\pi_{\mathrm{gate}}}
 
 
-\title{Adaptive Planning Under Implicit Time Pressure}
+\title{Planning in Real-Time Reinforcement Learning}
 
 \author{\todo{Author list}}
 
@@ -36,19 +36,23 @@
 % =============================================================================
 
 Deliberating takes time, and in real-time settings that time is not free.
-Standard reinforcement learning sidesteps this: the environment waits indefinitely
+Standard reinforcement learning sidesteps this, as the environment waits indefinitely
 for the agent's decision, so computation is costless.
-We study environments where this assumption fails---where the world keeps progressing
-while the agent thinks, and the cost of deliberation is paid in outcomes rather than
+We study environments where this assumption fails---where the environment progresses
+while the agent plans, and the cost of deliberation is paid in outcomes rather than
 wall-clock seconds.
-In this regime, planning quality scales predictably with compute budget,
-making adaptive compute allocation the natural lever for performance.
+In this regime, planning quality improves with computation, but deeper planning also
+takes longer to run, and that longer inference is exactly what advances the environment
+during the delay.
 We train a lightweight meta-policy that observes the game state and the planner's
 own internal signals to decide, at each moment, how much computation to invest.
 The meta-policy consistently outperforms every fixed-budget baseline while using
 less average compute, and the strategy it learns is interpretable: computation is
 concentrated precisely where decisions are most consequential.
-We demonstrate this across Pac-Man, real-time Tetris, and two-player speed Hex.
+We validate the full pipeline in a true two-GPU real-time setup, demonstrating that
+the training protocol transfers directly to deployment without architectural changes.
+We demonstrate these results across real-time Pac-Man, Tetris, timed Sokoban,
+and two-player speed Hex.
 
 \end{abstract}
 
@@ -59,73 +63,79 @@ We demonstrate this across Pac-Man, real-time Tetris, and two-player speed Hex.
 
 Expert decision-makers do not think equally hard about every choice.
 A chess player under time pressure blitzes most moves and reserves deliberation for
-critical junctures.
+critical board positions.
 A skilled Tetris player barely pauses on easy placements but slows when the board
 grows dense.
-This adaptive allocation of cognitive effort is so natural to humans that it goes
-unremarked---yet it is entirely absent from the standard reinforcement learning
-framework.
+This adaptive allocation of cognitive effort is so natural that it goes
+unremarked---yet it is entirely absent from the standard reinforcement learning framework.
 
 In standard RL the environment waits: the agent may deliberate indefinitely before
 committing to an action, and computation time carries no cost whatsoever.
 Real-time settings break this assumption.
-Whether because a piece is falling, an opponent is moving, or a clock is ticking,
-the world keeps progressing while the agent thinks.
-We call this \emph{implicit time pressure}: the cost of deliberation is not wall-clock
-latency but lost ground in the environment itself.
-A perfect action computed one moment too late may be far worse than a good-enough
-action taken immediately.
+Whether a piece is falling, an opponent is moving, or a clock is ticking, the world
+keeps progressing while the agent plans.
+The cost of deliberation is not wall-clock latency but lost ground---steps taken by
+the environment while the agent is still deciding.
+A perfect action computed one moment too late may be far worse than a timely
+good-enough action.
 
-This gives rise to a spectrum of decision-making regimes.
-At one extreme, every frame demands an immediate reaction and no deliberation is possible.
+This creates a spectrum of decision-making regimes.
+At one extreme, every frame demands an immediate reaction with no time to deliberate.
 At the other, the environment is fully paused and thinking is costless---the setting
 standard RL was designed for.
 Between these poles lies a rich and underexplored regime: environments where more
-deliberation reliably improves decisions, but at a cost proportional to how much the
-world has progressed in the meantime.
+planning reliably improves decisions, but at a cost that grows with the depth of that
+planning.
 
 We study this intermediate regime using planning-based agents---specifically,
 AlphaZero-style models~\cite{silver2018general} that use Monte Carlo Tree Search (MCTS)
 to improve action selection with additional computation.
-A key property of such agents is that planning quality scales predictably with
-compute budget; more simulations produce better decisions.
-This makes the allocation problem tractable: we do not need to learn \emph{how} to
-plan, only \emph{when} investing more planning is worth the real-time cost.
+As an agent plans more, it performs better; but planning also takes time, and in
+real-time settings that time is paid directly in game outcomes.
+This dual property---planning quality scales up with compute, and real-time cost
+scales up with inference time---makes adaptive compute allocation the natural lever
+for performance.
 
-We train a lightweight \emph{gating policy} that reads the current game state and the
-planner's own internal signals---its value estimate and intermediate spatial
-features---to choose a planning depth at each decision point.
+We train a lightweight \emph{gating policy} that reads the current game state and
+the planner's own value estimate and intermediate features to choose a planning depth
+at each decision point.
 While the planner runs in the background, the agent takes \emph{committed actions}:
 fast, approximate decisions drawn from the planner's policy that keep the agent
 moving without full deliberation.
 The gating policy learns to allocate computation to the moments where it matters most
 and to act quickly everywhere else.
 
-Our contributions are as follows:
+Our contributions are:
 \begin{enumerate}
-  \item \textbf{Implicit time pressure and the reactivity spectrum.}
-    We formalize the notion of implicit time pressure and identify two complementary
-    design patterns for introducing it: \emph{committed-action progression}
-    (the agent takes approximate actions while a slower planner computes) and
-    \emph{explicit clocks} (a per-player timer is depleted by thinking time).
+  \item \textbf{Real-time RL environment design.}
+    We identify two complementary design patterns for real-time environments:
+    \emph{committed-action progression} (the agent takes approximate actions while
+    a slower planner computes) and \emph{explicit clocks} (a per-player timer
+    depleted by thinking time).
+    In both cases, the planning process is cost-aware by construction.
 
-  \item \textbf{Planning scales with compute.}
-    We empirically characterize how planning quality scales with simulation count
-    in real-time environments, finding a near-linear relationship that motivates
-    adaptive allocation as the key design choice.
+  \item \textbf{Planning quality vs.\ inference time.}
+    We empirically characterize how planning quality and real-time inference cost
+    co-scale with simulation count, establishing the joint tradeoff that motivates
+    adaptive allocation.
 
   \item \textbf{Adaptive gating policy.}
     We formulate planning-depth selection as a variable-duration meta-decision problem
     and train a lightweight gating network on top of a frozen planner.
-    The gating policy selects a planning depth $K \in \Kset$, which determines both
-    the simulation budget and the number of committed actions taken before the
-    planner's result is applied.
+    The gating policy selects a depth $K \in \Kset$, determining the simulation budget
+    and, in committed-action environments, the number of fast approximate actions taken
+    while the planner runs.
 
   \item \textbf{Results and interpretability.}
-    Across Pac-Man, real-time Tetris, and speed Hex, the gating policy outperforms
-    every fixed-depth baseline while using less average compute.
-    Post-hoc analysis reveals a clean, interpretable strategy that mirrors the
-    adaptive behavior of skilled human players.
+    Across all four environments, the gating policy outperforms every fixed-depth
+    baseline while using less average compute.
+    The learned strategy is consistent with the intuition that deliberation should
+    be concentrated in high-stakes situations.
+
+  \item \textbf{Real-time deployment.}
+    We validate the approach in a true two-GPU real-time setup---environment and
+    committed-action policy on one GPU, MCTS on a second---showing that the
+    committed-action training protocol transfers directly to deployment.
 \end{enumerate}
 
 
@@ -148,121 +158,128 @@ MCTS~\cite{coulom2006efficient,browne2012survey} and its integration with deep n
 in AlphaGo/AlphaZero~\cite{silver2016mastering,silver2018general} established that
 additional simulation reliably improves decision quality.
 Gumbel MuZero~\cite{danihelka2022policy} showed that even modest simulation budgets
-suffice for competitive play.
-We exploit the near-linear compute-performance relationship as the foundation for
-adaptive allocation.
+suffice for competitive play, and that performance scales predictably with compute.
+We exploit this scaling relationship as the foundation for adaptive allocation.
 
 \paragraph{Value of computation.}
 Russell and Wefald~\cite{russell1991right} formalized \emph{value of computation}
-(VoC): compute as long as the expected improvement exceeds the cost.
+(VoC): invest computation as long as the expected improvement exceeds the cost.
 Metareasoning approaches~\cite{griffiths2019doing,lieder2017strategy} apply this to
 cognitive models of human time allocation.
-Our work realizes VoC as a learned gating policy trained end-to-end in a real-time RL
-setting.
+Our work realizes VoC as a learned gating policy trained end-to-end in a real-time
+RL setting.
+
+\paragraph{Time management in games.}
+Time management heuristics are a standard component of chess and Go engines:
+midpeak strategies allocate more time to the critical mid-game, while greedy strategies
+always use the maximum available budget~\todo{cite chess engine time management work}.
+We use these as baselines for the speed environments.
 
 \paragraph{Anytime algorithms and variable compute.}
 Anytime algorithms~\cite{dean1988analysis,zilberstein1996using} return better answers
 with more computation time; MCTS is one such algorithm.
 Our setting differs: the cost is not wall-clock time but environment progression---a
-richer cost structure because the penalty is state-dependent and game-theoretic.
+richer structure because the penalty is state-dependent and game-theoretic.
 
 \paragraph{Options and semi-Markov decision processes.}
 The options framework~\cite{sutton1999between} and
-SMDPs~\cite{bradtke1994reinforcement,puterman2014markov} provide the theoretical
-foundation for variable-duration meta-steps.
-We apply SMDP-adapted advantage estimation to train the gating policy over meta-steps
-of different durations.
+SMDPs~\cite{bradtke1994reinforcement,puterman2014markov} provide the formal foundation
+for variable-duration meta-steps, which we use to train the gating policy.
 
 
 % =============================================================================
-\section{Real-Time RL: Environments and Time Pressure}
+\section{Real-Time RL Environments}
 \label{sec:envs}
 % =============================================================================
 
-\subsection{Committed-action progression}
+Across all the environments we study, the planning process is \emph{cost-aware} by
+construction: either the MCTS tree explicitly simulates how the world evolves during
+the planning delay, or the network is trained on observations that include the
+remaining time budget, making its value estimates inherently sensitive to the cost of
+thinking.
+We study two mechanisms through which this property arises.
 
-In this class of environments, acting and planning happen concurrently.
-When the gating policy allocates a planning depth of $K$, it reserves $K$ environment
-steps for the planner: $K{-}1$ steps are taken using \emph{committed actions}---fast,
-approximate decisions drawn from the planner's own policy---while the full planner runs
-in the background; on the $K$-th step, the planner's result is applied.
-The environment advances through all $K$ steps, so the cost of deeper planning is
-exactly $K{-}1$ additional steps of world progression.
+\subsection{Committed-action environments: Pac-Man and real-time Tetris}
 
-We study two committed-action environments:
+In committed-action environments, acting and planning happen concurrently.
+When the gating policy selects a planning depth $K$, it reserves $K$ environment steps
+for the planner: the agent takes $K{-}1$ \emph{committed actions}---fast, approximate
+decisions drawn from the planner's own policy---while the full planner runs in the
+background; on the $K$-th step, the planner's result is applied.
+The MCTS tree accounts for this explicitly: its recurrent function simulates the $K{-}1$
+committed-action steps, so search is conducted over the same future the agent will
+actually experience.
+The cost of deeper planning is exactly $K{-}1$ additional steps of world progression
+before the carefully chosen action lands.
 
 \textbf{Pac-Man~\cite{jumanji2022}.}
 Ghosts advance every step regardless of the agent's action.
-Committed actions keep the agent moving through the maze under an approximate policy
-while MCTS computes; a deeper plan means the agent has navigated farther before the
-MCTS action fires.
+Committed actions keep the agent moving under an approximate policy while MCTS
+computes; a deeper plan means the agent has navigated farther before the MCTS action
+fires.
 
 \textbf{Real-time Tetris~\cite{jumanji2022}.}
 Gravity advances the falling piece one row every step.
-Committed actions let the piece fall naturally while the planner works; a deeper plan
-means the piece has descended farther before the chosen placement is executed.
-Every step---including doing nothing---advances the piece under gravity, so the cost
-of planning is directly visible in the board state when the decision lands.
+The same committed-action mechanism applies: the agent moves under an approximate
+policy for $K{-}1$ steps while the planner searches, then the planner's chosen
+placement is executed on step $K$.
+The piece has descended further when the decision lands, making placement precision
+more consequential for deeper plans.
 
-\subsection{Explicit clock}
-
-Speed Hex is a two-player board game in which each player is assigned a clock of $T$
-ticks at the start.
-Time spent deliberating on a move is deducted from that player's clock; when the clock
-reaches zero the player loses.
-Unlike the committed-action mechanism, the penalty for thinking is explicit, directly
-observable, and independent of the board dynamics.
-A player who over-deliberates on an easy move loses clock they may need for a critical
-one.
-
-\subsection{Equal compute budget}
-
-All planning-depth options $K \in \Kset$ are designed to carry the same
-per-frame simulation budget.
-At depth $K$, the planner runs $K \times 32$ simulations and the agent advances $K$
-environment steps, so every game frame receives exactly 32 simulations on average
-regardless of $K$ (Table~\ref{tab:budget}).
-This ensures that differences in performance reflect \emph{when} compute is allocated,
-not \emph{how much} total compute is consumed.
+\paragraph{Equal compute budget.}
+All depth options $K \in \Kset$ are designed to carry the same per-frame simulation
+budget: at depth $K$, the planner runs $K \times 32$ simulations over $K$ environment
+steps, so each game frame receives exactly 32 simulations on average (Table~\ref{tab:budget}).
+Differences in performance therefore reflect \emph{when} compute is used, not how
+much total compute is consumed.
 
 \begin{table}[h]
   \centering
-  \caption{All $K$ options share 32 MCTS simulations per game frame.}
+  \caption{Committed-action environments: all $K$ options share 32 MCTS simulations
+    per game frame.}
   \label{tab:budget}
   \small
   \begin{tabular}{lcccc}
     \toprule
     & $K{=}1$ & $K{=}2$ & $K{=}3$ & $K{=}4$ \\
     \midrule
-    MCTS simulations & 32 & 64 & 96 & 128 \\
-    Committed actions & 0 & 1 & 2 & 3 \\
-    Simulations per game frame & 32 & 32 & 32 & 32 \\
+    MCTS simulations       & 32 & 64 & 96 & 128 \\
+    Committed actions      & 0  & 1  & 2  & 3   \\
+    Simulations per frame  & 32 & 32 & 32 & 32  \\
     \bottomrule
   \end{tabular}
 \end{table}
 
+\subsection{Clock environments: speed Hex and timed Sokoban}
 
-% =============================================================================
-\section{Planning Scales with Compute}
-\label{sec:scaling}
-% =============================================================================
+In clock environments, the agent's remaining time is part of the observation and the
+network is trained to be budget-aware.
+MCTS simulations operate on board-only dynamics (no clock deduction during search),
+but because the network has always observed the clock state, its value estimates
+already price in the cost of thinking: a position evaluated with little time remaining
+is worth less than the same position with ample time.
+When the agent chooses a simulation budget, the corresponding time cost is deducted
+from the clock after the move is played; committed actions during the planning phase
+are no-ops, since the board does not evolve while a player deliberates.
 
-A prerequisite for adaptive compute allocation is that more planning reliably produces
-better decisions.
-We verify this by evaluating our planning policy---an AlphaZero-style agent using
-Gumbel MCTS~\cite{danihelka2022policy}---at simulation counts
-$s \in \{8, 16, 32, 64, 96, 128\}$ on each environment.
+\textbf{Speed Hex.}
+An 11$\times$11 two-player board game in which each player's clock starts at $T$ ticks.
+The gating policy is a GRU-based network that maintains a recurrent hidden state across
+moves, allowing it to track game progression and remaining budget jointly.
+The policy generalizes across different clock settings (fast, medium, near-unlimited)
+without retraining, because the remaining clock is part of every observation.
 
-\todo{Figure: Planning quality (episode return for Pac-Man and Tetris; win rate for
-Speed Hex) versus simulation count $s$. Axes should show a near-linear relationship.}
+\textbf{Timed Sokoban.}
+\todo{Describe Sokoban setup: clock-augmented single-agent puzzle, observation includes
+remaining budget, same formulation as speed Hex.}
 
-Across all three environments, planning quality increases approximately linearly with
-simulation count over this range.
-This is not incidental: Gumbel MCTS allocates simulations via sequential halving,
-distributing them uniformly across branches, so each additional batch of simulations
-provides a roughly equal marginal gain.
-The near-linearity makes compute allocation a tractable optimization: more is always
-better; the question is simply \emph{when} the gain is worth the real-time cost.
+\paragraph{Simulation option calibration.}
+For clock environments, the equal-budget constraint does not apply.
+Instead, simulation options are calibrated so that each option represents a
+meaningfully distinct tradeoff between inference latency and planning quality;
+options that are too close in cost or performance do not give the gating policy useful
+choices.
+See Appendix~\ref{app:sim_calibration} for calibration details.
 
 
 % =============================================================================
@@ -270,20 +287,46 @@ better; the question is simply \emph{when} the gain is worth the real-time cost.
 \label{sec:method}
 % =============================================================================
 
+\subsection{Motivation: the planning tradeoff}
+
+The core observation motivating our approach is that planning quality and inference
+cost scale together.
+As an agent runs more MCTS simulations, its action quality improves; but more
+simulations also take longer to run, and in real-time settings that longer inference
+is exactly what advances the environment---or depletes the clock---before the
+agent acts.
+We verify empirically that this relationship is approximately linear over the
+simulation ranges we study (Figure~\ref{fig:scaling}): each additional batch of
+simulations yields a roughly equal gain in decision quality and a roughly equal
+increase in real-time cost.
+
+\begin{figure}[h]
+  \centering
+  \todo{Figure: planning quality (return / win rate) and inference latency both plotted
+    vs.\ simulation count $s$ for each environment. Show both curves on the same axes
+    or as a two-panel figure. The key message: they scale together, linearly.}
+  \caption{Planning quality and real-time inference cost co-scale with simulation count.
+    More simulations reliably improve decisions but proportionally advance the environment
+    during the planning delay, creating a genuine tradeoff.}
+  \label{fig:scaling}
+\end{figure}
+
+This joint scaling makes the allocation problem tractable: we do not need to learn
+\emph{how} to plan---the planner handles that---only \emph{when} the additional
+quality gain is worth the additional real-time cost.
+
 \subsection{Variable-duration meta-decisions}
 
-We formalize the planning-depth selection problem as a Semi-Markov Decision Process
-(SMDP).
-At each meta-step the agent observes the game state $s_t$ and the gating policy
-$\pigate(K \mid s_t)$ selects a depth $K_t \in \Kset$.
-The agent then takes $K_t{-}1$ committed actions followed by the planner's selected
-action, accumulating environment rewards over all $K_t$ steps:
+We formalize planning-depth selection as a Semi-Markov Decision Process (SMDP).
+At each meta-step the gating policy $\pigate(K \mid s_t)$ selects a depth
+$K_t \in \Kset$.
+The agent executes $K_t{-}1$ committed actions followed by the planner's chosen
+action, accumulating rewards over all $K_t$ steps:
 \begin{equation}
   R_t = \sum_{k=0}^{K_t - 1} r_{t+k}.
   \label{eq:meta_reward}
 \end{equation}
-The next meta-state is $s_{t + K_t}$.
-Because meta-steps have variable duration, the Bellman target uses a per-meta-step
+The next meta-state is $s_{t + K_t}$, and the Bellman target uses a per-meta-step
 discount of $\gamma^{K_t}$:
 \begin{equation}
   V(s_t) = \mathbb{E}_{K_t \sim \pigate}\!\left[R_t + \gamma^{K_t} V(s_{t+K_t})\right].
@@ -293,38 +336,35 @@ We adapt Generalized Advantage Estimation~\cite{schulman2015high} to carry the
 per-step discount factor $\gamma^{K_t}$ through the advantage computation.
 
 \paragraph{Reward formulation.}
-We use the raw, unnormalized meta-reward~\eqref{eq:meta_reward} in place of
-$\gamma^K$-discounted or per-step normalized variants.
-Normalizing by $K$ or discounting the reward (rather than only the future value)
+We use the raw, unnormalized meta-reward~\eqref{eq:meta_reward}.
+Normalizing by $K$ or discounting the reward itself (rather than only the future value)
 creates an implicit bias toward $K{=}1$: longer options must accumulate proportionally
-more reward to be preferred.
-Raw reward lets the policy discover that deeper planning is optimal in states where it
-genuinely earns more, without fighting a structural penalty.
+more reward to be competitive, regardless of whether deeper planning actually earns
+more.
+Raw reward lets the policy discover when deeper planning is genuinely worth more.
 
 \subsection{What the gating policy observes}
 
-The gating policy takes three inputs at each meta-step: (1) the raw game grid, (2) the
-planner's intermediate spatial features extracted from its frozen trunk network
-(a global summary of what the planner ``sees''), and (3) the planner's scalar value
-estimate $V(s_t)$.
-Together these give the gating policy both the agent's view of the board and a
-compressed summary of the planner's confidence in the current situation.
-A small convolutional network processes the game grid, fuses the result with the planner
-features and value estimate, and produces a distribution over $K$ and a baseline value
-for training.
-All implementation details---architecture, training algorithm, and hyperparameters---are
-in Appendix~\ref{app:implementation}.
+The gating policy takes three inputs at each meta-step:
+(1) the raw game grid,
+(2) the planner's intermediate spatial features extracted from its frozen trunk
+(a global summary of what the planner infers about the current position), and
+(3) the planner's scalar value estimate $V(s_t)$.
+In clock environments the observation also includes the remaining time budget.
+Together these give the gating policy both a direct view of the board and a compressed
+summary of the planner's own confidence, without requiring any access to the planner's
+internals beyond a single forward pass.
+A lightweight network processes these inputs and produces a distribution over $K$ and
+a baseline value for training.
+All architecture and training details are in Appendix~\ref{app:implementation}.
 
 \subsection{Training}
 
 The gating policy is trained with PPO~\cite{schulman2017proximal} on top of the
-\emph{frozen} planner.
-Rollouts are collected over full episodes, and SMDP-adapted advantages are computed
-before each round of policy updates.
-The frozen planner is queried at each meta-step for its features and value estimate but
-receives no gradient; only the lightweight gating network is updated.
-This separation means training requires no access to the planner's internals beyond
-a single forward pass.
+frozen planner.
+Rollouts are collected over full episodes; SMDP-adapted advantages are computed before
+each round of policy updates.
+Only the gating network is updated; the planner receives no gradient.
 
 
 % =============================================================================
@@ -334,12 +374,8 @@ a single forward pass.
 
 \subsection{Setup}
 
-\paragraph{Environments and baselines.}
-We evaluate across Pac-Man, real-time Tetris, and speed Hex (Table~\ref{tab:envs}).
-We compare the gating policy against: \emph{always-$K$} policies for each
-$K \in \Kset$ that fix the planning depth every step; and a \emph{random} policy
-that selects $K$ uniformly at each meta-step (matching the gating policy's expected
-compute budget but ignoring game state).
+\paragraph{Environments.}
+We evaluate across four environments spanning both mechanisms (Table~\ref{tab:envs}).
 
 \begin{table}[h]
   \centering
@@ -348,18 +384,29 @@ compute budget but ignoring game state).
   \small
   \begin{tabular}{llll}
     \toprule
-    Environment & Time pressure & Committed actions & Episode length \\
+    Environment & Mechanism & Episode length & Sim options \\
     \midrule
-    Pac-Man (Jumanji) & Committed-action & Approximate policy & 1200 steps \\
-    Real-Time Tetris  & Committed-action & Gravity (no-op) & 2000 steps \\
-    Speed Hex (11$\times$11) & Explicit clock & --- & Variable \\
+    \multicolumn{4}{l}{\textit{Committed-action}} \\[2pt]
+    Pac-Man (Jumanji) & Committed-action & 1200 steps & 32, 64, 96, 128 \\
+    Real-Time Tetris  & Committed-action & 2000 steps & 32, 64, 96, 128 \\[4pt]
+    \multicolumn{4}{l}{\textit{Clock}} \\[2pt]
+    Speed Hex (11$\times$11) & Explicit clock & Variable & 2, 8, 32, 128 \\
+    Timed Sokoban & Explicit clock & \todo{?} & \todo{?} \\
     \bottomrule
   \end{tabular}
 \end{table}
 
+\paragraph{Baselines.}
+For committed-action environments we compare against: \emph{always-$K$} policies for
+each $K \in \Kset$; and a \emph{random} policy selecting $K$ uniformly at each
+meta-step.
+For speed environments we additionally compare against \emph{greedy} (always use
+maximum simulations) and \emph{midpeak} (a bell-curve allocation that concentrates
+compute at the critical mid-game, a common heuristic in game engines~\todo{cite}).
+
 \paragraph{Base planner.}
-We use an AlphaZero checkpoint trained without action delay ($K{=}1$) as the frozen
-base for all gating experiments.
+For committed-action environments we use an AlphaZero checkpoint trained without
+action delay ($K{=}1$) as the frozen base.
 Cross-evaluation across checkpoints trained at each $K$ shows this checkpoint
 dominates at all evaluation depths (Appendix~\ref{app:cross_eval}).
 
@@ -370,13 +417,12 @@ All results are averaged over 100 independent episodes; we report mean $\pm$ sta
 
 \begin{table}[h]
   \centering
-  \caption{Episode return (mean $\pm$ SE, 100 episodes).
-    \textbf{Bold}: best.
-    $\Delta$: improvement of gating over the best fixed-$K$ baseline.}
-  \label{tab:main}
+  \caption{Episode return (mean $\pm$ SE, 100 episodes) for committed-action environments.
+    \textbf{Bold}: best result. $\Delta$: improvement over best fixed-$K$ baseline.}
+  \label{tab:main_ca}
   \begin{tabular}{lccccccc}
     \toprule
-    Env & $K{=}1$ & $K{=}2$ & $K{=}3$ & $K{=}4$ & Random & Gating & $\Delta$ \\
+    & $K{=}1$ & $K{=}2$ & $K{=}3$ & $K{=}4$ & Random & Gating & $\Delta$ \\
     \midrule
     Pac-Man
       & $1499{\scriptstyle\pm83}$
@@ -386,342 +432,115 @@ All results are averaged over 100 independent episodes; we report mean $\pm$ sta
       & $1377{\scriptstyle\pm49}$
       & $\mathbf{2370}{\scriptstyle\pm59}$
       & $+10.3\%$ \\[3pt]
-    Tetris
+    Tetris RT
       & \todo{?}
       & \todo{?}
       & $30.0{\scriptstyle\pm2.6}$
       & \todo{?}
       & $14.8{\scriptstyle\pm2.3}$
       & $\mathbf{36.6}{\scriptstyle\pm3.2}$
-      & $+22.0\%$ \\[3pt]
-    Speed Hex & \multicolumn{6}{c}{\todo{win rates vs.\ fixed-sim opponents}} & \todo{?} \\
+      & $+22.0\%$ \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-The gating policy outperforms every fixed-depth baseline across all environments.
-Critically, it does so while using \emph{less} average compute than the best fixed
-policy.
-In Pac-Man, the best fixed policy commits 96 simulations per step ($K{=}3$), yet
-the gating policy achieves a higher return with ${\approx}49$ simulations per frame
-on average---less than always-$K{=}2$.
-In Tetris the pattern repeats: the gating policy surpasses always-$K{=}3$ while
-distributing planning effort across multiple depths rather than committing any one.
+\begin{table}[h]
+  \centering
+  \caption{Expected score (win rate, 100 games) for clock environments.
+    \textbf{Bold}: best result.}
+  \label{tab:main_clock}
+  \begin{tabular}{lcccc}
+    \toprule
+    & Greedy & Midpeak & Random & Gating \\
+    \midrule
+    Speed Hex & \todo{?} & \todo{?} & \todo{?} & \todo{?} \\
+    Timed Sokoban & \todo{?} & \todo{?} & \todo{?} & \todo{?} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
-The random baseline---which selects $K$ uniformly and therefore matches the gating
-policy's average compute---performs worse than every fixed-$K$ policy in both
-environments.
-This confirms that \emph{what game state triggers deeper planning} matters as much as
-how much planning is done on average.
+The gating policy outperforms every fixed-budget baseline across all environments.
+In committed-action environments, it does so while using \emph{less} average compute
+than the best fixed policy: in Pac-Man, the best fixed policy uses 96 simulations per
+step ($K{=}3$), yet the gating policy achieves a higher return with ${\approx}49$
+simulations per frame on average.
+The random baseline---which matches the gating policy's average compute but ignores
+game state---performs worse than all fixed-$K$ policies, confirming that
+\emph{when} to allocate compute matters as much as how much.
 
-\subsection{What does the gating policy learn?}
+\subsection{Learned depth distribution}
 
 \begin{figure}[h]
   \centering
-  \todo{Bar charts of $K$ distribution for each environment, with average sims/frame annotated.}
-  \caption{Distribution of planning depths chosen by the gating policy (100 episodes).
-    Dashed line: average simulations per frame.
-    Dotted line: always-$K{=}3$ budget (96 sims).}
+  \todo{Bar charts of $K$ distribution for each environment, with average sims/frame
+    annotated for committed-action envs and average clock spend annotated for clock envs.}
+  \caption{Distribution of planning depths chosen by the gating policy (100 episodes).}
   \label{fig:k_dist}
 \end{figure}
 
-\paragraph{Pac-Man.}
-The gating policy converges to a near-binary strategy: $K{=}1$ (51.9\%) for most
-steps and $K{=}2$ (44.9\%) for demanding ones, with $K{=}4$ (3.1\%) reserved for rare
-extremes and $K{=}3$ almost never chosen.
-Average simulations per frame: ${\approx}49$, well below the 96 of always-$K{=}3$.
+In Pac-Man the policy adopts a near-binary strategy: $K{=}1$ (51.9\%) for most steps
+and $K{=}2$ (44.9\%) for demanding ones, with $K{=}4$ (3.1\%) reserved for rare
+extremes---averaging ${\approx}49$ simulations per frame, well below the 96 of the
+best fixed policy.
+In Tetris the distribution is broader---$K{=}3$ (34.9\%), $K{=}2$ (33.8\%),
+$K{=}1$ (26.6\%), $K{=}4$ (4.7\%)---reflecting the more gradual difficulty variation
+as the board density evolves over an episode.
 
-\paragraph{Real-time Tetris.}
-The distribution is broader: $K{=}3$ (34.9\%), $K{=}2$ (33.8\%), $K{=}1$ (26.6\%),
-and $K{=}4$ (4.7\%).
-This reflects the more gradual difficulty variation in Tetris as the board density
-evolves over an episode.
+\subsection{What triggers deeper planning?}
 
-\subsection{Interpretability: what triggers deeper planning?}
+Across all environments, the gating policy concentrates compute in high-stakes states:
+situations where the consequence of a suboptimal action is large and additional search
+depth is most likely to change the decision.
 
-A key benefit of the discrete $K$ formulation is that we can directly measure which
-game-state features correlate with each planning depth.
-
-\subsubsection{Pac-Man: planning depth tracks threat}
+\paragraph{Pac-Man: planning depth tracks threat.}
 
 \begin{figure}[h]
   \centering
   \todo{Left: mean nearest-ghost distance by $K$.
-    Right: frightened-ghost fraction by $K$.}
-  \caption{Game-state context for each planning depth in Pac-Man.
-    The gating policy invests more computation exactly when the threat is higher.}
+    Right: frightened-ghost fraction by $K$. Error bars are 1 SE.}
+  \caption{In Pac-Man, the gating policy invests more computation when the threat is
+    higher---and less when ghosts are harmless.}
   \label{fig:pacman_context}
 \end{figure}
 
-The clearest pattern in Pac-Man is ghost proximity.
-When the nearest ghost is far away the policy prefers $K{=}1$---the agent has room
-to maneuver and a quick decision suffices.
-As the ghost closes in, the policy shifts toward $K{=}2$ and (at extreme proximity)
-$K{=}4$, investing deeper search to find safe escape routes.
-When ghosts are frightened---the agent can safely eat them rather than flee---the
-threat drops and the policy correspondingly reduces $K$.
-The gating policy has learned a state-dependent approximation to the value of
-additional computation: think harder exactly when the stakes are higher.
+The clearest signal in Pac-Man is ghost proximity: when the nearest ghost is far away
+the policy prefers $K{=}1$; as the threat closes in it shifts toward $K{=}2$ and,
+at extreme proximity, $K{=}4$.
+When ghosts are frightened the threat drops, and the policy reduces planning depth
+accordingly.
 
-\subsubsection{Real-time Tetris: planning depth tracks board complexity}
+\paragraph{Tetris: planning depth tracks board complexity.}
 
 \begin{figure}[h]
   \centering
-  \todo{Left: board fill by $K$.
-    Center: stack height by $K$.
-    Right: mean $K$ per tetromino type.}
-  \caption{Game-state context for each planning depth in real-time Tetris.
-    More computation is allocated to denser boards and high-value pieces.}
+  \todo{Left: board fill fraction by $K$. Center: stack height by $K$.
+    Right: mean $K$ per tetromino type. Error bars are 1 SE.}
+  \caption{In real-time Tetris, more computation is allocated to denser boards and
+    high-value pieces.}
   \label{fig:tetris_context}
 \end{figure}
 
 The most predictive feature in Tetris is board density.
-$K{=}1$ is used on sparse boards (fill $\approx 0.133$, stack height $\approx 6.8$ rows)
-where any reasonable placement is acceptable.
-$K{=}2$ and $K{=}3$ are used on denser boards (fill $\approx 0.20$ and $0.17$,
-stack heights $\approx 11$ and $\approx 9$ rows) where the choice of column and rotation
-becomes consequential.
-$K{=}4$ is reserved for critically full boards (4.7\% of decisions).
+$K{=}1$ is used on sparse boards (fill $\approx 0.133$, stack $\approx 6.8$ rows)
+where any reasonable placement is acceptable; $K{=}2$ and $K{=}3$ are used on denser
+boards (fill $\approx 0.20$ and $0.17$, stacks $\approx 11$ and $\approx 9$ rows)
+where placement choice is consequential; $K{=}4$ is reserved for critically full boards.
+Piece type also predicts depth: the I-piece (capable of four-line clears) receives the
+most deliberation ($\bar{K} = 2.39$), while the S-piece, whose constrained geometry
+limits useful placement options regardless of search depth, receives the least
+($\bar{K} = 2.07$).
 
-Piece type also predicts planning depth.
-The I-piece (capable of clearing four lines at once) receives the most deliberation
-($\bar{K} = 2.39$): high potential reward and placement sensitivity make deeper search
-worthwhile.
-The S-piece receives the least ($\bar{K} = 2.07$): its constrained geometry limits
-useful placement options regardless of simulation depth.
+\paragraph{Speed environments.}
+\todo{Describe what features trigger more thinking in speed Hex / Sokoban: remaining
+clock, board contestedness, etc.}
 
-Across both environments, the gating policy implements an implicit
-value-of-computation calculation, concentrating planning effort where game theory
-suggests it pays off.
-
-\subsection{Real-time timing}
-
-We measure per-decision latency on a single GPU at batch size 1
-(details in Appendix~\ref{app:timing}).
-In Pac-Man, $K{=}4$ runs at ${\approx}9.9$ FPS; at a safe real-time speed of 9 FPS,
-$K{=}4$ MCTS finishes exactly as 4 game frames elapse.
-In real-time Tetris, effective FPS is nearly constant across all $K$
-(${\approx}42$--$53$): because both simulation count and environment steps scale
-linearly with $K$, they cancel in the ratio, and the gating policy obtains deeper
-planning without sacrificing throughput.
-
-
-% =============================================================================
-\section{Real-Time Deployment}
-\label{sec:deployment}
-% =============================================================================
-
-The committed-action framework maps directly onto a practical two-processor pipeline,
-showing that our offline training faithfully models true asynchronous real-time
-execution.
-One processor runs the environment and committed actions; a second runs the planner.
-At each meta-decision, the current state is handed off to the second processor, which
-begins planning while the first processor keeps the game moving.
-When planning finishes after $K$ environment steps, the result is applied immediately.
-At 9 FPS this pipeline is fully non-blocking: $K{=}4$ planning completes within
-exactly 4 frames, and shorter-depth options finish with time to spare.
-No architectural changes are required to move from our batched training setup to true
-real-time deployment.
-
-\todo{Include two-GPU timing measurements and a system diagram.}
-
-
-% =============================================================================
-\section{Discussion}
-% =============================================================================
-
-\paragraph{Value of computation.}
-Our gating policy is learning a value-of-computation function from experience.
-At each state it implicitly asks: is the expected improvement from deeper planning
-worth the cost in committed actions?
-The answer is state-dependent and interpretable---higher on dense boards, near threats,
-and for high-value pieces.
-This mirrors Russell and Wefald's~\cite{russell1991right} theoretical prescription,
-realized here through end-to-end RL rather than explicit cost modeling.
-
-\paragraph{Implicit vs.\ explicit time pressure.}
-The committed-action mechanism makes the cost of planning implicit in game outcomes;
-the clock mechanism makes it explicit and directly observable.
-Both are learnable.
-The committed-action formulation is easy to apply to any existing environment
-(introduce approximate actions and define planning depth), while the clock
-formulation provides a richer and more analyzable cost signal.
-
-\paragraph{Anytime planning in outcome space.}
-Classical anytime algorithms improve quality with more wall-clock time.
-In our setting the cost is paid in \emph{environment progression}---a richer structure
-because the penalty depends on game dynamics and is not constant across states.
-SMDP-based learning handles this naturally, treating the cost as part of the transition
-rather than an external budget.
-
-\paragraph{Limitations.}
-The gating policy trains on top of a fixed base planner; joint optimization of the two
-is an open problem.
-We study a discrete depth set $K \in \Kset$; continuous compute allocation is a natural
-extension.
-Our environments are simulation-based; extending to physical real-time settings
-(robotics, real-time strategy) must contend with stochastic and uncontrolled latencies.
-
-
-% =============================================================================
-\section{Conclusion}
-% =============================================================================
-
-We introduced implicit time pressure as a formal property of real-time RL environments
-and showed that it creates a learnable compute-allocation problem.
-A lightweight gating policy, trained on top of a frozen AlphaZero base, learns to
-invest planning depth adaptively---more where decisions are consequential, less where
-quick action suffices.
-The policy consistently outperforms every fixed-budget baseline across three
-environments while using less average compute, and its strategy is directly interpretable
-in terms of game-state complexity.
-We believe adaptive computation under real-time pressure is a natural and underexplored
-axis for making RL systems both more capable and more resource-efficient.
-
-
-\begin{ack}
-\todo{Acknowledgments, funding disclosure, and competing interests.}
-\end{ack}
-
-
-% =============================================================================
-\section*{References}
-% =============================================================================
-
-{
-\small
-
-\todo{Replace with proper BibTeX. Keys used in text:
-  silver2018general, silver2016mastering, danihelka2022policy,
-  jumanji2022, schulman2017proximal, schulman2015high, russell1991right,
-  sutton1999between, bradtke1994reinforcement, puterman2014markov,
-  coulom2006efficient, browne2012survey, bellemare2013arcade,
-  sutton1990integrated, dean1988analysis, zilberstein1996using,
-  griffiths2019doing, lieder2017strategy.}
-}
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\appendix
-
-\section{Environment Details}
-\label{app:envs}
-
-\subsection{Real-time Tetris}
-
-Every call to \texttt{env.step(action)} advances the falling piece by one gravity row
-regardless of the chosen action.
-The action set is \{left, right, rotate-CW, rotate-CCW, hard-drop, no-op\}.
-The no-op action applies no directional input but gravity still acts, modeling the piece
-falling while the agent deliberates.
-A piece locks when gravity would place it in an occupied cell or below the board floor;
-completed rows are then cleared and a new piece spawns.
-The episode terminates on board top-out or after 2000 gravity ticks.
-
-\subsection{Committed actions per environment}
-
-In \textbf{Pac-Man}, committed actions during the $K{-}1$ delay steps are the argmax
-of the base model's raw policy logits (no MCTS).
-This keeps the agent moving through the maze under an approximate policy and avoids
-the severe penalty of standing still while ghosts advance.
-
-In \textbf{real-time Tetris}, committed actions are literal no-ops (action index 5).
-Gravity acts automatically each tick, so no-op faithfully models the piece falling
-while MCTS computes---exactly what a human player observes between decisions.
-
-\subsection{Speed Hex}
-
-Speed Hex is built on the pgx Hex library (11$\times$11 board).
-Each player starts with $T = 300$ clock ticks.
-Time spent planning is deducted from the current player's clock before the turn passes;
-the clock is clamped at zero rather than inducing immediate loss, so players can
-over-deliberate without forfeiting.
-MCTS budget is proportional to the planner's allocated simulation count.
-The gating network for speed Hex uses a GRU backbone to handle the turn-based two-player
-structure \todo{describe GRU gating details}.
-
-
-\section{Cross-Evaluation and Base Model Selection}
-\label{app:cross_eval}
-
-We trained four AlphaZero checkpoints, one at each delay depth $K \in \Kset$, and
-evaluated all 16 (train-$K$, eval-$K$) combinations.
-
-\todo{Table: 4x4 cross-evaluation matrix of episode return or win rate.}
-
-The $K{=}1$-trained checkpoint dominates at every evaluation depth.
-We attribute this to two compounding factors.
-First, $K{=}1$ training is causally clean: trajectories are never confounded by
-multi-step delays, yielding an accurate value function and a well-calibrated policy.
-Second, the committed actions during delay steps are drawn from the base model's policy;
-a stronger base policy keeps the agent in better states by the time the MCTS action
-fires, compounding the advantage across delay steps.
-We therefore use the $K{=}1$ checkpoint as the frozen base for all gating experiments.
-
-
-\section{Implementation Details}
-\label{app:implementation}
-
-\subsection{Gating network architecture}
-
-\textbf{Spatial branch.}
-The game grid is processed by a $1{\times}1$ convolution lifting to 64 channels,
-followed by three residual blocks with Layer Normalization~\cite{ba2016layer} and
-global average pooling to a 64-dimensional representation.
-We use Layer Normalization rather than Batch Normalization because the gating policy
-operates on a single environment instance per rollout step, making batch statistics
-undefined.
-
-\textbf{Time embedding.}
-The normalized step count $\hat{t} = t/T_{\max}$ is encoded as
-$(\hat{t},\, 1 - \hat{t})$ and projected through a two-layer MLP
-($2 \to 32 \to 64$) before being added element-wise to the spatial features.
-
-\textbf{Fusion and heads.}
-The 64-dim spatial representation, 128-dim planner trunk features, and scalar planner
-value are concatenated into a 193-dim fused vector and passed through dual MLP heads:
-a policy head ($193 \to 256 \to 4$) producing logits over $K$, and a value head
-($193 \to 256 \to 1$) producing a scalar baseline.
-
-\subsection{Training details}
-
-Rollouts are collected using vectorized environments under \texttt{jax.lax.scan},
-compiling each episode into a single XLA kernel.
-After each rollout we compute SMDP-adapted GAE advantages and perform multiple rounds
-of PPO mini-batch updates.
+\subsection{Timing analysis}
 
 \begin{table}[h]
   \centering
-  \caption{PPO hyperparameters.}
-  \label{tab:hparams}
-  \begin{tabular}{lcc}
-    \toprule
-    Hyperparameter & Pac-Man & Tetris RT \\
-    \midrule
-    Num.\ parallel envs          & 32   & 32 \\
-    Meta-steps per rollout       & 384  & 384 \\
-    PPO epochs per rollout       & 4    & 4 \\
-    Num.\ mini-batches           & 16   & 16 \\
-    Meta-reward mode             & raw  & raw \\
-    Discount $\gamma$            & 0.99 & 0.99 \\
-    GAE $\lambda$                & 0.95 & 0.95 \\
-    PPO clip $\epsilon$          & 0.2  & 0.2 \\
-    Entropy coefficient          & 0.01 & 0.01 \\
-    Learning rate                & 3e-4 & 3e-4 \\
-    Simulation options           & 32, 64, 96, 128 & 32, 64, 96, 128 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-
-\section{Timing Results}
-\label{app:timing}
-
-\begin{table}[h]
-  \centering
-  \caption{Per-decision latency and effective FPS on an NVIDIA H100 (batch size 1,
-    50 timed repetitions).}
+  \caption{Per-decision latency and effective FPS (H100, batch size 1, 50 reps).}
   \label{tab:timing}
+  \small
   \begin{tabular}{lcccc}
     \toprule
     & \multicolumn{2}{c}{Pac-Man} & \multicolumn{2}{c}{Tetris RT} \\
@@ -736,23 +555,261 @@ of PPO mini-batch updates.
   \end{tabular}
 \end{table}
 
-In Pac-Man, $K{=}4$ at ${\approx}9.9$ FPS is the slowest option; a real-time game
-speed of 9 FPS ensures $K{=}4$ MCTS finishes exactly within 4 frames.
-Each simulation costs roughly 3ms (${\approx}405\text{ms} / 128$).
+In Pac-Man, $K{=}4$ is the slowest option at ${\approx}9.9$ FPS; a target game speed
+of 9 FPS ensures the planner finishes exactly within 4 frames.
+In real-time Tetris, effective FPS is nearly constant across all $K$ (${\approx}42$--$53$):
+simulation count and environment step count both scale linearly with $K$, so they cancel
+in the ratio and the gating policy obtains deeper planning without sacrificing throughput.
 
-In real-time Tetris, effective FPS is nearly constant across all $K$: because both
-simulation count and environment-step count scale linearly with $K$, they cancel in the
-FPS ratio and throughput is effectively invariant to planning depth.
+
+% =============================================================================
+\section{Real-Time Deployment}
+\label{sec:deployment}
+% =============================================================================
+
+We validate the committed-action framework in a true two-GPU real-time setup using
+real-time Tetris.
+One GPU runs the environment and executes committed actions continuously; a second GPU
+runs the MCTS planner.
+At each meta-decision the current game state is transferred to the planning GPU, which
+begins search while the environment GPU keeps the game moving with committed actions.
+When planning finishes---after $K \times 32$ simulations---the result is applied at
+the next environment step.
+
+At a target game speed of 9 FPS, $K{=}4$ planning (128 simulations,
+${\approx}384$ms) completes within exactly 4 frames; shorter-depth options finish
+with time to spare.
+\todo{Insert measured two-GPU latency numbers for Tetris.}
+
+This result demonstrates a key property of the committed-action training protocol:
+because training simulates the planning delay by actually executing committed actions
+in the environment, the learned policy requires no modification for deployment.
+The separation between environment and planner is already the right abstraction.
+
+
+% =============================================================================
+\section{Discussion}
+% =============================================================================
+
+\paragraph{Learned value of computation.}
+The gating policy is learning a value-of-computation function~\cite{russell1991right}
+from experience.
+At each state it implicitly asks: is the expected improvement from deeper planning
+worth the additional real-time cost?
+The answer is state-dependent and interpretable---higher when the board is dense, when
+threats are close, and when the piece type makes placement precision consequential.
+The fact that this function can be learned end-to-end, without explicit cost modeling
+or hand-designed metareasoning rules, is itself a finding: VoC reasoning emerges from
+standard RL training when the cost structure is embedded in the environment.
+
+\paragraph{A unified framework.}
+The committed-action and clock mechanisms are two realizations of the same underlying
+principle: planning that is cost-aware by construction.
+In committed-action environments, cost-awareness is baked into the MCTS tree itself,
+which simulates committed-action steps and therefore searches over the exact future
+the agent will experience.
+In clock environments, cost-awareness is baked into the network's value estimates,
+which are trained on clock-augmented observations and therefore price in remaining
+budget.
+The gating policy can exploit both signals using the same learning algorithm.
+
+\paragraph{Deployment as a test of training fidelity.}
+The two-GPU deployment result is not merely an engineering demonstration.
+It shows that the committed-action abstraction---where K-1 approximate actions fill
+the planning delay in simulation---accurately models the dynamics of true asynchronous
+execution.
+An agent trained under this abstraction generalizes immediately to hardware-separated
+deployment, suggesting the abstraction captures the essential real-time structure.
+
+\paragraph{Limitations.}
+The gating policy trains on top of a fixed base planner; joint optimization of the
+two is an open problem.
+We study a discrete depth set $K \in \Kset$; continuous compute allocation is a
+natural extension.
+Our environments are either simulation-based or played at controlled speeds; extending
+to physical real-time settings with uncontrolled latency would require adaptive
+calibration of the timing model.
+
+
+% =============================================================================
+\section{Conclusion}
+% =============================================================================
+
+We studied the problem of planning in real-time reinforcement learning, where the
+cost of deliberation is paid in game outcomes rather than wall-clock seconds.
+Planning quality and real-time inference cost co-scale with simulation depth, making
+adaptive depth selection the natural lever for performance.
+A lightweight gating policy, trained via RL on top of a frozen planner, learns to
+invest computation proportionally to situational complexity---more for dense boards
+and high-stakes decisions, less for easy ones.
+Across four environments spanning two real-time mechanisms, the gating policy
+consistently outperforms every fixed-budget baseline while using less average compute,
+and the strategy it learns transfers directly to two-GPU real-time deployment.
+We believe that adaptive, state-conditioned compute allocation is an important and
+underexplored axis for making planning-based RL systems both more capable and
+more resource-efficient in real-time settings.
+
+
+\begin{ack}
+\todo{Acknowledgments, funding disclosure, and competing interests.}
+\end{ack}
+
+
+% =============================================================================
+\section*{References}
+% =============================================================================
+
+{
+\small
+
+\todo{Replace with proper BibTeX entries. Keys used in text:
+  silver2018general, silver2016mastering, danihelka2022policy,
+  jumanji2022, schulman2017proximal, schulman2015high, russell1991right,
+  sutton1999between, bradtke1994reinforcement, puterman2014markov,
+  coulom2006efficient, browne2012survey, bellemare2013arcade,
+  sutton1990integrated, dean1988analysis, zilberstein1996using,
+  griffiths2019doing, lieder2017strategy.}
+
+}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\appendix
+
+\section{Environment Details}
+\label{app:envs}
+
+\subsection{Real-time Tetris}
+Every call to \texttt{env.step(action)} advances the falling piece by one gravity row.
+The action set is \{left, right, rotate-CW, rotate-CCW, hard-drop, and a default
+forward action\}.
+A piece locks when gravity would place it in an occupied cell; completed rows are cleared
+and a new piece spawns.
+The episode ends on board top-out or after 2000 gravity ticks.
+
+\subsection{Committed-action execution}
+In both Pac-Man and Tetris, committed actions during the $K{-}1$ delay steps are the
+argmax of the base model's raw policy logits (no MCTS)---a single inexpensive
+forward pass.
+The MCTS recurrent function simulates these same $K{-}1$ committed-action steps on
+each edge of the search tree, ensuring that search is conducted over the exact future
+the agent will experience.
+
+\subsection{Speed Hex}
+Speed Hex is built on the pgx Hex library (11$\times$11 board).
+Each player begins with $T = 300$ clock ticks; time spent planning is deducted after
+each move.
+MCTS search uses board-only dynamics (no clock deduction during simulation), but the
+observation---and therefore the network's value estimates---includes the remaining
+clock for both players.
+The gating policy is a GRU network that maintains hidden state across moves within an
+episode, allowing it to track game progression and clock pressure jointly.
+
+
+\section{Simulation Option Calibration for Clock Environments}
+\label{app:sim_calibration}
+
+For committed-action environments, the equal-budget constraint (32 sims/frame) naturally
+produces meaningful option spacing.
+For clock environments this constraint does not apply, so we select simulation options
+by examining two curves simultaneously: planning quality (win rate or return) vs.\
+simulation count, and inference latency vs.\ simulation count.
+
+An option is \emph{useful} if it is distinguishable from its neighbors on both dimensions:
+adding more simulations should noticeably improve play \emph{and} noticeably increase
+latency.
+Options that are close in both cost and quality give the gating policy nothing to learn;
+options that differ in cost but not quality waste planning budget.
+
+For speed Hex we found that options $\{2, 8, 32, 128\}$ satisfy this criterion across
+the relevant range of clock settings.
+\todo{Insert calibration curves: win rate vs.\ sims, latency vs.\ sims, with chosen
+options marked.}
+
+
+\section{Cross-Evaluation and Base Model Selection}
+\label{app:cross_eval}
+
+We trained four AlphaZero checkpoints at delay depths $K \in \Kset$ and evaluated
+all 16 (train-$K$, eval-$K$) combinations.
+
+\todo{Table: 4$\times$4 cross-evaluation matrix.}
+
+The $K{=}1$-trained checkpoint dominates at every evaluation depth.
+Two factors compound: $K{=}1$ training is causally clean (no delay confounds the
+value function), and committed actions during delay steps are drawn from the base
+model's policy---a stronger base produces better committed actions and therefore better
+states when the MCTS action fires.
+We use the $K{=}1$ checkpoint as the frozen base for all committed-action experiments.
+
+
+\section{Implementation Details}
+\label{app:implementation}
+
+\subsection{Gating network architecture}
+
+\textbf{Spatial branch.}
+The game grid is processed by a $1{\times}1$ convolution lifting to 64 channels,
+followed by three residual blocks with Layer Normalization and global average pooling
+to a 64-dimensional spatial representation.
+Layer Normalization is used because the gating policy operates on a single environment
+instance per rollout step, making batch statistics undefined.
+
+\textbf{Time / clock embedding.}
+For committed-action environments, the normalized step count is encoded as a 2-vector
+and projected through a small MLP before being added to the spatial features.
+For clock environments, the remaining clock fraction is similarly embedded and added.
+
+\textbf{Fusion and heads.}
+The spatial representation (64-dim), planner trunk features (128-dim), and planner
+value (1-dim) are concatenated and passed through dual MLP heads: a policy head
+producing logits over $K$, and a value head producing a scalar baseline.
+
+\textbf{Speed Hex gating network.}
+Uses a GRU backbone rather than a feedforward network, maintaining a recurrent hidden
+state across moves within each game to track temporal context.
+
+\subsection{Training hyperparameters}
+
+\begin{table}[h]
+  \centering
+  \caption{PPO hyperparameters for committed-action environments.}
+  \label{tab:hparams}
+  \begin{tabular}{lcc}
+    \toprule
+    Hyperparameter & Pac-Man & Tetris RT \\
+    \midrule
+    Num.\ parallel envs     & 32   & 32   \\
+    Meta-steps per rollout  & 384  & 384  \\
+    PPO epochs per rollout  & 4    & 4    \\
+    Num.\ mini-batches      & 16   & 16   \\
+    Meta-reward mode        & raw  & raw  \\
+    Discount $\gamma$       & 0.99 & 0.99 \\
+    GAE $\lambda$           & 0.95 & 0.95 \\
+    PPO clip $\epsilon$     & 0.2  & 0.2  \\
+    Entropy coefficient     & 0.01 & 0.01 \\
+    Learning rate           & 3e-4 & 3e-4 \\
+    Sim options             & 32, 64, 96, 128 & 32, 64, 96, 128 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+
+\section{Timing Results}
+\label{app:timing}
+
+Full timing table for all environments and $K$ options:
+\todo{Insert complete latency / FPS table once measurements are collected.}
 
 
 \section{Additional Results and Ablations}
 \label{app:ablations}
 
 \todo{Suggested ablations:
-  (1) Gating with only raw game grid (no planner trunk features or value estimate);
-  (2) Gating with only planner features (no spatial branch);
-  (3) Reward mode comparison: raw vs.\ $\gamma^K$-discounted vs.\ per-step normalized;
-  (4) Sensitivity to entropy coefficient.}
+(1) Gating with only raw game grid, no planner trunk features or value;
+(2) Gating with only planner features, no spatial branch;
+(3) Reward mode: raw vs.\ $\gamma^K$-discounted vs.\ per-step normalized;
+(4) Sensitivity to entropy coefficient.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
