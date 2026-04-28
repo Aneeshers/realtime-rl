@@ -18,6 +18,7 @@
 \usepackage{multirow}
 
 \newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\newcommand{\am}[1]{\textcolor{blue}{{[aneesh: #1]}}}
 \newcommand{\Kset}{\{1,2,3,4\}}
 \newcommand{\pigate}{\pi_{\mathrm{gate}}}
 
@@ -36,21 +37,15 @@
 % =============================================================================
 
 Deliberating takes time, and in real-time settings that time is not free.
-Standard reinforcement learning sidesteps this, as the environment waits indefinitely
+Standard reinforcement learning (RL) sidesteps this, as the environment waits indefinitely
 for the agent's decision, so computation is costless.
 We study environments where this assumption fails, where the environment progresses
 while the agent plans, and the cost of deliberation is paid in outcomes rather than
 wall-clock seconds.
-In this regime, planning quality improves with computation, but deeper planning also
-takes longer to run, and that longer inference is exactly what advances the environment
-during the delay.
 We train a lightweight meta-policy that decides how much computation to invest at each step.
 The meta-policy consistently outperforms every fixed-budget baseline while using
-less average compute. The strategy it learns is interpretable as computation is
-concentrated precisely where decisions are most consequential.
-We validate the full pipeline in a true two-GPU real-time setup, demonstrating that
-the training protocol transfers directly to deployment without architectural changes.
-We demonstrate these results across real-time Pac-Man, Tetris, timed Sokoban,
+less average compute.
+Moreover, we validate the full pipeline in a true two-GPU real-time setup. We demonstrate these results across real-time Pac-Man, Tetris, timed Sokoban,
 and two-player speed Hex.
 
 \end{abstract}
@@ -65,8 +60,7 @@ A chess player under time pressure blitzes most moves and reserves deliberation 
 critical board positions.
 A skilled Tetris player barely pauses on easy placements but slows when the board
 grows dense.
-This adaptive allocation of cognitive effort is so natural that it goes
-unremarked. Yet it is entirely absent from the standard reinforcement learning (RL) framework.
+This adaptive allocation of cognitive effort is so natural, yet it is entirely absent from the standard reinforcement learning (RL) framework. \am{ citation}
 
 In standard RL the environment waits. The agent may deliberate indefinitely before
 committing to an action, and computation time carries no cost whatsoever.
@@ -140,22 +134,9 @@ Our contributions are:
 % =============================================================================
 
 \paragraph{Real-time reinforcement learning.}
-Early work on real-time RL~\cite{sutton1990integrated} introduced agents that must
-act before receiving complete feedback.
-The Arcade Learning Environment~\cite{bellemare2013arcade} supports a real-time mode
-in which frames advance even without an action.
-Real-time strategy games have motivated planning under latency
-constraints~\todo{cite StarCraft work}.
-Our work differs in treating compute allocation as the core learning problem rather
-than an engineering constraint to minimize.
+
 
 \paragraph{Monte Carlo Tree Search and AlphaZero.}
-MCTS~\cite{coulom2006efficient,browne2012survey} and its integration with deep networks
-in AlphaGo/AlphaZero~\cite{silver2016mastering,silver2018general} established that
-additional simulation reliably improves decision quality.
-Gumbel MuZero~\cite{danihelka2022policy} showed that even modest simulation budgets
-suffice for competitive play, and that performance scales predictably with compute.
-We exploit this scaling relationship as the foundation for adaptive allocation.
 
 \paragraph{Value of computation.}
 Russell and Wefald~\cite{russell1991right} formalized \emph{value of computation}
@@ -170,12 +151,6 @@ Time management heuristics are a standard component of chess and Go engines:
 midpeak strategies allocate more time to the critical mid-game, while greedy strategies
 always use the maximum available budget~\todo{cite chess engine time management work}.
 We use these as baselines for the speed environments.
-
-\paragraph{Anytime algorithms and variable compute.}
-Anytime algorithms~\cite{dean1988analysis,zilberstein1996using} return better answers
-with more computation time; MCTS is one such algorithm.
-Our setting differs: the cost is not wall-clock time but environment progression---a
-richer structure because the penalty is state-dependent and game-theoretic.
 
 \paragraph{Options and semi-Markov decision processes.}
 The options framework~\cite{sutton1999between} and
@@ -299,7 +274,7 @@ increase in real-time cost.
   \centering
   \todo{Figure: planning quality (return / win rate) and inference latency both plotted
     vs.\ simulation count $s$ for each environment. Show both curves on the same axes
-    or as a two-panel figure. The key message: they scale together, linearly.}
+    or as a two-panel figure. they scale together, linearly.}
   \caption{Planning quality and real-time inference cost co-scale with simulation count.
     More simulations reliably improve decisions but proportionally advance the environment
     during the planning delay, creating a genuine tradeoff.}
@@ -459,8 +434,8 @@ In committed-action environments, it does so while using \emph{less} average com
 than the best fixed policy: in Pac-Man, the best fixed policy uses 96 simulations per
 step ($K{=}3$), yet the gating policy achieves a higher return with ${\approx}49$
 simulations per frame on average.
-The random baseline---which matches the gating policy's average compute but ignores
-game state---performs worse than all fixed-$K$ policies, confirming that
+The random baseline, which matches the gating policy's average compute but ignores
+game state, performs worse than all fixed-$K$ policies, confirming that
 \emph{when} to allocate compute matters as much as how much.
 
 \subsection{Learned depth distribution}
@@ -475,10 +450,10 @@ game state---performs worse than all fixed-$K$ policies, confirming that
 
 In Pac-Man the policy adopts a near-binary strategy: $K{=}1$ (51.9\%) for most steps
 and $K{=}2$ (44.9\%) for demanding ones, with $K{=}4$ (3.1\%) reserved for rare
-extremes---averaging ${\approx}49$ simulations per frame, well below the 96 of the
+extremes, averaging ${\approx}49$ simulations per frame, well below the 96 of the
 best fixed policy.
-In Tetris the distribution is broader---$K{=}3$ (34.9\%), $K{=}2$ (33.8\%),
-$K{=}1$ (26.6\%), $K{=}4$ (4.7\%)---reflecting the more gradual difficulty variation
+In Tetris the distribution is broader, $K{=}3$ (34.9\%), $K{=}2$ (33.8\%),
+$K{=}1$ (26.6\%), $K{=}4$ (4.7\%), reflecting the more gradual difficulty variation
 as the board density evolves over an episode.
 
 \subsection{What triggers deeper planning?}
@@ -494,7 +469,7 @@ depth is most likely to change the decision.
   \todo{Left: mean nearest-ghost distance by $K$.
     Right: frightened-ghost fraction by $K$. Error bars are 1 SE.}
   \caption{In Pac-Man, the gating policy invests more computation when the threat is
-    higher---and less when ghosts are harmless.}
+    higher, and less when ghosts are harmless.}
   \label{fig:pacman_context}
 \end{figure}
 
