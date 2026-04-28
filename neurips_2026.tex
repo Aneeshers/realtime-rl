@@ -234,6 +234,16 @@ are no-ops, since the board does not evolve while a player deliberates.
 
 \textbf{Speed Hex.}
 An 11$\times$11 two-player board game in which each player's clock starts at $T$ ticks.
+One natural formulation ends the game immediately when a player's clock reaches zero,
+but we found that in this setting the gating policy trivially learns to avoid timing
+out, a much easier problem that does not require genuine resource allocation
+(see Appendix~\ref{app:sim_calibration} for results under that formulation).
+We therefore study the harder setting: once the clock is exhausted, the agent continues
+playing with committed fast-approximate actions for the remainder of the game rather
+than forfeiting.
+This forces the gating policy to reason about how to distribute a finite budget across
+the full game, knowing that spending too much early degrades late-game play quality
+rather than triggering an immediate loss.
 The gating policy is a GRU-based network that maintains a recurrent hidden state across
 moves, allowing it to track game progression and remaining budget jointly.
 The policy generalizes across different clock settings (fast, medium, near-unlimited)
