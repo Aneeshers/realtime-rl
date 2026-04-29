@@ -37,13 +37,13 @@ plt.rcParams.update({
 # ============================================================
 # Font sizes  ← adjust these
 # ============================================================
-
-FS_TIME     = 16    # time label above board ("$t{+}1$ (left)")
-FS_BOT      = 15    # action label below board ("commit: π≈", "MCTS action")
-FS_ARRLBL   =  18    # ← + ↓ labels on arrows
-FS_BADGE    = 15    # K = 4 badge
-FS_BRACKET  = 16    # MCTS planning bracket text
-FS_GAP      =  15    # "gap" annotation
+BASE = 7
+FS_TIME     = 16 + BASE   # time label above board ("$t{+}1$ (left)")
+FS_BOT      = 15 + BASE   # action label below board ("commit: π≈", "MCTS action")
+FS_ARRLBL   =  18 + BASE   # ← + ↓ labels on arrows
+FS_BADGE    = 15 + BASE   # K = 4 badge
+FS_BRACKET  = 16 + BASE   # MCTS planning bracket text
+FS_GAP      =  15 + BASE    # "gap" annotation
 
 # ============================================================
 # Colors & geometry
