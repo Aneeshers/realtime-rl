@@ -92,13 +92,13 @@ time) makes adaptive compute allocation the natural lever for performance.
 We train a lightweight \emph{gating policy} that reads the current game state and
 the planner's own value estimate and intermediate features to choose a planning depth
 at each decision point.
-While the planner runs in the background, the agent takes \emph{committed actions}:
-fast, approximate decisions drawn from the planner's policy that keep the agent
-moving without full deliberation.
+While the planner runs in the background, the agent takes \emph{committed actions}.
+In committed-action environments these are fast, approximate decisions drawn from
+the planner's policy that keep the agent moving without full deliberation; in
+clock environments, where the board does not evolve while a player thinks, they
+are no-ops that simply consume the player's clock.
 The gating policy learns to allocate computation to the moments where it matters most
 and to act quickly everywhere else.
-
-\am{committed actions in timed MDPs are no-ops, so it can be either fast policy logit actions or no-ops}
 
 Our contributions are:
 \dc{training implementation details and how that transfers; }
@@ -400,10 +400,7 @@ gain is worth the additional real-time cost.
 
 \subsection{Variable-duration meta-decisions}
 
-We formalize planning-depth selection as a Semi-Markov Decision Process (SMDP). 
-
-\am{this only is applied to tetris and pacman, actually maybe not, because it could be extended to timed settings which have no-op actions, which would accumulate 0 reward during the no-op; will check on this.}
-
+We formalize planning-depth selection as a Semi-Markov Decision Process (SMDP).
 At each meta-step the gating policy $\pigate(K \mid s_t)$ selects a depth
 $K_t \in \Kset$.
 The agent executes $K_t{-}1$ committed actions followed by the planner's chosen
@@ -412,6 +409,10 @@ action, accumulating rewards over all $K_t$ steps:
   R_t = \sum_{k=0}^{K_t - 1} r_{t+k}.
   \label{eq:meta_reward}
 \end{equation}
+The same formulation covers clock environments: the $K_t{-}1$ committed actions
+are no-ops that contribute zero reward, so $R_t$ reduces to the reward of the
+planner's chosen action while $\gamma^{K_t}$ in equation~\eqref{eq:smdp} still
+discounts the elapsed clock cost.
 The next meta-state is $s_{t + K_t}$, and the Bellman target uses a per-meta-step
 discount of $\gamma^{K_t}$:
 \begin{equation}
