@@ -217,17 +217,17 @@ form the baselines for our clock environments.
 % =============================================================================
 
 In a real-time environment the clock runs independently of the agent's decision-making.
-Every game tick, the world advances --- the Tetris piece falls one row, the Pac-Man
-ghosts step, the Hex clock depletes --- regardless of whether the agent has finished
+Every game tick, the world advances, the Tetris piece falls one row, the Pac-Man
+ghosts step, the Hex clock depletes, regardless of whether the agent has finished
 deliberating.
-Computation time is therefore a direct cost in game outcomes: a more deliberate agent
+Computation time is therefore a direct cost in game outcomes. A more deliberate agent
 pays in world-progression steps rather than wall-clock seconds.
 
 Figure~\ref{fig:tetris_committed} illustrates the mechanism for real-time Tetris.
 An I-shaped piece spawns at the top of the board.
 The gating policy selects $K{=}4$, reserving four game ticks for the planner.
 During ticks $t{+}1$ through $t{+}3$, a fast approximate policy ($\pi_\approx$)
-takes committed actions --- here, moving the piece left each tick as gravity pulls it
+takes committed actions, here, moving the piece left each tick as gravity pulls it
 down.
 MCTS runs 128 simulations in the background over those same ticks, simulating the
 committed-action trajectory to find the best action for tick $t{+}4$.
@@ -370,7 +370,7 @@ See Appendix~\ref{app:sim_calibration} for calibration details.
 
 
 
-\subsection{Motivation: the planning tradeoff}
+\subsection{The planning tradeoff}
 
 The core observation motivating our approach is that planning quality and inference
 cost scale together.
