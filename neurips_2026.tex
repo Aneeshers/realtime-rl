@@ -204,8 +204,8 @@ AlphaZero-style planning under real-time environmental cost.
 
 \paragraph{Options, anytime planning, and time management.}
 Anytime planning~\cite{korf1990rta,dean1988analysis,zilberstein1996using,likhachev2003ara}
-establishes the tradeoff our gating policy operationalises in a deep-RL
-setting. We formalise meta-decisions as variable-duration
+establishes the tradeoff our gating policy operationalizes in a deep-RL
+setting. We formalize meta-decisions as variable-duration
 options~\cite{sutton1999between,bradtke1994reinforcement,bacon2017optioncritic};
 closest in spirit is Harb et al.'s deliberation cost on
 options~\cite{harb2018deliberation}. MCTS time-management heuristics in Go
@@ -215,6 +215,8 @@ form the baselines for our clock environments.
 \section{Real-Time RL Environments}
 \label{sec:envs}
 % =============================================================================
+
+\am{explain briefly what real-time RL environments are, how the environment moves along even if an action from the policy is not given - perhaps an easy example is real-time tetris - design figure showing what no-op means in tetris (committed action policy selecting left while mcts thinks}
 
 Across all the environments we study, the planning process is \emph{cost-aware} by
 construction. Either the MCTS tree explicitly simulates how the world evolves during
