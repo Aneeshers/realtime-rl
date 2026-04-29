@@ -51,7 +51,7 @@ FS_GAP      =  15 + BASE    # "gap" annotation
 
 GATING_COLOR  = "#C94040"
 BADGE_COLOR   = "#1a3a6b"
-BG_FILL_RGBA  = (0.50, 0.50, 0.50, 0.65)   # semi-transparent gray
+BG_FILL_RGBA  = (0.68, 0.85, 0.90, 0.40)   # semi-transparent light blue
 
 FIG_WIDTH  = 16.0
 FIG_HEIGHT = 5.5
