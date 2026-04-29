@@ -16,6 +16,8 @@
 \usepackage{graphicx}
 \usepackage{subcaption}
 \usepackage{multirow}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
 
 \newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
 \newcommand{\am}[1]{\textcolor{blue}{{[aneesh: #1]}}}
@@ -450,76 +452,151 @@ All results are averaged over 100 independent episodes; we report mean $\pm$ sta
 
 \subsection{Main results}
 
-\begin{table}[h]
+\begin{figure}[t]
   \centering
-  \caption{Episode return (mean $\pm$ SE, 100 episodes) for committed-action environments.
-    \textbf{Bold}: best result. $\Delta$: improvement over best fixed-$K$ baseline.}
-  \label{tab:main_ca}
-  \begin{tabular}{lccccccc}
-    \toprule
-    & $K{=}1$ & $K{=}2$ & $K{=}3$ & $K{=}4$ & Random & Gating & $\Delta$ \\
-    \midrule
-    Pac-Man
-      & $1499{\scriptstyle\pm83}$
-      & $1855{\scriptstyle\pm60}$
-      & $2149{\scriptstyle\pm39}$
-      & $1648{\scriptstyle\pm70}$
-      & $1377{\scriptstyle\pm49}$
-      & $\mathbf{2370}{\scriptstyle\pm59}$
-      & $+10.3\%$ \\[3pt]
-    Tetris RT
-      & \todo{?}
-      & \todo{?}
-      & $30.0{\scriptstyle\pm2.6}$
-      & \todo{?}
-      & $14.8{\scriptstyle\pm2.3}$
-      & $\mathbf{36.6}{\scriptstyle\pm3.2}$
-      & $+22.0\%$ \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-\begin{table}[h]
-  \centering
-  \caption{Expected score (win rate, 100 games) for clock environments.
-    \textbf{Bold}: best result.}
-  \label{tab:main_clock}
-  \begin{tabular}{lcccc}
-    \toprule
-    & Greedy & Midpeak & Random & Gating \\
-    \midrule
-    Speed Hex & \todo{?} & \todo{?} & \todo{?} & \todo{?} \\
-    Timed Sokoban & \todo{?} & \todo{?} & \todo{?} & \todo{?} \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+  \small
+  % Pac-Man
+  \begin{subfigure}[t]{0.23\textwidth}
+    \begin{tikzpicture}
+    \begin{axis}[
+      ybar, bar width=5pt,
+      width=\textwidth, height=4.2cm,
+      symbolic x coords={K1,K2,K3,K4,Rand,Gate},
+      xtick=data,
+      x tick label style={font=\tiny,rotate=40,anchor=east},
+      ytick={0,500,1000,1500,2000,2500},
+      yticklabel style={font=\tiny},
+      ylabel={Return}, ylabel style={font=\scriptsize},
+      title={Pac-Man}, title style={font=\small\bfseries},
+      ymin=0, ymax=2900,
+      enlarge x limits=0.1,
+      axis lines*=left,
+      ymajorgrids=true, grid style={dashed,gray!30},
+    ]
+    \addplot[fill=gray!35,draw=gray!60,bar shift=0pt,
+      error bars/.cd,y dir=both,y explicit] coordinates {
+      (K1,1499) +- (0,83)
+      (K2,1855) +- (0,60)
+      (K3,2149) +- (0,39)
+      (K4,1648) +- (0,70)
+      (Rand,1377) +- (0,49)
+    };
+    \addplot[fill=orange!70,draw=orange!80,bar shift=0pt,
+      error bars/.cd,y dir=both,y explicit] coordinates {
+      (Gate,2370) +- (0,59)
+    };
+    \end{axis}
+    \end{tikzpicture}
+  \end{subfigure}\hfill
+  % Tetris RT
+  \begin{subfigure}[t]{0.23\textwidth}
+    \begin{tikzpicture}
+    \begin{axis}[
+      ybar, bar width=5pt,
+      width=\textwidth, height=4.2cm,
+      symbolic x coords={K1,K2,K3,K4,Rand,Gate},
+      xtick=data,
+      x tick label style={font=\tiny,rotate=40,anchor=east},
+      yticklabel style={font=\tiny},
+      ylabel={Return}, ylabel style={font=\scriptsize},
+      title={Real-Time Tetris}, title style={font=\small\bfseries},
+      ymin=0, ymax=56,
+      enlarge x limits=0.1,
+      axis lines*=left,
+      ymajorgrids=true, grid style={dashed,gray!30},
+    ]
+    \addplot[fill=gray!35,draw=gray!60,bar shift=0pt,
+      error bars/.cd,y dir=both,y explicit] coordinates {
+      (K1,18.8) +- (0,2.3)
+      (K2,26.4) +- (0,3.7)
+      (K3,27.6) +- (0,3.8)
+      (K4,25.6) +- (0,3.8)
+      (Rand,11.2) +- (0,2.4)
+    };
+    \addplot[fill=orange!70,draw=orange!80,bar shift=0pt,
+      error bars/.cd,y dir=both,y explicit] coordinates {
+      (Gate,45.6) +- (0,3.7)
+    };
+    \end{axis}
+    \end{tikzpicture}
+  \end{subfigure}\hfill
+  % Speed Hex (placeholder)
+  \begin{subfigure}[t]{0.23\textwidth}
+    \begin{tikzpicture}
+    \begin{axis}[
+      ybar, bar width=8pt,
+      width=\textwidth, height=4.2cm,
+      symbolic x coords={Greedy,Mid,Rand,Gate},
+      xtick=data,
+      x tick label style={font=\tiny,rotate=40,anchor=east},
+      yticklabel style={font=\tiny},
+      ylabel={Win Rate}, ylabel style={font=\scriptsize},
+      title={Speed Hex$^{\dagger}$}, title style={font=\small\bfseries},
+      ymin=0, ymax=0.85,
+      enlarge x limits=0.2,
+      axis lines*=left,
+      ymajorgrids=true, grid style={dashed,gray!30},
+    ]
+    \addplot[fill=gray!35,draw=gray!60,bar shift=0pt] coordinates {
+      (Greedy,0.48) (Mid,0.52) (Rand,0.42)
+    };
+    \addplot[fill=orange!70,draw=orange!80,bar shift=0pt] coordinates {
+      (Gate,0.63)
+    };
+    \end{axis}
+    \end{tikzpicture}
+  \end{subfigure}\hfill
+  % Sokoban (placeholder)
+  \begin{subfigure}[t]{0.23\textwidth}
+    \begin{tikzpicture}
+    \begin{axis}[
+      ybar, bar width=8pt,
+      width=\textwidth, height=4.2cm,
+      symbolic x coords={Greedy,Mid,Rand,Gate},
+      xtick=data,
+      x tick label style={font=\tiny,rotate=40,anchor=east},
+      yticklabel style={font=\tiny},
+      ylabel={Return}, ylabel style={font=\scriptsize},
+      title={Sokoban$^{\dagger}$}, title style={font=\small\bfseries},
+      ymin=0, ymax=25,
+      enlarge x limits=0.2,
+      axis lines*=left,
+      ymajorgrids=true, grid style={dashed,gray!30},
+    ]
+    \addplot[fill=gray!35,draw=gray!60,bar shift=0pt] coordinates {
+      (Greedy,15.2) (Mid,14.8) (Rand,12.3)
+    };
+    \addplot[fill=orange!70,draw=orange!80,bar shift=0pt] coordinates {
+      (Gate,19.5)
+    };
+    \end{axis}
+    \end{tikzpicture}
+  \end{subfigure}
+  \caption{Main results (mean $\pm$\,SE, 100 episodes). Orange bars: gating policy (ours);
+    gray bars: baselines. Tetris RT uses the RT\_KT variant (MCTS-step committed actions).
+    $^{\dagger}$Speed Hex and Sokoban show \textbf{placeholder data}.}
+  \label{fig:main_results}
+\end{figure}
 
 The gating policy outperforms every fixed-budget baseline across all environments.
-In committed-action environments, it does so while using \emph{less} average compute
-than the best fixed policy: in Pac-Man, the best fixed policy uses 96 simulations per
-step ($K{=}3$), yet the gating policy achieves a higher return with ${\approx}49$
-simulations per frame on average.
-The random baseline, which matches the gating policy's average compute but ignores
-game state, performs worse than all fixed-$K$ policies, confirming that
-\emph{when} to allocate compute matters as much as how much.
+In Pac-Man the best fixed policy ($K{=}3$, 96 sims/step) scores 2149; the gating policy
+reaches 2370 ($+10.3\%$) using only ${\approx}49$ simulations per frame on average.
+In real-time Tetris the best fixed policy ($K{=}3$) scores 27.6; the gating policy
+reaches 45.6 ($+65\%$) using a bimodal strategy described below.
+The random baseline falls well below every fixed-$K$ policy in both environments,
+confirming that \emph{when} to allocate compute matters as much as how much.
 
 \subsection{Learned depth distribution}
-
-\begin{figure}[h]
-  \centering
-  \todo{Bar charts of $K$ distribution for each environment, with average sims/frame
-    annotated for committed-action envs and average clock spend annotated for clock envs.}
-  \caption{Distribution of planning depths chosen by the gating policy (100 episodes).}
-  \label{fig:k_dist}
-\end{figure}
 
 In Pac-Man the policy adopts a near-binary strategy: $K{=}1$ (51.9\%) for most steps
 and $K{=}2$ (44.9\%) for demanding ones, with $K{=}4$ (3.1\%) reserved for rare
 extremes, averaging ${\approx}49$ simulations per frame, well below the 96 of the
 best fixed policy.
-In Tetris the distribution is broader, $K{=}3$ (34.9\%), $K{=}2$ (33.8\%),
-$K{=}1$ (26.6\%), $K{=}4$ (4.7\%), reflecting the more gradual difficulty variation
-as the board density evolves over an episode.
+In Tetris the distribution is strongly bimodal: $K{=}4$ (51.7\%), $K{=}1$ (28.1\%),
+$K{=}2$ (20.2\%), with $K{=}3$ never selected (0\%).
+The policy has effectively learned a sharp binary---react immediately on easy boards,
+plan maximally on critical ones---with $K{=}2$ handling moderate cases.
+Figure~\ref{fig:strategy} shows how the allocation shifts over the course of an episode.
 
 \subsection{What triggers deeper planning?}
 
@@ -529,45 +606,284 @@ depth is most likely to change the decision.
 
 \paragraph{Pac-Man: planning depth tracks threat.}
 
-\begin{figure}[h]
+The clearest signal in Pac-Man is ghost proximity: the policy prefers $K{=}1$ when the
+nearest ghost is far away, shifts toward $K{=}2$ as the threat closes in, and reaches
+for $K{=}4$ at extreme proximity. When ghosts are frightened the threat evaporates, and
+the policy reduces planning depth accordingly.
+
+\paragraph{Tetris: a sharp easy-vs-critical binary.}
+
+Board density is the dominant feature in Tetris.
+$K{=}1$ is selected almost exclusively on near-empty boards
+(fill $\approx 0.05$, stack $\approx 3.5$ rows) where any reasonable placement is
+acceptable.
+$K{=}2$ and $K{=}4$ are selected on dense boards (fill $\approx 0.25$--$0.32$,
+stacks $\approx 12$ rows) where placement precision is consequential.
+$K{=}3$ is never used ($0\%$), producing the bimodal ``react or plan deeply'' strategy
+visible in Figure~\ref{fig:strategy}.
+Piece type also modulates depth: the Z-piece ($\bar{K}{=}2.98{\scriptstyle\pm0.04}$)
+and O- and T-pieces ($\bar{K}{=}2.88{\scriptstyle\pm0.04}$) receive the most
+deliberation, while the J-piece ($\bar{K}{=}2.66{\scriptstyle\pm0.04}$) receives the
+least, reflecting differences in placement geometry and expected outcome variance.
+
+\begin{figure}[t]
   \centering
-  \todo{Left: mean nearest-ghost distance by $K$.
-    Right: frightened-ghost fraction by $K$. Error bars are 1 SE.}
-  \caption{In Pac-Man, the gating policy invests more computation when the threat is
-    higher, and less when ghosts are harmless.}
-  \label{fig:pacman_context}
+  \small
+  % Ghost distance by K (placeholder)
+  \begin{subfigure}[t]{0.235\textwidth}
+    \begin{tikzpicture}
+    \begin{axis}[
+      ybar, bar width=10pt,
+      width=\textwidth, height=3.6cm,
+      symbolic x coords={K1,K2,K3,K4},
+      xtick=data,
+      x tick label style={font=\scriptsize},
+      yticklabel style={font=\tiny},
+      ylabel={Ghost dist.}, ylabel style={font=\scriptsize},
+      title={PacMan: Threat$^{\dagger}$}, title style={font=\scriptsize\bfseries},
+      ymin=0, ymax=11,
+      enlarge x limits=0.25,
+      axis lines*=left,
+      ymajorgrids=true, grid style={dashed,gray!30},
+    ]
+    \addplot[fill=teal!50,draw=teal!70,
+      error bars/.cd,y dir=both,y explicit] coordinates {
+      (K1,8.2) +- (0,0.3)
+      (K2,6.1) +- (0,0.2)
+      (K3,3.8) +- (0,0.3)
+      (K4,2.2) +- (0,0.4)
+    };
+    \end{axis}
+    \end{tikzpicture}
+  \end{subfigure}\hfill
+  % Pellet fraction by K (placeholder)
+  \begin{subfigure}[t]{0.235\textwidth}
+    \begin{tikzpicture}
+    \begin{axis}[
+      ybar, bar width=10pt,
+      width=\textwidth, height=3.6cm,
+      symbolic x coords={K1,K2,K3,K4},
+      xtick=data,
+      x tick label style={font=\scriptsize},
+      yticklabel style={font=\tiny},
+      ylabel={Pellets left}, ylabel style={font=\scriptsize},
+      title={PacMan: Pellets$^{\dagger}$}, title style={font=\scriptsize\bfseries},
+      ymin=0, ymax=0.65,
+      enlarge x limits=0.25,
+      axis lines*=left,
+      ymajorgrids=true, grid style={dashed,gray!30},
+    ]
+    \addplot[fill=teal!50,draw=teal!70,
+      error bars/.cd,y dir=both,y explicit] coordinates {
+      (K1,0.48) +- (0,0.02)
+      (K2,0.38) +- (0,0.02)
+      (K3,0.26) +- (0,0.02)
+      (K4,0.20) +- (0,0.03)
+    };
+    \end{axis}
+    \end{tikzpicture}
+  \end{subfigure}\hfill
+  % Tetris board fill by K (K=3 never chosen; omitted)
+  \begin{subfigure}[t]{0.235\textwidth}
+    \begin{tikzpicture}
+    \begin{axis}[
+      ybar, bar width=13pt,
+      width=\textwidth, height=3.6cm,
+      symbolic x coords={K1,K2,K4},
+      xtick=data,
+      x tick label style={font=\scriptsize},
+      yticklabel style={font=\tiny},
+      ylabel={Board fill}, ylabel style={font=\scriptsize},
+      title={Tetris: Board Density}, title style={font=\scriptsize\bfseries},
+      ymin=0, ymax=0.40,
+      enlarge x limits=0.3,
+      axis lines*=left,
+      ymajorgrids=true, grid style={dashed,gray!30},
+    ]
+    \addplot[fill=blue!50,draw=blue!70,
+      error bars/.cd,y dir=both,y explicit] coordinates {
+      (K1,0.049) +- (0,0.001)
+      (K2,0.322) +- (0,0.005)
+      (K4,0.250) +- (0,0.002)
+    };
+    \end{axis}
+    \end{tikzpicture}
+  \end{subfigure}\hfill
+  % Tetris mean K by piece type (all real data)
+  \begin{subfigure}[t]{0.235\textwidth}
+    \begin{tikzpicture}
+    \begin{axis}[
+      ybar, bar width=5pt,
+      width=\textwidth, height=3.6cm,
+      symbolic x coords={J,S,L,I,T,O,Z},
+      xtick=data,
+      x tick label style={font=\scriptsize},
+      yticklabel style={font=\tiny},
+      ylabel={Mean $K$}, ylabel style={font=\scriptsize},
+      title={Tetris: Piece Type}, title style={font=\scriptsize\bfseries},
+      ymin=2.5, ymax=3.1,
+      ytick={2.6,2.7,2.8,2.9,3.0},
+      enlarge x limits=0.1,
+      axis lines*=left,
+      ymajorgrids=true, grid style={dashed,gray!30},
+    ]
+    \addplot[fill=blue!50,draw=blue!70,
+      error bars/.cd,y dir=both,y explicit] coordinates {
+      (J,2.66) +- (0,0.04)
+      (S,2.74) +- (0,0.04)
+      (L,2.84) +- (0,0.04)
+      (I,2.82) +- (0,0.04)
+      (T,2.88) +- (0,0.04)
+      (O,2.88) +- (0,0.04)
+      (Z,2.98) +- (0,0.04)
+    };
+    \end{axis}
+    \end{tikzpicture}
+  \end{subfigure}
+  \caption{Interpretability: state features conditioned on chosen depth $K$
+    (mean $\pm$\,1\,SE, 100 episodes).
+    Third panel: $K{=}3$ omitted as it is never chosen.
+    Tetris board density and piece type data are real; all PacMan panels
+    ($^{\dagger}$) are \textbf{placeholder data}.}
+  \label{fig:interpretability}
 \end{figure}
-
-The clearest signal in Pac-Man is ghost proximity: when the nearest ghost is far away
-the policy prefers $K{=}1$; as the threat closes in it shifts toward $K{=}2$ and,
-at extreme proximity, $K{=}4$.
-When ghosts are frightened the threat drops, and the policy reduces planning depth
-accordingly.
-
-\paragraph{Tetris: planning depth tracks board complexity.}
-
-\begin{figure}[h]
-  \centering
-  \todo{Left: board fill fraction by $K$. Center: stack height by $K$.
-    Right: mean $K$ per tetromino type. Error bars are 1 SE.}
-  \caption{In real-time Tetris, more computation is allocated to denser boards and
-    high-value pieces.}
-  \label{fig:tetris_context}
-\end{figure}
-
-The most predictive feature in Tetris is board density.
-$K{=}1$ is used on sparse boards (fill $\approx 0.133$, stack $\approx 6.8$ rows)
-where any reasonable placement is acceptable; $K{=}2$ and $K{=}3$ are used on denser
-boards (fill $\approx 0.20$ and $0.17$, stacks $\approx 11$ and $\approx 9$ rows)
-where placement choice is consequential; $K{=}4$ is reserved for critically full boards.
-Piece type also predicts depth: the I-piece (capable of four-line clears) receives the
-most deliberation ($\bar{K} = 2.39$), while the S-piece, whose constrained geometry
-limits useful placement options regardless of search depth, receives the least
-($\bar{K} = 2.07$).
 
 \paragraph{Speed environments.}
 \todo{Describe what features trigger more thinking in speed Hex / Sokoban: remaining
 clock, board contestedness, etc.}
+
+\subsection{Planning depth allocation over episode time}
+
+\begin{figure}[t]
+  \centering
+  \small
+  % PacMan
+  \begin{subfigure}[t]{0.23\textwidth}
+    \begin{tikzpicture}
+    \begin{axis}[
+      width=\textwidth, height=3.6cm,
+      xlabel={Episode progress}, ylabel={Freq.},
+      xlabel style={font=\scriptsize}, ylabel style={font=\scriptsize},
+      tick label style={font=\tiny},
+      xmin=0.05, xmax=1.05, ymin=0, ymax=0.82,
+      title={Pac-Man$^{\dagger}$}, title style={font=\small\bfseries},
+      axis lines*=left,
+      legend style={font=\tiny,at={(0.99,0.99)},anchor=north east,
+        cells={align=left},row sep=-2pt},
+    ]
+    \addplot[blue,thick] coordinates {
+      (0.1,0.68)(0.2,0.65)(0.3,0.62)(0.4,0.55)(0.5,0.50)
+      (0.6,0.48)(0.7,0.45)(0.8,0.42)(0.9,0.40)(1.0,0.38)};
+    \addlegendentry{$K$=1}
+    \addplot[red,thick] coordinates {
+      (0.1,0.30)(0.2,0.32)(0.3,0.35)(0.4,0.42)(0.5,0.46)
+      (0.6,0.49)(0.7,0.50)(0.8,0.52)(0.9,0.53)(1.0,0.55)};
+    \addlegendentry{$K$=2}
+    \addplot[green!60!black,thick] coordinates {
+      (0.1,0)(0.2,0)(0.3,0)(0.4,0)(0.5,0)
+      (0.6,0)(0.7,0)(0.8,0)(0.9,0)(1.0,0)};
+    \addlegendentry{$K$=3}
+    \addplot[orange,thick,dashed] coordinates {
+      (0.1,0.02)(0.2,0.03)(0.3,0.03)(0.4,0.03)(0.5,0.04)
+      (0.6,0.03)(0.7,0.05)(0.8,0.06)(0.9,0.07)(1.0,0.07)};
+    \addlegendentry{$K$=4}
+    \end{axis}
+    \end{tikzpicture}
+  \end{subfigure}\hfill
+  % Tetris (K=3 always 0; K=4 rises sharply)
+  \begin{subfigure}[t]{0.23\textwidth}
+    \begin{tikzpicture}
+    \begin{axis}[
+      width=\textwidth, height=3.6cm,
+      xlabel={Episode progress},
+      xlabel style={font=\scriptsize}, ylabel style={font=\scriptsize},
+      tick label style={font=\tiny},
+      xmin=0.05, xmax=1.05, ymin=0, ymax=0.82,
+      title={Real-Time Tetris$^{\dagger}$}, title style={font=\small\bfseries},
+      axis lines*=left,
+    ]
+    \addplot[blue,thick] coordinates {
+      (0.1,0.58)(0.2,0.52)(0.3,0.44)(0.4,0.36)(0.5,0.28)
+      (0.6,0.20)(0.7,0.16)(0.8,0.13)(0.9,0.10)(1.0,0.08)};
+    \addplot[red,thick] coordinates {
+      (0.1,0.28)(0.2,0.27)(0.3,0.25)(0.4,0.23)(0.5,0.21)
+      (0.6,0.19)(0.7,0.18)(0.8,0.17)(0.9,0.16)(1.0,0.15)};
+    \addplot[green!60!black,thick] coordinates {
+      (0.1,0)(0.2,0)(0.3,0)(0.4,0)(0.5,0)
+      (0.6,0)(0.7,0)(0.8,0)(0.9,0)(1.0,0)};
+    \addplot[orange,thick,dashed] coordinates {
+      (0.1,0.14)(0.2,0.21)(0.3,0.31)(0.4,0.41)(0.5,0.51)
+      (0.6,0.61)(0.7,0.66)(0.8,0.70)(0.9,0.74)(1.0,0.77)};
+    \end{axis}
+    \end{tikzpicture}
+  \end{subfigure}\hfill
+  % Speed Hex (placeholder, sim options)
+  \begin{subfigure}[t]{0.23\textwidth}
+    \begin{tikzpicture}
+    \begin{axis}[
+      width=\textwidth, height=3.6cm,
+      xlabel={Move fraction},
+      xlabel style={font=\scriptsize}, ylabel style={font=\scriptsize},
+      tick label style={font=\tiny},
+      xmin=0.05, xmax=1.05, ymin=0, ymax=0.72,
+      title={Speed Hex$^{\dagger}$}, title style={font=\small\bfseries},
+      axis lines*=left,
+      legend style={font=\tiny,at={(0.99,0.99)},anchor=north east,
+        cells={align=left},row sep=-2pt},
+    ]
+    \addplot[blue,thick] coordinates {
+      (0.1,0.55)(0.2,0.50)(0.3,0.40)(0.4,0.32)(0.5,0.25)
+      (0.6,0.20)(0.7,0.18)(0.8,0.15)(0.9,0.12)(1.0,0.10)};
+    \addlegendentry{2 sims}
+    \addplot[red,thick] coordinates {
+      (0.1,0.28)(0.2,0.30)(0.3,0.33)(0.4,0.35)(0.5,0.37)
+      (0.6,0.38)(0.7,0.37)(0.8,0.36)(0.9,0.35)(1.0,0.33)};
+    \addlegendentry{8 sims}
+    \addplot[green!60!black,thick] coordinates {
+      (0.1,0.12)(0.2,0.14)(0.3,0.18)(0.4,0.22)(0.5,0.25)
+      (0.6,0.28)(0.7,0.30)(0.8,0.32)(0.9,0.35)(1.0,0.38)};
+    \addlegendentry{32 sims}
+    \addplot[orange,thick,dashed] coordinates {
+      (0.1,0.05)(0.2,0.06)(0.3,0.09)(0.4,0.11)(0.5,0.13)
+      (0.6,0.14)(0.7,0.15)(0.8,0.17)(0.9,0.18)(1.0,0.19)};
+    \addlegendentry{128 sims}
+    \end{axis}
+    \end{tikzpicture}
+  \end{subfigure}\hfill
+  % Sokoban (placeholder)
+  \begin{subfigure}[t]{0.23\textwidth}
+    \begin{tikzpicture}
+    \begin{axis}[
+      width=\textwidth, height=3.6cm,
+      xlabel={Episode progress},
+      xlabel style={font=\scriptsize}, ylabel style={font=\scriptsize},
+      tick label style={font=\tiny},
+      xmin=0.05, xmax=1.05, ymin=0, ymax=0.58,
+      title={Sokoban$^{\dagger}$}, title style={font=\small\bfseries},
+      axis lines*=left,
+    ]
+    \addplot[blue,thick] coordinates {
+      (0.1,0.40)(0.2,0.38)(0.3,0.35)(0.4,0.30)(0.5,0.25)
+      (0.6,0.20)(0.7,0.18)(0.8,0.15)(0.9,0.12)(1.0,0.10)};
+    \addplot[red,thick] coordinates {
+      (0.1,0.30)(0.2,0.32)(0.3,0.34)(0.4,0.36)(0.5,0.38)
+      (0.6,0.37)(0.7,0.36)(0.8,0.35)(0.9,0.33)(1.0,0.32)};
+    \addplot[green!60!black,thick] coordinates {
+      (0.1,0.22)(0.2,0.22)(0.3,0.24)(0.4,0.26)(0.5,0.28)
+      (0.6,0.32)(0.7,0.35)(0.8,0.38)(0.9,0.42)(1.0,0.45)};
+    \addplot[orange,thick,dashed] coordinates {
+      (0.1,0.08)(0.2,0.08)(0.3,0.07)(0.4,0.08)(0.5,0.09)
+      (0.6,0.11)(0.7,0.11)(0.8,0.12)(0.9,0.13)(1.0,0.13)};
+    \end{axis}
+    \end{tikzpicture}
+  \end{subfigure}
+  \caption{Planning depth frequency over normalized episode time (10 equal bins).
+    Lines: fraction of steps at which each depth / sim-count option was chosen.
+    Pac-Man and Tetris RT: $K \in \{1,2,3,4\}$; Speed Hex and Sokoban: sim counts
+    $\{2,8,32,128\}$ (same line styles).
+    $^{\dagger}$\textbf{All four panels show placeholder data.}}
+  \label{fig:strategy}
+\end{figure}
 
 
 % =============================================================================
@@ -680,20 +996,44 @@ more resource-efficient in real-time settings.
 \label{app:envs}
 
 \subsection{Real-time Tetris}
-Every call to \texttt{env.step(action)} advances the falling piece by one gravity row.
-The action set is \{left, right, rotate-CW, rotate-CCW, hard-drop, and a default
-forward action\}.
-A piece locks when gravity would place it in an occupied cell; completed rows are cleared
-and a new piece spawns.
-The episode ends on board top-out or after 2000 gravity ticks.
+Every call to \texttt{env.step(action)} advances the falling piece by one gravity row
+(gravity tick).
+The action set has six elements:
+\begin{itemize}[nosep]
+  \item \textbf{Left / Right}: translate the falling piece one column in the respective
+    direction.
+  \item \textbf{Rotate-CW / Rotate-CCW}: rotate the piece $90°$ clockwise or
+    counter-clockwise.
+  \item \textbf{Hard-drop}: instantly translate the piece to the lowest valid row and
+    lock it; a new piece spawns immediately.
+  \item \textbf{Forward} (default): no horizontal movement; the piece descends one row
+    by gravity.
+\end{itemize}
+A piece locks when gravity would place it in an occupied cell; completed rows are then
+cleared and scored.
+The episode ends on board top-out (a newly spawned piece immediately collides) or after
+2000 gravity ticks.
 
 \subsection{Committed-action execution}
-In both Pac-Man and Tetris, committed actions during the $K{-}1$ delay steps are the
-argmax of the base model's raw policy logits (no MCTS), which requires only a single
-inexpensive forward pass.
-The MCTS recurrent function simulates these same $K{-}1$ committed-action steps on
-each edge of the search tree, ensuring that search is conducted over the exact future
-the agent will experience.
+\label{app:committed_action}
+
+During the $K{-}1$ delay steps while the MCTS planner is running, the agent must
+continue acting in the environment.
+We evaluate two variants.
+
+\textbf{RT (logit)} uses the argmax of the base model's raw policy logits as the
+committed action at each delay step---a single inexpensive forward pass per step.
+
+\textbf{RT\_KT (MCTS-step)} uses one full MCTS step (a small tree search) as the
+committed action at each delay step, producing higher-quality interim decisions at
+the cost of additional compute.
+This variant is more consistent with Pac-Man, where the committed (blueprint) policy
+leverages the planner's tree internally.
+All Tetris results reported in the main paper use the RT\_KT variant.
+
+In both variants the MCTS recurrent function simulates the same $K{-}1$ committed-action
+steps on each edge of the main search tree, ensuring that search is conducted over the
+exact future the agent will experience.
 
 \subsection{Speed Hex}
 Speed Hex is built on the pgx Hex library (11$\times$11 board).
