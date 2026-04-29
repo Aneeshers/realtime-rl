@@ -19,6 +19,7 @@
 
 \newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
 \newcommand{\am}[1]{\textcolor{blue}{{[aneesh: #1]}}}
+\newcommand{\dc}[1]{\textcolor{teal}{{[dylan: #1]}}}
 \newcommand{\Kset}{\{1,2,3,4\}}
 \newcommand{\pigate}{\pi_{\mathrm{gate}}}
 
@@ -94,7 +95,10 @@ moving without full deliberation.
 The gating policy learns to allocate computation to the moments where it matters most
 and to act quickly everywhere else.
 
+\am{committed actions in timed MDPs are no-ops, so it can be either fast policy logit actions or no-ops}
+
 Our contributions are:
+\dc{training implementation details and how that transfers; }
 \begin{enumerate}
   \item \textbf{Real-time RL environment design.}
     We identify two complementary design patterns for real-time environments:
@@ -115,6 +119,8 @@ Our contributions are:
     and, in committed-action environments, the number of fast approximate actions taken
     while the planner runs.
 
+\dc{we can split here; and say we substantiate our contributions with simulated and true real-tiem results}
+
   \item \textbf{Results and interpretability.}
     Across all four environments, the gating policy outperforms every fixed-depth
     baseline while using less average compute.
@@ -133,31 +139,77 @@ Our contributions are:
 \section{Background and Related Work}
 % =============================================================================
 
+% =============================================================================
+% =============================================================================
+
 \paragraph{Real-time reinforcement learning.}
+Standard RL pauses the environment for the agent; real-time RL drops this
+assumption. The RTMDP~\cite{ramstedt2019rtrl,travnik2018reactive} formalises
+environments that progress during action selection, with generalisations
+covering action and observation
+delays~\cite{walsh2009delayed,derman2021delayed,bouteiller2021random,katsikopoulos2003markov}
+and concurrent control~\cite{xiao2020thinking}. Recent work mitigates
+inference cost through async or pipelined
+architectures~\cite{riemer2025staggered,anokhin2025handling}; we instead treat
+inference cost as a per-state decision variable.
+
+\paragraph{Meta-control over planning compute.}
+We build on AlphaZero-family planners~\cite{silver2018general,schrittwieser2020muzero};
+Gumbel MuZero~\cite{danihelka2022policy} makes our small-budget regime
+viable. The closest precedents to our gating policy are learned controllers
+that allocate planning compute per state -- Metacontrol~\cite{hamrick2017metacontrol},
+Thinker and Dynamic Thinker~\cite{chung2023thinker,wang2024dynamic}, and
+Adaptive Lookahead~\cite{dalal2022adaptive} -- supported by Hamrick et al.'s
+empirical finding that shallow MuZero trees often suffice, with the marginal
+value of additional simulations varying sharply by
+state~\cite{hamrick2021role}. We differ from this lineage: (i)~we gate a \emph{frozen} planner, requiring no joint
+training; (ii)~deliberation cost
+is paid in \emph{environmental progress}, not in artificial reward shaping, so the policy learns a
+ value-of-computation function from outcomes alone; (iv)~the
+committed-action and clock formulations make this real-time cost legible to
+both training and deployment, transferring without architectural change.
+Orthogonal ``learning to search'' work~\cite{guez2018mctsnets,farquhar2018treeqn,hamrick2020save,racaniere2017i2a}
+modifies the planner's internal behaviour rather than its budget.
 
 
-\paragraph{Monte Carlo Tree Search and AlphaZero.}
+\paragraph{Value of computation and metareasoning.}
+Casting deliberation as a decision-theoretic problem dates to Russell and
+Wefald~\cite{russell1991right}: invest in a computation as long as the
+expected improvement in subsequent action choice exceeds the cost. Hay et
+al.~\cite{hay2012selecting} apply this view to MCTS, casting simulation
+selection as a Bayesian best-arm problem statistically distinct from UCT's
+bandit formulation; Tolpin and Shimony~\cite{tolpin2012simple}, Sezener et
+al.~\cite{sezener2020static}, and Lin et al.~\cite{lin2015metareasoning}
+extend the framework to MCTS variants and to MDP planning under time
+constraints. The cogsci revival~\cite{lieder2017strategy,griffiths2019doing,callaway2018learning}
+formalises bounded-optimal cognition as a metalevel MDP and learns to solve
+it. In our work, the gating policy implicitly
+learns a value-of-computation function from real-time outcomes, with no
+hand-designed VOC features and no explicit access to the planner's internals
+beyond a single forward pass.
 
-\paragraph{Value of computation.}
-Russell and Wefald~\cite{russell1991right} formalized \emph{value of computation}
-(VoC): invest computation as long as the expected improvement exceeds the cost.
-Metareasoning approaches~\cite{griffiths2019doing,lieder2017strategy} apply this to
-cognitive models of human time allocation.
-Our work realizes VoC as a learned gating policy trained end-to-end in a real-time
-RL setting.
+\paragraph{Adaptive computation in neural networks and LLMs.}
+Learned compute-allocation has a long supervised-learning
+history~\cite{graves2016act,banino2021pondernet,schuster2022calm} and an
+explosive recent one in LLMs: test-time compute
+scaling~\cite{snell2024scaling,deepseek2025r1,muennighoff2025s1} and
+RL-trained reasoning-length
+controllers~\cite{aggarwal2025l1,fang2025thinkless,shen2025dast} explicitly
+learn per-query thinking budgets -- conceptual twins of our gating policy in
+the LLM domain. Cascaded
+routing~\cite{kim2023bigl,chen2023frugalgpt,ong2025routellm} similarly defers
+easy queries to cheap models. Our work realises this thesis for
+AlphaZero-style planning under real-time environmental cost.
 
-\paragraph{Time management in games.}
-Time management heuristics are a standard component of chess and Go engines:
-midpeak strategies allocate more time to the critical mid-game, while greedy strategies
-always use the maximum available budget~\todo{cite chess engine time management work}.
-We use these as baselines for the speed environments.
-
-\paragraph{Options and semi-Markov decision processes.}
-The options framework~\cite{sutton1999between} and
-SMDPs~\cite{bradtke1994reinforcement,puterman2014markov} provide the formal foundation
-for variable-duration meta-steps, which we use to train the gating policy.
-
-
+\paragraph{Options, anytime planning, and time management.}
+Anytime planning~\cite{korf1990rta,dean1988analysis,zilberstein1996using,likhachev2003ara}
+establishes the tradeoff our gating policy operationalises in a deep-RL
+setting. We formalise meta-decisions as variable-duration
+options~\cite{sutton1999between,bradtke1994reinforcement,bacon2017optioncritic};
+closest in spirit is Harb et al.'s deliberation cost on
+options~\cite{harb2018deliberation}. MCTS time-management heuristics in Go
+and chess engines~\cite{baier2016time,huang2010timemanagement,baudis2012pachi}
+form the baselines for our clock environments.
 % =============================================================================
 \section{Real-Time RL Environments}
 \label{sec:envs}
@@ -297,7 +349,10 @@ gain is worth the additional real-time cost.
 
 \subsection{Variable-duration meta-decisions}
 
-We formalize planning-depth selection as a Semi-Markov Decision Process (SMDP).
+We formalize planning-depth selection as a Semi-Markov Decision Process (SMDP). 
+
+\am{this only is applied to tetris and pacman, actually maybe not, because it could be extended to timed settings which have no-op actions, which would accumulate 0 reward during the no-op; will check on this.}
+
 At each meta-step the gating policy $\pigate(K \mid s_t)$ selects a depth
 $K_t \in \Kset$.
 The agent executes $K_t{-}1$ committed actions followed by the planner's chosen
@@ -613,13 +668,7 @@ more resource-efficient in real-time settings.
 {
 \small
 
-\todo{Replace with proper BibTeX entries. Keys used in text:
-  silver2018general, silver2016mastering, danihelka2022policy,
-  jumanji2022, schulman2017proximal, schulman2015high, russell1991right,
-  sutton1999between, bradtke1994reinforcement, puterman2014markov,
-  coulom2006efficient, browne2012survey, bellemare2013arcade,
-  sutton1990integrated, dean1988analysis, zilberstein1996using,
-  griffiths2019doing, lieder2017strategy.}
+\todo{}
 
 }
 
