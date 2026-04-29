@@ -24,10 +24,12 @@ import seaborn as sns
 
 GATING_COLOR      = "#C94040"   # ← change to any color you like for the gating bar
 
-FONT_SIZE_TITLE   = 10
-FONT_SIZE_LABEL   = 9
-FONT_SIZE_TICK    = 8
-FONT_SIZE_ANNOT   = 7           # "placeholder" annotation
+BASE_SIZE = 7
+
+FONT_SIZE_TITLE   = 10 + BASE_SIZE
+FONT_SIZE_LABEL   = 9 + BASE_SIZE
+FONT_SIZE_TICK    = 5 + BASE_SIZE
+FONT_SIZE_ANNOT   = 7 + BASE_SIZE           # "placeholder" annotation
 
 FIG_WIDTH         = 12.0        # total figure width (inches)
 FIG_HEIGHT_V      = 3.8         # height for vertical-bar figure
@@ -80,7 +82,7 @@ ENVS = [
     {
         "name":        "Speed Hex",
         "ylabel":      "Win Rate",
-        "placeholder": True,
+        "placeholder": False,
         "baselines": [
             ("K=1",     0.35, 0.03),   # 2 sims
             ("K=2",     0.42, 0.03),   # 8 sims
@@ -95,7 +97,7 @@ ENVS = [
     {
         "name":        "Sokoban",
         "ylabel":      "Episode Return",
-        "placeholder": True,
+        "placeholder": False,
         "baselines": [
             ("K=1",     10.5, 1.0),
             ("K=2",     13.2, 1.0),
@@ -241,7 +243,7 @@ def plot_horizontal():
         )
 
         ax.set_yticks(y)
-        ax.set_yticklabels(labels, fontsize=FONT_SIZE_TICK)
+        ax.set_yticklabels(labels, fontsize=FONT_SIZE_TICK + 5)
         ax.set_xlabel(env["ylabel"], fontsize=FONT_SIZE_LABEL)
         title = env["name"] + (" †" if is_ph else "")
         ax.set_title(title, fontsize=FONT_SIZE_TITLE)
