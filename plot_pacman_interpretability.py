@@ -187,13 +187,7 @@ def plot(far_state, close_state):
             transform=ax.transAxes,
             ha="center", va="top",
             fontsize=FONT_SIZE_K_BOX,
-            color="white",
-            bbox=dict(
-                boxstyle="round,pad=0.35",
-                facecolor="#1a3a6b",
-                edgecolor="none",
-                alpha=0.92,
-            ),
+            color="black",
         )
 
     # ---- compact line+scatter: ghost distance by chosen K ----
