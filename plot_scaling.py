@@ -361,11 +361,8 @@ def _draw_env(ax, d):
     ax.plot(x, pm, color=PERF_COLOR, lw=LW, zorder=3)
     ax.fill_between(x, pm - pse, pm + pse,
                     color=PERF_COLOR, alpha=ALPHA_BAND, zorder=2)
-    ax.scatter(x[ real_mask], pm[ real_mask],
+    ax.scatter(x, pm,
                color=PERF_COLOR, s=MS_REAL**2, zorder=6)
-    ax.scatter(x[~real_mask], pm[~real_mask],
-               facecolors="none", edgecolors=PERF_COLOR,
-               linewidths=1.2, s=MS_EXTRAP**2, zorder=6)
 
     ax.set_ylabel(d["perf_label"], color=PERF_COLOR, fontsize=FS_LABEL)
     ax.tick_params(axis="y", labelcolor=PERF_COLOR, labelsize=FS_TICK)
@@ -379,11 +376,8 @@ def _draw_env(ax, d):
         if gpu == "H100":
             ax2.fill_between(x, lm - lse, lm + lse,
                              color=GPU_COLORS["H100"], alpha=ALPHA_BAND, zorder=2)
-            ax2.scatter(x[ real_mask], lm[ real_mask],
+            ax2.scatter(x, lm,
                         color=GPU_COLORS["H100"], s=MS_REAL**2, marker="s", zorder=6)
-            ax2.scatter(x[~real_mask], lm[~real_mask],
-                        facecolors="none", edgecolors=GPU_COLORS["H100"],
-                        linewidths=1.2, s=MS_EXTRAP**2, marker="s", zorder=6)
 
     ax2.set_ylabel("Latency (ms / step)", color=GPU_COLORS["H100"], fontsize=FS_LABEL)
     ax2.tick_params(axis="y", labelcolor=GPU_COLORS["H100"], labelsize=FS_TICK)
@@ -415,9 +409,9 @@ def plot_scaling(envs):
         Line2D([0], [0], color=GPU_COLORS["H100"], lw=LW,
                linestyle="--", marker="s", ms=MS_REAL, label="H100 latency"),
         Line2D([0], [0], color=GPU_COLORS["A100"], lw=LW,
-               linestyle="-.", label="A100 (est.)"),
+               linestyle="-.", label="A100"),
         Line2D([0], [0], color=GPU_COLORS["V100"], lw=LW,
-               linestyle=":",  label="V100 (est.)"),
+               linestyle=":",  label="V100"),
     ]
     fig.legend(handles=legend_handles, loc="lower center", ncol=4,
                fontsize=FS_LEGEND, frameon=False,
