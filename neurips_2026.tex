@@ -527,6 +527,7 @@ In Tetris the distribution is strongly bimodal: $K{=}4$ (51.7\%), $K{=}1$ (28.1\
 $K{=}2$ (20.2\%), with $K{=}3$ never selected (0\%).
 The policy has effectively learned a sharp binary---react immediately on easy boards,
 plan maximally on critical ones---with $K{=}2$ handling moderate cases.
+In Snake, the strategy shifts dynamically with episode length: $K{=}1$ dominates the early game when the snake is short, while reliance on $K{=}4$ grows steadily as the snake elongates and maneuvering becomes constrained.
 Figure~\ref{fig:strategy} shows how the allocation shifts over the course of an episode.
 
 \subsection{What triggers deeper planning?}
@@ -583,9 +584,9 @@ clock, board contestedness, etc.}
   \includegraphics[width=\linewidth]{figures/strategy.pdf}
   \caption{Planning depth frequency over normalized episode time (10 equal bins).
     Lines: fraction of steps at which each depth or sim-count option was chosen.
-    Pac-Man and Tetris RT: $K \in \{1,2,3,4\}$; Speed Hex and Sokoban: sim counts
+    Pac-Man, Tetris RT, Sokoban, and Snake: $K \in \{1,2,3,4\}$; Speed Hex: sim counts
     $\{2,8,32,128\}$ (same line colors).
-    Legend shown in the first panel; line styles consistent across all panels.}
+    Shared legend shown on the right; line styles consistent across all panels.}
   \label{fig:strategy}
 \end{figure}
 
