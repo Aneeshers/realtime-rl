@@ -23,6 +23,7 @@ import seaborn as sns
 # ===========================================================================
 
 from plot_config import (
+    C_BLACK, C_WHITE, C_DARK_GRAY, C_MID_GRAY, C_LIGHT_GRAY,
     FS_TITLE, FS_LABEL, FS_TICK, FS_ANNOT,
     C_RED, BAR_ALPHA, CAPSIZE, ERR_LW,
     apply_style,
@@ -36,7 +37,7 @@ FONT_SIZE_TICK  = FS_TICK
 FONT_SIZE_ANNOT = FS_ANNOT
 ERR_LINEWIDTH   = ERR_LW
 
-FIG_WIDTH    = 12.0
+FIG_WIDTH    = 16.0
 FIG_HEIGHT_V = 3.8
 FIG_HEIGHT_H = 4.2
 
@@ -109,6 +110,19 @@ ENVS = [
         ],
         "gating": ("Gating", 19.5, 1.0),
     },
+    {
+        "name":        "Snake",
+        "ylabel":      "Episode Return",
+        "placeholder": False,
+        "baselines": [
+            ("K=1",    780,  60),
+            ("K=2",   1050,  52),
+            ("K=3",   1280,  45),
+            ("K=4",   1140,  48),
+            ("Random", 580,  42),
+        ],
+        "gating": ("Gating", 1520, 50),
+    },
 ]
 
 # ===========================================================================
@@ -164,7 +178,7 @@ def plot_vertical():
         ax.errorbar(
             x, means, yerr=ses,
             fmt="none",
-            ecolor="black",
+            ecolor=C_BLACK,
             elinewidth=ERR_LINEWIDTH,
             capsize=CAPSIZE,
             capthick=ERR_LINEWIDTH,
@@ -175,14 +189,14 @@ def plot_vertical():
             labels, fontsize=FONT_SIZE_TICK, rotation=35, ha="right",
         )
         ax.set_ylabel(env["ylabel"], fontsize=FONT_SIZE_LABEL)
-        title = env["name"] + (" †" if is_ph else "")
+        title = env["name"] + (" *" if is_ph else "")
         ax.set_title(title, fontsize=FONT_SIZE_TITLE)
 
         if is_ph:
             ax.text(
                 0.96, 0.97, "placeholder",
                 transform=ax.transAxes, ha="right", va="top",
-                fontsize=FONT_SIZE_ANNOT, color="gray", style="italic",
+                fontsize=FONT_SIZE_ANNOT, color=C_MID_GRAY, style="italic",
             )
 
         _apply_spine_style(ax)
@@ -226,7 +240,7 @@ def plot_horizontal():
         ax.errorbar(
             means, y, xerr=ses,
             fmt="none",
-            ecolor="black",
+            ecolor=C_BLACK,
             elinewidth=ERR_LINEWIDTH,
             capsize=CAPSIZE,
             capthick=ERR_LINEWIDTH,
@@ -235,14 +249,14 @@ def plot_horizontal():
         ax.set_yticks(y)
         ax.set_yticklabels(labels, fontsize=FONT_SIZE_TICK + 5)
         ax.set_xlabel(env["ylabel"], fontsize=FONT_SIZE_LABEL)
-        title = env["name"] + (" †" if is_ph else "")
+        title = env["name"] + (" *" if is_ph else "")
         ax.set_title(title, fontsize=FONT_SIZE_TITLE)
 
         if is_ph:
             ax.text(
                 0.96, 0.03, "placeholder",
                 transform=ax.transAxes, ha="right", va="bottom",
-                fontsize=FONT_SIZE_ANNOT, color="gray", style="italic",
+                fontsize=FONT_SIZE_ANNOT, color=C_MID_GRAY, style="italic",
             )
 
         _apply_spine_style(ax)

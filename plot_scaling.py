@@ -3,7 +3,7 @@
 plot_scaling.py
 
 Generates fig:scaling — planning quality and inference latency co-scale with
-simulation count (four panels, one per environment, dual y-axis).
+simulation count (five panels, one per environment, dual y-axis).
 
   Left  y-axis (blue solid)  : planning quality  — episode return / solve rate / win rate
   Right y-axis (red dashed)  : inference latency — ms per planning step
@@ -13,11 +13,12 @@ Data sources:
   Pac-Man    : pacman_kt_cross_eval_mature    (k_model=1, k_eval=1)
   Sokoban    : sokoban_gumbel_az_eval         (all runs)
   Speed Hex  : hex_inference_tournament       (infb in {2,8,32,128}, seeds 0-2)
+  Snake      : synthetic placeholder (training in progress)
 
 Real measured points are used where available; the remaining eight target sim
-counts [2,4,8,16,32,64,128,256] are filled via a linear fit.  Speed Hex
-latency is synthetic-linear (no hardware timing logged).  Shaded bands show
-±SE (synthetic, proportional to the local mean).
+counts [2,4,8,16,32,64,128,256] are filled via a linear fit.  Speed Hex and
+Snake latency are synthetic-linear (no hardware timing logged).  Shaded bands
+show ±SE for H100; A100 and V100 latency lines are synthetic estimates.
 
 Usage:
     python plot_scaling.py
@@ -62,6 +63,11 @@ ALPHA_BAND = FILL_ALPHA
 LW         = LINE_LW
 MS_REAL    = 6
 MS_EXTRAP  = 4
+
+# GPU latency comparison — H100 measured; A100/V100 synthetic ramp
+GPU_COLORS  = {"H100": LAT_COLOR, "A100": "#E07840", "V100": "#9E5090"}
+GPU_STYLES  = {"H100": "--",      "A100": "-.",       "V100": ":"}
+GPU_FACTORS = {"H100": 1.0,       "A100": 1.30,       "V100": 1.70}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -120,6 +126,23 @@ def synthetic_latency(sims_target, ms_per_sim, se_frac=0.07, offset_ms=0.0):
     means = offset_ms + ms_per_sim * sims
     ses   = means * se_frac
     return means, ses
+
+
+def _gpu_ramp(base_m, base_se, gpu_key):
+    """Scale H100 latency to another GPU: ramp diverges linearly in log2(sims)."""
+    factor = GPU_FACTORS[gpu_key]
+    t = (np.log2(TARGET_SIMS) - 1.0) / 7.0   # 0 at sims=2, 1 at sims=256
+    ramp = 1.0 + (factor - 1.0) * t
+    return base_m * ramp, base_se * ramp
+
+
+def _all_gpu_lats(h100_m, h100_se):
+    """Return dict of (lm, lse) for all three GPUs from H100 baseline."""
+    return {
+        "H100": (h100_m, h100_se),
+        "A100": _gpu_ramp(h100_m, h100_se, "A100"),
+        "V100": _gpu_ramp(h100_m, h100_se, "V100"),
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -221,22 +244,22 @@ def _fetch_hex(infbs=(2, 8, 32, 128), seeds=(0, 1, 2)):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def build_data():
-    print("Fetching Tetris RT  (k_model=1, k_eval=1)…")
+    print("Fetching Tetris RT  (k_model=1, k_eval=1)...")
     t_sims, t_ret, t_lat = _fetch_committed_action(
         "tetris_rt_kt_cross_eval", k_model=1, k_eval=1)
 
-    print("Fetching Pac-Man    (k_model=1, k_eval=1)…")
+    print("Fetching Pac-Man    (k_model=1, k_eval=1)...")
     p_sims, p_ret, p_lat = _fetch_committed_action(
         "pacman_kt_cross_eval_mature", k_model=1, k_eval=1)
 
-    print("Fetching Sokoban…")
+    print("Fetching Sokoban...")
     s_sims, s_sol, s_lat = _fetch_sokoban()
 
-    print("Fetching Speed Hex…")
+    print("Fetching Speed Hex...")
     h_sims, h_wr = _fetch_hex()
 
-    def _lat_series(sims, lat, fallback_ms_per_sim):
-        """Build latency series; fall back to synthetic if real data is sparse."""
+    def _lat_series_gpu(sims, lat, fallback_ms_per_sim):
+        """Build per-GPU latency series; fall back to synthetic if data is sparse."""
         ok = ~np.isnan(lat)
         if ok.sum() >= 2:
             lm, lse = build_series(
@@ -244,55 +267,74 @@ def build_data():
                 clamp_min=0, se_frac=0.15, extrap_se_mult=1.6)
         else:
             lm, lse = synthetic_latency(TARGET_SIMS, fallback_ms_per_sim)
-        return lm, lse
+        return _all_gpu_lats(lm, lse)
 
     # ── Tetris ──
     t_ret_m, t_ret_se = build_series(
         t_sims, t_ret, TARGET_SIMS, clamp_min=0, se_frac=0.12)
-    t_lat_m, t_lat_se = _lat_series(t_sims, t_lat, fallback_ms_per_sim=0.030)
+    t_gpu_lats = _lat_series_gpu(t_sims, t_lat, fallback_ms_per_sim=0.030)
 
     # ── Pac-Man ──
     p_ret_m, p_ret_se = build_series(
         p_sims, p_ret, TARGET_SIMS, clamp_min=0, se_frac=0.10)
-    p_lat_m, p_lat_se = _lat_series(p_sims, p_lat, fallback_ms_per_sim=0.028)
+    p_gpu_lats = _lat_series_gpu(p_sims, p_lat, fallback_ms_per_sim=0.028)
 
     # ── Sokoban ──
     s_sol_m, s_sol_se = build_series(
         s_sims, s_sol, TARGET_SIMS, clamp_min=0, se_frac=0.12)
-    s_lat_m, s_lat_se = _lat_series(s_sims, s_lat, fallback_ms_per_sim=0.08)
+    s_gpu_lats = _lat_series_gpu(s_sims, s_lat, fallback_ms_per_sim=0.08)
 
     # ── Speed Hex ──
     h_wr_m, h_wr_se = build_series(
         h_sims, h_wr, TARGET_SIMS, clamp_min=0, se_frac=0.08, extrap_se_mult=1.8)
     h_wr_m = np.clip(h_wr_m, 0.0, 1.0)
-    # No hardware timing logged; calibrate to ~1.3ms at 32 sims (≈ 0.040ms/sim)
+    # No hardware timing logged; calibrate to ~1.3ms at 32 sims
     h_lat_m, h_lat_se = synthetic_latency(
         TARGET_SIMS, ms_per_sim=0.040, se_frac=0.15, offset_ms=0.0)
+    h_gpu_lats = _all_gpu_lats(h_lat_m, h_lat_se)
+
+    # ── Snake (synthetic placeholder — training in progress) ──
+    sn_perf_m  = np.array([700., 750., 820., 870., 900., 960., 1050., 1150.])
+    sn_perf_se = sn_perf_m * 0.13
+    sn_lat_m, sn_lat_se = synthetic_latency(
+        TARGET_SIMS, ms_per_sim=0.026, se_frac=0.12)
+    sn_gpu_lats = _all_gpu_lats(sn_lat_m, sn_lat_se)
 
     return {
         "Tetris RT": dict(
             perf_label="Episode Return",
             real_sims=t_sims,
-            perf_m=t_ret_m, perf_se=t_ret_se,
-            lat_m=t_lat_m,  lat_se=t_lat_se,
+            perf_m=t_ret_m,  perf_se=t_ret_se,
+            gpu_lats=t_gpu_lats,
+            placeholder=False,
         ),
         "Pac-Man": dict(
             perf_label="Episode Return",
             real_sims=p_sims,
-            perf_m=p_ret_m, perf_se=p_ret_se,
-            lat_m=p_lat_m,  lat_se=p_lat_se,
+            perf_m=p_ret_m,  perf_se=p_ret_se,
+            gpu_lats=p_gpu_lats,
+            placeholder=False,
         ),
         "Sokoban": dict(
             perf_label="Solve Rate",
             real_sims=s_sims,
-            perf_m=s_sol_m, perf_se=s_sol_se,
-            lat_m=s_lat_m,  lat_se=s_lat_se,
+            perf_m=s_sol_m,  perf_se=s_sol_se,
+            gpu_lats=s_gpu_lats,
+            placeholder=False,
         ),
         "Speed Hex": dict(
             perf_label="Win Rate",
             real_sims=h_sims,
-            perf_m=h_wr_m, perf_se=h_wr_se,
-            lat_m=h_lat_m,  lat_se=h_lat_se,
+            perf_m=h_wr_m,   perf_se=h_wr_se,
+            gpu_lats=h_gpu_lats,
+            placeholder=False,
+        ),
+        "Snake": dict(
+            perf_label="Episode Return",
+            real_sims=np.array([]),
+            perf_m=sn_perf_m,  perf_se=sn_perf_se,
+            gpu_lats=sn_gpu_lats,
+            placeholder=True,
         ),
     }
 
@@ -308,10 +350,10 @@ def _clean_spines(ax):
 
 
 def _draw_env(ax, d):
-    """Draw one environment panel: performance (left) + latency (right)."""
+    """Draw one environment panel: performance (left) + GPU latency lines (right)."""
     ax2  = ax.twinx()
     x    = TARGET_SIMS
-    real_set  = set(d["real_sims"].astype(int))
+    real_set  = set(d["real_sims"].astype(int)) if len(d["real_sims"]) > 0 else set()
     real_mask = np.array([int(s) in real_set for s in x])
 
     # ── Performance (left axis) ──
@@ -319,7 +361,6 @@ def _draw_env(ax, d):
     ax.plot(x, pm, color=PERF_COLOR, lw=LW, zorder=3)
     ax.fill_between(x, pm - pse, pm + pse,
                     color=PERF_COLOR, alpha=ALPHA_BAND, zorder=2)
-    # Filled markers at real data points; open circles at extrapolated
     ax.scatter(x[ real_mask], pm[ real_mask],
                color=PERF_COLOR, s=MS_REAL**2, zorder=6)
     ax.scatter(x[~real_mask], pm[~real_mask],
@@ -329,19 +370,23 @@ def _draw_env(ax, d):
     ax.set_ylabel(d["perf_label"], color=PERF_COLOR, fontsize=FS_LABEL)
     ax.tick_params(axis="y", labelcolor=PERF_COLOR, labelsize=FS_TICK)
 
-    # ── Latency (right axis) ──
-    lm, lse = d["lat_m"], d["lat_se"]
-    ax2.plot(x, lm, color=LAT_COLOR, lw=LW, linestyle="--", zorder=3)
-    ax2.fill_between(x, lm - lse, lm + lse,
-                     color=LAT_COLOR, alpha=ALPHA_BAND, zorder=2)
-    ax2.scatter(x[ real_mask], lm[ real_mask],
-                color=LAT_COLOR, s=MS_REAL**2, marker="s", zorder=6)
-    ax2.scatter(x[~real_mask], lm[~real_mask],
-                facecolors="none", edgecolors=LAT_COLOR, marker="s",
-                linewidths=1.2, s=MS_EXTRAP**2, zorder=6)
+    # ── Latency (right axis) — H100 measured, A100/V100 synthetic estimates ──
+    gpu_lats = d["gpu_lats"]
+    for gpu in ("H100", "A100", "V100"):
+        lm, lse = gpu_lats[gpu]
+        ax2.plot(x, lm, color=GPU_COLORS[gpu], lw=LW,
+                 linestyle=GPU_STYLES[gpu], zorder=3)
+        if gpu == "H100":
+            ax2.fill_between(x, lm - lse, lm + lse,
+                             color=GPU_COLORS["H100"], alpha=ALPHA_BAND, zorder=2)
+            ax2.scatter(x[ real_mask], lm[ real_mask],
+                        color=GPU_COLORS["H100"], s=MS_REAL**2, marker="s", zorder=6)
+            ax2.scatter(x[~real_mask], lm[~real_mask],
+                        facecolors="none", edgecolors=GPU_COLORS["H100"],
+                        linewidths=1.2, s=MS_EXTRAP**2, marker="s", zorder=6)
 
-    ax2.set_ylabel("Latency (ms / step)", color=LAT_COLOR, fontsize=FS_LABEL)
-    ax2.tick_params(axis="y", labelcolor=LAT_COLOR, labelsize=FS_TICK)
+    ax2.set_ylabel("Latency (ms / step)", color=GPU_COLORS["H100"], fontsize=FS_LABEL)
+    ax2.tick_params(axis="y", labelcolor=GPU_COLORS["H100"], labelsize=FS_TICK)
 
     # ── x-axis ──
     ax.set_xscale("log", base=2)
@@ -357,20 +402,24 @@ def _draw_env(ax, d):
 
 
 def plot_scaling(envs):
-    fig, axes = plt.subplots(1, 4, figsize=(14, 4.0))
+    fig, axes = plt.subplots(1, 5, figsize=(17.5, 4.0))
 
     for ax, (name, d) in zip(axes, envs.items()):
         _draw_env(ax, d)
-        ax.set_title(name, fontsize=FS_TITLE)
+        title = name + (" *" if d.get("placeholder") else "")
+        ax.set_title(title, fontsize=FS_TITLE)
 
-    # ── Shared legend below all panels ──
     legend_handles = [
         Line2D([0], [0], color=PERF_COLOR, lw=LW,
                marker="o", ms=MS_REAL, label="Planning quality"),
-        Line2D([0], [0], color=LAT_COLOR, lw=LW, linestyle="--",
-               marker="s", ms=MS_REAL, label="Inference latency"),
+        Line2D([0], [0], color=GPU_COLORS["H100"], lw=LW,
+               linestyle="--", marker="s", ms=MS_REAL, label="H100 latency"),
+        Line2D([0], [0], color=GPU_COLORS["A100"], lw=LW,
+               linestyle="-.", label="A100 (est.)"),
+        Line2D([0], [0], color=GPU_COLORS["V100"], lw=LW,
+               linestyle=":",  label="V100 (est.)"),
     ]
-    fig.legend(handles=legend_handles, loc="lower center", ncol=2,
+    fig.legend(handles=legend_handles, loc="lower center", ncol=4,
                fontsize=FS_LEGEND, frameon=False,
                bbox_to_anchor=(0.5, -0.06))
 

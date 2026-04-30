@@ -30,6 +30,8 @@ import seaborn as sns
 # ============================================================
 
 from plot_config import (
+    C_BLACK, C_WHITE, C_DARK_GRAY, C_MID_GRAY, C_LIGHT_GRAY,
+    C_BLACK, C_WHITE, C_DARK_GRAY, C_MID_GRAY, C_LIGHT_GRAY,
     FS_TITLE, FS_LABEL, FS_TICK, FS_BADGE, FS_LEGEND, FS_ANNOT,
     C_RED, C_NAVY, C_STATE, C_COMMIT, C_BLUE,
     apply_style,
@@ -100,7 +102,7 @@ def draw_panel_a(ax_top, ax_bot):
         cmap="Blues",
         vmin=0, vmax=1,
         linewidths=0.4,
-        linecolor="#cccccc",
+        linecolor=C_LIGHT_GRAY,
         cbar=False,
         square=True,
     )
@@ -130,8 +132,8 @@ def draw_panel_a(ax_top, ax_bot):
 # Panel B: Execution timeline helpers
 # ============================================================
 
-def _box(ax, x, y, w, h, fc, ec="#555555", alpha=1.0, lw=0.8,
-         label="", lsize=8.5, lcolor="black"):
+def _box(ax, x, y, w, h, fc, ec=C_DARK_GRAY, alpha=1.0, lw=0.8,
+         label="", lsize=8.5, lcolor=C_BLACK):
     rect = FancyBboxPatch((x, y), w, h,
                           boxstyle="round,pad=0.05",
                           facecolor=fc, edgecolor=ec,
@@ -143,7 +145,7 @@ def _box(ax, x, y, w, h, fc, ec="#555555", alpha=1.0, lw=0.8,
                 fontsize=lsize, color=lcolor, zorder=4)
 
 
-def _arrow(ax, x0, y, x1, color="#555555", lw=1.1):
+def _arrow(ax, x0, y, x1, color=C_DARK_GRAY, lw=1.1):
     ax.annotate("", xy=(x1, y), xytext=(x0, y),
                 arrowprops=dict(arrowstyle="-|>", color=color,
                                 lw=lw, mutation_scale=9),
@@ -152,7 +154,7 @@ def _arrow(ax, x0, y, x1, color="#555555", lw=1.1):
 
 def _badge(ax, x, y, text, fsize=10):
     ax.text(x, y, text, ha="center", va="center",
-            fontsize=fsize, color="white",
+            fontsize=fsize, color=C_WHITE,
             bbox=dict(boxstyle="round,pad=0.28", facecolor=BADGE_COLOR,
                       edgecolor="none", alpha=0.93),
             zorder=5)
@@ -184,17 +186,17 @@ def draw_panel_b(ax):
     _box(ax, x, y1, bw, bh, STATE_COLOR, label="$s_t$", lsize=FONT_SIZE_BOX)
     x += bw + gap;  _arrow(ax, x - gap, y1c, x)
     _box(ax, x, y1, abw, bh, GATING_COLOR, ec=GATING_COLOR, alpha=0.88,
-         label="act", lsize=FONT_SIZE_BOX, lcolor="white")
+         label="act", lsize=FONT_SIZE_BOX, lcolor=C_WHITE)
     x += abw + gap;  _arrow(ax, x - gap, y1c, x)
     _box(ax, x, y1, bw, bh, STATE_COLOR, label="$s_{t+1}$", lsize=FONT_SIZE_BOX)
 
     ax.text(0.3 + bw / 2, y1c + bh / 2 + 0.18,
             "react immediately",
             ha="center", va="bottom", fontsize=FONT_SIZE_ANNOT,
-            color="gray", style="italic")
+            color=C_MID_GRAY, style="italic")
 
     # divider
-    ax.axhline(4.25, color="#e0e0e0", linewidth=0.8, zorder=0)
+    ax.axhline(4.25, color=C_LIGHT_GRAY, linewidth=0.8, zorder=0)
 
     # ======================================================
     # K=4 strip  (y_center = 2.8)
@@ -214,13 +216,13 @@ def draw_panel_b(ax):
 
     # 3 committed-action boxes
     for _ in range(3):
-        _box(ax, x, y4, abw, bh, COMMIT_COLOR, ec="#888888", alpha=0.75,
-             label=r"$\pi_{\approx}$", lsize=FONT_SIZE_BOX - 1, lcolor="#222222")
+        _box(ax, x, y4, abw, bh, COMMIT_COLOR, ec=C_MID_GRAY, alpha=0.75,
+             label=r"$\pi_{\approx}$", lsize=FONT_SIZE_BOX - 1, lcolor=C_DARK_GRAY)
         x += abw + gap;  _arrow(ax, x - gap, y4c, x)
 
     # MCTS action box (larger, red)
     _box(ax, x, y4m, mbw, mbh, GATING_COLOR, ec=GATING_COLOR, alpha=0.88,
-         label="MCTS", lsize=FONT_SIZE_BOX, lcolor="white")
+         label="MCTS", lsize=FONT_SIZE_BOX, lcolor=C_WHITE)
     pw_x1 = x + mbw
     x += mbw + gap;  _arrow(ax, x - gap, y4c, x)
 
@@ -257,7 +259,7 @@ def draw_panel_b(ax):
     ax.text(0.3 + bw / 2, y4 - 0.18,
             "plan deeply",
             ha="center", va="top", fontsize=FONT_SIZE_ANNOT,
-            color="gray", style="italic")
+            color=C_MID_GRAY, style="italic")
 
 
 # ============================================================
@@ -320,7 +322,7 @@ def draw_panel_c(ax):
                         facecolor=fc, edgecolor=ec,
                         linewidth=ew, zorder=3)
         ax.add_patch(circle)
-        txt_color = "white" if val > 0.55 else "#333333"
+        txt_color = C_WHITE if val > 0.55 else "#333333"
         ax.text(nx, ny, f"{val:.2f}",
                 ha="center", va="center",
                 fontsize=6.0, color=txt_color, zorder=4)

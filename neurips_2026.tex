@@ -49,7 +49,7 @@ wall-clock seconds.
 We train a lightweight meta-policy that decides how much computation to invest at each step.
 The meta-policy consistently outperforms every fixed-budget baseline while using
 less average compute.
-Moreover, we validate the full pipeline in a true two-GPU real-time setup. We demonstrate these results across real-time Pac-Man, Tetris, timed Sokoban,
+Moreover, we validate the full pipeline in a true two-GPU real-time setup. We demonstrate these results across real-time Pac-Man, Tetris, Snake, timed Sokoban,
 and two-player speed Hex.
 
 \end{abstract}
@@ -101,7 +101,6 @@ The gating policy learns to allocate computation to the moments where it matters
 and to act quickly everywhere else.
 
 Our contributions are:
-\dc{training implementation details and how that transfers; }
 \begin{enumerate}
   \item \textbf{Real-time RL environment design.}
     We identify two complementary design patterns for real-time environments:
@@ -109,31 +108,27 @@ Our contributions are:
     a slower planner computes) and \emph{explicit clocks} (a per-player timer
     depleted by thinking time).
     In both cases, the planning process is cost-aware by construction.
-
   \item \textbf{Planning quality vs.\ inference time.}
     We empirically characterize how planning quality and real-time inference cost
     co-scale with simulation count, establishing the joint tradeoff that motivates
     adaptive allocation.
-
   \item \textbf{Adaptive gating policy.}
     We formulate planning-depth selection as a variable-duration meta-decision problem
     and train a lightweight gating network on top of a frozen planner.
     The gating policy selects a depth $K \in \Kset$, determining the simulation budget
     and, in committed-action environments, the number of fast approximate actions taken
     while the planner runs.
-
-  \item \textbf{Results and interpretability.}
-    Across all four environments, the gating policy outperforms every fixed-depth
-    baseline while using less average compute.
-    The learned strategy is consistent with the intuition that deliberation should
-    be concentrated in high-stakes situations.
-
-  \item \textbf{Real-time deployment.}
-    We validate the approach in a true two-GPU real-time setup where the environment
-    and committed-action policy run on one GPU, and MCTS runs on a second GPU.
-    This demonstrates that the committed-action training protocol transfers directly
-    to deployment without architectural changes.
 \end{enumerate}
+
+We substantiate these contributions empirically. Across all five environments,
+the gating policy outperforms every fixed-depth baseline while using less
+average compute, and the learned strategy concentrates deliberation in
+high-stakes situations in interpretable, state-dependent ways. We further
+validate the approach in a true two-GPU real-time setup, with the environment running on one GPU and MCTS on a second. Because
+training already simulates the planning delay by executing $K{-}1$ committed
+actions while MCTS searches in parallel, the trained gating policy transfers
+directly to asynchronous deployment with no retraining and no architectural
+changes.
 
 
 % =============================================================================
@@ -386,12 +381,14 @@ increase in real-time cost.
 \begin{figure}[h]
   \centering
   \includegraphics[width=\linewidth]{figures/scaling.pdf}
-  \caption{Planning quality and real-time inference cost co-scale with simulation count
-    across all four environments.
+  \caption{Planning quality and real-time inference latency co-scale with simulation
+    count across all five environments.
     \emph{Blue solid}: performance (episode return, solve rate, or win rate).
-    \emph{Red dashed}: per-step inference latency (ms).
-    Both metrics increase monotonically with simulation count; shaded bands show $\pm$SE.
-    Filled markers indicate measured data points.}
+    \emph{Dashed lines}: per-step inference latency on H100 (measured, filled markers),
+    A100, and V100 (synthetic estimates; diverge at high simulation counts).
+    Shaded band shows $\pm$SE for H100.
+    Filled markers indicate measured data points; open markers indicate linear extrapolation.
+    Snake results are placeholder (training in progress).}
   \label{fig:scaling}
 \end{figure}
 
@@ -463,7 +460,7 @@ Only the gating network is updated; the planner receives no gradient.
 \subsection{Setup}
 
 \paragraph{Environments.}
-We evaluate across four environments spanning both mechanisms (Table~\ref{tab:envs}).
+We evaluate across five environments spanning both mechanisms (Table~\ref{tab:envs}).
 
 \begin{table}[h]
   \centering
@@ -476,7 +473,8 @@ We evaluate across four environments spanning both mechanisms (Table~\ref{tab:en
     \midrule
     \multicolumn{4}{l}{\textit{Committed-action}} \\[2pt]
     Pac-Man (Jumanji) & Committed-action & 1200 steps & 32, 64, 96, 128 \\
-    Real-Time Tetris  & Committed-action & 2000 steps & 32, 64, 96, 128 \\[4pt]
+    Real-Time Tetris  & Committed-action & 2000 steps & 32, 64, 96, 128 \\
+    Snake             & Committed-action & Variable   & \{1, 2, 4\}  \emph{(training)} \\[4pt]
     \multicolumn{4}{l}{\textit{Clock}} \\[2pt]
     Speed Hex (11$\times$11) & Explicit clock & Variable & 2, 8, 32, 128 \\
     Timed Sokoban & Explicit clock & \todo{?} & \todo{?} \\
@@ -505,7 +503,7 @@ All results are averaged over 100 independent episodes; we report mean $\pm$ sta
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\linewidth]{figures/main_results_vertical.pdf}
+  \includegraphics[width=\linewidth]{figures/main_results_horizontal.pdf}
   \caption{Main results (mean $\pm$\,SE, 100 episodes).
     Colored bars: gating policy (ours); blue bars: baselines.
     Tetris RT uses the RT\_KT variant (MCTS-step committed actions).
@@ -673,7 +671,7 @@ adaptive depth selection the natural lever for performance.
 A lightweight gating policy, trained via RL on top of a frozen planner, learns to
 invest computation proportionally to situational state complexity, more for dense
 boards and high-stakes decisions, less for easy ones.
-Across four environments spanning two real-time mechanisms, the gating policy
+Across five environments spanning two real-time mechanisms, the gating policy
 consistently outperforms every fixed-budget baseline while using less average compute.
 We believe that adaptive, state-conditioned compute allocation is an important and
 underexplored axis for making planning-based RL systems both more capable and

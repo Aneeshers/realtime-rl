@@ -39,6 +39,7 @@ import matplotlib.gridspec as gridspec
 # ============================================================
 
 from plot_config import (
+    C_BLACK, C_WHITE, C_DARK_GRAY, C_MID_GRAY, C_LIGHT_GRAY,
     FS_TITLE, FS_LABEL, FS_TICK, FS_BADGE, FS_ANNOT,
     C_BLUE, FILL_ALPHA, LINE_LW, MARKER_SIZE, CAPSIZE, ERR_LW,
     apply_style,
@@ -177,7 +178,7 @@ def plot(far_state, close_state):
             transform=ax.transAxes,
             ha="center", va="top",
             fontsize=FONT_SIZE_K_BOX,
-            color="black",
+            color=C_BLACK,
         )
 
     # ---- compact line+scatter: ghost distance by chosen K ----
@@ -207,7 +208,7 @@ def plot(far_state, close_state):
     ax_line.text(
         0.97, 0.05, "placeholder data",
         transform=ax_line.transAxes, ha="right", va="bottom",
-        fontsize=FONT_SIZE_ANNOT, color="gray", style="italic",
+        fontsize=FONT_SIZE_ANNOT, color=C_MID_GRAY, style="italic",
     )
 
     out = os.path.join(FIGS, "pacman_interpretability.pdf")

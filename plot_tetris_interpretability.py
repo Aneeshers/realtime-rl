@@ -36,6 +36,7 @@ import matplotlib.gridspec as gridspec
 # ============================================================
 
 from plot_config import (
+    C_BLACK, C_WHITE, C_DARK_GRAY, C_MID_GRAY, C_LIGHT_GRAY,
     FS_TITLE, FS_LABEL, FS_TICK, FS_BADGE, FS_ANNOT,
     C_BLUE, FILL_ALPHA, BAR_ALPHA, LINE_LW, MARKER_SIZE, CAPSIZE, ERR_LW,
     apply_style,
@@ -177,7 +178,7 @@ def plot(sparse_state, dense_state, env):
             transform=ax.transAxes,
             ha="center", va="top",
             fontsize=FONT_SIZE_K_BOX,
-            color="black",
+            color=C_BLACK,
         )
 
     # ---- Line+scatter: board fill by chosen K ----
@@ -206,7 +207,7 @@ def plot(sparse_state, dense_state, env):
     ax_fill.text(
         0.97, 0.05, "K=3 never chosen",
         transform=ax_fill.transAxes, ha="right", va="bottom",
-        fontsize=FONT_SIZE_ANNOT, color="gray", style="italic",
+        fontsize=FONT_SIZE_ANNOT, color=C_MID_GRAY, style="italic",
     )
 
     # ---- Horizontal bar: mean K by piece type ----
@@ -218,7 +219,7 @@ def plot(sparse_state, dense_state, env):
     ax_piece.barh(y, p_means, height=BAR_HEIGHT,
                   color=BAR_COLOR, alpha=BAR_ALPHA, linewidth=0)
     ax_piece.errorbar(p_means, y, xerr=p_ses,
-                      fmt="none", ecolor="black",
+                      fmt="none", ecolor=C_BLACK,
                       elinewidth=ERR_LW, capsize=CAPSIZE, capthick=ERR_LW)
 
     ax_piece.set_yticks(y)

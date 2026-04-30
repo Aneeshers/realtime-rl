@@ -16,7 +16,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import ConnectionPatch
-from plot_config import FS_TITLE, FS_BADGE, C_RED, C_NAVY, apply_style
+from plot_config import FS_TITLE, FS_BADGE, C_RED, C_NAVY, apply_style, C_BLACK, C_WHITE, C_DARK_GRAY, C_MID_GRAY, C_LIGHT_GRAY
 
 # ============================================================
 # Paths & style
@@ -208,7 +208,7 @@ def plot():
         axes[0].transAxes.transform((0.0, 0.5)))
     fig.text(ax0_mid[0] - 0.034, ax0_mid[1], "K = 4",
              ha="center", va="center",
-             fontsize=FS_BADGE, color="black",
+             fontsize=FS_BADGE, color=C_BLACK,
              transform=fig.transFigure, zorder=6)
 
     # ── "gap" annotation on last board ─────────────────────────

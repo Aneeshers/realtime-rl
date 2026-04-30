@@ -23,6 +23,8 @@ import matplotlib.pyplot as plt
 # ============================================================
 
 from plot_config import (
+    C_BLACK, C_WHITE, C_DARK_GRAY, C_MID_GRAY, C_LIGHT_GRAY,
+    C_BLACK, C_WHITE, C_DARK_GRAY, C_MID_GRAY, C_LIGHT_GRAY,
     FS_TITLE, FS_LABEL, FS_TICK, FS_LEGEND, FS_ANNOT,
     K_COLORS, LINE_LW,
     apply_style,
@@ -104,6 +106,19 @@ ENVS = [
             np.array([0.08, 0.08, 0.07, 0.08, 0.09, 0.11, 0.11, 0.12, 0.13, 0.13]),
         ],
     },
+    {
+        "title":    "Snake",
+        "xlabel":   "Episode progress",
+        "legend":   ["K=1", "K=2", "K=3", "K=4"],
+        "show_legend": False,
+        "placeholder": True,
+        "series": [
+            np.array([0.65, 0.58, 0.48, 0.38, 0.28, 0.22, 0.18, 0.15, 0.12, 0.10]),  # K=1 dominant early
+            np.array([0.25, 0.27, 0.28, 0.29, 0.30, 0.29, 0.28, 0.27, 0.26, 0.24]),  # K=2 stable
+            np.zeros(10),                                                               # K=3 never chosen
+            np.array([0.10, 0.15, 0.24, 0.33, 0.42, 0.49, 0.54, 0.58, 0.62, 0.66]),  # K=4 grows with length
+        ],
+    },
 ]
 
 # ============================================================
@@ -153,7 +168,7 @@ def plot_strategy():
         ax.set_ylabel("Frequency" if ax is axes[0] else "", fontsize=FONT_SIZE_LABEL)
         ax.tick_params(labelsize=FONT_SIZE_TICK)
 
-        title = env["title"] + (" †" if env["placeholder"] else "")
+        title = env["title"] + (" *" if env["placeholder"] else "")
         ax.set_title(title, fontsize=FONT_SIZE_TITLE)
 
         _apply_spine_style(ax)
@@ -166,7 +181,7 @@ def plot_strategy():
             ax.text(
                 0.97, 0.97, "placeholder",
                 transform=ax.transAxes, ha="right", va="top",
-                fontsize=FONT_SIZE_ANNOT, color="gray", style="italic",
+                fontsize=FONT_SIZE_ANNOT, color=C_MID_GRAY, style="italic",
             )
 
     fig.tight_layout(pad=0.8)

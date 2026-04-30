@@ -21,6 +21,7 @@ import matplotlib.gridspec as gridspec
 # ============================================================
 
 from plot_config import (
+    C_BLACK, C_WHITE, C_DARK_GRAY, C_MID_GRAY, C_LIGHT_GRAY,
     FS_TITLE, FS_LABEL, FS_TICK, FS_BADGE, FS_ANNOT,
     C_BLUE, FILL_ALPHA, BAR_ALPHA, LINE_LW, MARKER_SIZE, CAPSIZE, ERR_LW,
     apply_style,
@@ -167,7 +168,7 @@ def plot(far_state, close_state, sparse_state, dense_state, tetris_env):
             transform=ax.transAxes,
             ha="center", va="top",
             fontsize=FONT_SIZE_K_BOX,
-            color="black",
+            color=C_BLACK,
         )
 
     ks    = np.array([d[0] for d in GHOST_DIST_BY_K])
@@ -190,7 +191,7 @@ def plot(far_state, close_state, sparse_state, dense_state, tetris_env):
     ax_line.text(
         0.97, 0.05, "placeholder data",
         transform=ax_line.transAxes, ha="right", va="bottom",
-        fontsize=FONT_SIZE_ANNOT, color="gray", style="italic",
+        fontsize=FONT_SIZE_ANNOT, color=C_MID_GRAY, style="italic",
     )
 
     # --- Bottom Row: Tetris ---
@@ -219,7 +220,7 @@ def plot(far_state, close_state, sparse_state, dense_state, tetris_env):
             transform=ax.transAxes,
             ha="center", va="top",
             fontsize=FONT_SIZE_K_BOX,
-            color="black",
+            color=C_BLACK,
         )
 
     k_vals = np.array([d[0] for d in BOARD_FILL_BY_K])
@@ -241,7 +242,7 @@ def plot(far_state, close_state, sparse_state, dense_state, tetris_env):
     ax_fill.text(
         0.97, 0.05, "K=3 never chosen",
         transform=ax_fill.transAxes, ha="right", va="bottom",
-        fontsize=FONT_SIZE_ANNOT, color="gray", style="italic",
+        fontsize=FONT_SIZE_ANNOT, color=C_MID_GRAY, style="italic",
     )
 
     pieces = [d[0] for d in PIECE_MEAN_K]
@@ -251,7 +252,7 @@ def plot(far_state, close_state, sparse_state, dense_state, tetris_env):
 
     BAR_HEIGHT = 0.55
     ax_piece.barh(y, p_means, height=BAR_HEIGHT, color=BAR_COLOR, alpha=BAR_ALPHA, linewidth=0)
-    ax_piece.errorbar(p_means, y, xerr=p_ses, fmt="none", ecolor="black", elinewidth=ERR_LW, capsize=CAPSIZE, capthick=ERR_LW)
+    ax_piece.errorbar(p_means, y, xerr=p_ses, fmt="none", ecolor=C_BLACK, elinewidth=ERR_LW, capsize=CAPSIZE, capthick=ERR_LW)
 
     ax_piece.set_yticks(y)
     ax_piece.set_yticklabels(pieces, fontsize=FONT_SIZE_TICK)
