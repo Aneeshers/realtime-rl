@@ -614,6 +614,19 @@ Because training simulates the planning delay by actually executing committed ac
 in the environment, the learned policy requires no modification for deployment.
 The separation between environment and planner is already the right abstraction.
 
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{figures/deployment.pdf}
+  \caption{Validation of the real-time, asynchronous 2-GPU deployment.
+    \emph{Left:} Timeline of execution showing the environment and fast committed-action
+    policy ($\pi_{\approx}$) operating continuously on GPU 1 while the MCTS planner
+    evaluates deeper meta-decisions asynchronously on GPU 2.
+    \emph{Center-Left:} Latency distributions for the MCTS evaluation step across different
+    hardware architectures (placeholder data).
+    \emph{Right Panels:} Zero-shot deployment performance for Tetris RT (episode return) and Speed Hex (win rate) matches simulated training performance
+    (placeholder data), validating that the committed-action training protocol perfectly models the deployment delay.}
+  \label{fig:deployment}
+\end{figure}
 
 % =============================================================================
 \section{Discussion}

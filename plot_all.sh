@@ -27,4 +27,7 @@ python3 plot_tetris_interpretability.py
 echo "Running plot_interpretability.py (combined)..."
 python3 plot_interpretability.py
 
+echo "Running plot_deployment.py..."
+python3 plot_deployment.py
+
 echo "All plots generated successfully!"
