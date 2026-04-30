@@ -109,7 +109,7 @@ def plot_deployment():
     
     # Custom y-ticks for GPU labels
     ax.set_yticks([14, 24])
-    ax.set_yticklabels(["GPU 1\n(Env + $\pi_{\\approx}$)", "GPU 2\n(MCTS)"], fontsize=FS_TICK)
+    ax.set_yticklabels(["GPU 1\n(Env + $\pi_{reflex}$)", "GPU 2\n(MCTS)"], fontsize=FS_TICK)
     ax.tick_params(axis='x', labelsize=FS_TICK)
     
     ax.set_title("Asynchronous Execution\nTimeline", fontsize=FS_TITLE)

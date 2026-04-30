@@ -217,7 +217,7 @@ def draw_panel_b(ax):
     # 3 committed-action boxes
     for _ in range(3):
         _box(ax, x, y4, abw, bh, COMMIT_COLOR, ec=C_MID_GRAY, alpha=0.75,
-             label=r"$\pi_{\approx}$", lsize=FONT_SIZE_BOX - 1, lcolor=C_DARK_GRAY)
+             label=r"$\pi_{reflex}$", lsize=FONT_SIZE_BOX - 1, lcolor=C_DARK_GRAY)
         x += abw + gap;  _arrow(ax, x - gap, y4c, x)
 
     # MCTS action box (larger, red)

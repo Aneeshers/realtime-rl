@@ -93,8 +93,8 @@ We train a lightweight \emph{gating policy} that reads the current game state an
 the planner's own value estimate and intermediate features to choose a planning depth
 at each decision point.
 While the planner runs in the background, the agent takes \emph{committed actions}.
-In committed-action environments these are fast, approximate decisions drawn from
-the planner's policy that keep the agent moving without full deliberation; in
+In committed-action environments these are fast reflex actions sampled from the logits of our reflex policy
+that keep the agent moving without full deliberation; in
 clock environments, where the board does not evolve while a player thinks, they
 are no-ops that simply consume the player's clock.
 The gating policy learns to allocate computation to the moments where it matters most
@@ -104,7 +104,7 @@ Our contributions are:
 \begin{enumerate}
   \item \textbf{Real-time RL environment design.}
     We identify two complementary design patterns for real-time environments:
-    \emph{committed-action progression} (the agent takes approximate actions while
+    \emph{committed-action progression} (the agent takes reflex actions while
     a slower planner computes) and \emph{explicit clocks} (a per-player timer
     depleted by thinking time).
     In both cases, the planning process is cost-aware by construction.
@@ -116,7 +116,7 @@ Our contributions are:
     We formulate planning-depth selection as a variable-duration meta-decision problem
     and train a lightweight gating network on top of a frozen planner.
     The gating policy selects a depth $K \in \Kset$, determining the simulation budget
-    and, in committed-action environments, the number of fast approximate actions taken
+    and, in committed-action environments, the number of fast reflex actions taken
     while the planner runs.
 \end{enumerate}
 
@@ -212,21 +212,21 @@ pays in world-progression steps rather than wall-clock seconds.
 Figure~\ref{fig:tetris_committed} illustrates the mechanism for real-time Tetris.
 An I-shaped piece spawns at the top of the board.
 The gating policy selects $K{=}4$, reserving four game ticks for the planner.
-During ticks $t{+}1$ through $t{+}3$, a fast approximate policy ($\pi_\approx$)
+During ticks $t{+}1$ through $t{+}3$, a fast reflex policy ($\pi_{reflex}$)
 takes committed actions, here, moving the piece left each tick as gravity pulls it
 down.
 MCTS runs 128 simulations in the background over those same ticks, simulating the
 committed-action trajectory to find the best action for tick $t{+}4$.
 It identifies a four-cell gap on the right side of the board and places the piece there
-on the final step, a placement the approximate policy would have missed.
+on the final step, a placement the reflex policy would have missed.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{figures/tetris_committed.pdf}
   \caption{Committed-action execution in real-time Tetris with $K{=}4$.
     The I-piece spawns at top center (light blue).
-    Ticks $t{+}1$–$t{+}3$ are committed actions from the approximate policy
-    $\pi_\approx$ that move the piece left while gravity falls it one row per tick.
+    Ticks $t{+}1$–$t{+}3$ are committed actions from the reflex policy
+    $\pi_{reflex}$ that move the piece left while gravity falls it one row per tick.
     Tick $t{+}4$ (red): the MCTS result fires, having searched 128 simulations
     over the committed-action trajectory, it identifies a four-cell gap on the right
     and places the piece there.
@@ -246,7 +246,7 @@ We study two mechanisms through which this property arises.
 
 In committed-action environments, acting and planning happen concurrently.
 When the gating policy selects a planning depth $K$, it reserves $K$ environment steps
-for the planner. The agent takes $K{-}1$ \emph{committed actions}, which are fast, approximate
+for the planner. The agent takes $K{-}1$ \emph{committed actions}, which are fast reflex actions
 decisions drawn from the planner's own policy, while the full planner runs in the
 background. On the $K$-th step, the planner's result is applied.
 The MCTS tree accounts for this explicitly: its recurrent function simulates the $K{-}1$
@@ -256,13 +256,13 @@ of world progression before the carefully chosen action lands.
 
 \textbf{Pac-Man~\cite{jumanji2022}.}
 Ghosts advance every step regardless of the agent's action.
-Committed actions keep the agent moving under an approximate policy while MCTS
+Committed actions keep the agent moving under a reflex policy while MCTS
 computes. A deeper plan means the agent has navigated farther before the MCTS action
 fires.
 
 \textbf{Real-time Tetris~\cite{jumanji2022}.}
 Gravity advances the falling piece one row every step.
-The same committed-action mechanism applies: the agent moves under an approximate
+The same committed-action mechanism applies: the agent moves under a reflex policy
 policy for $K{-}1$ steps while the planner searches, then the planner's chosen
 placement is executed on step $K$.
 The piece has descended further when the decision lands, making placement precision
@@ -282,7 +282,7 @@ much total compute is consumed.
     \emph{Left}: the gating policy reads the current game state (pacman is far away from the ghosts) and outputs a depth distribution $P(K)$; for a dense, high-stakes board
     it concentrates probability on $K{=}4$ (red bar).
     \emph{Center}: execution timeline for $K{=}1$ (react immediately — one MCTS action)
-    and $K{=}4$ (plan deeply — three committed approximate-policy actions $\pi_\approx$
+    and $K{=}4$ (plan deeply — three committed reflex-policy actions $\pi_{reflex}$
     followed by the MCTS-selected action, with 128 simulations running in the background).
     \emph{Right}: schematic MCTS search tree; nodes colored by value estimate (Reds
     colormap); the selected best-path is highlighted in red.
@@ -328,7 +328,7 @@ but we found that in this setting the gating policy trivially learns to avoid ti
 out, a much easier problem that does not require genuine resource allocation
 (see Appendix~\ref{app:sim_calibration} for results under that formulation).
 We therefore study the harder setting: once the clock is exhausted, the agent continues
-playing with committed fast-approximate actions for the remainder of the game rather
+playing with committed fast-reflex actions for the remainder of the game rather
 than forfeiting.
 This forces the gating policy to reason about how to distribute a finite budget across
 the full game, knowing that spending too much early degrades late-game play quality
@@ -618,7 +618,7 @@ The separation between environment and planner is already the right abstraction.
   \includegraphics[width=\linewidth]{figures/deployment.pdf}
   \caption{Validation of the real-time, asynchronous 2-GPU deployment.
     \emph{Left:} Timeline of execution showing the environment and fast committed-action
-    policy ($\pi_{\approx}$) operating continuously on GPU 1 while the MCTS planner
+    policy ($\pi_{reflex}$) operating continuously on GPU 1 while the MCTS planner
     evaluates deeper meta-decisions asynchronously on GPU 2.
     \emph{Center-Left:} Latency distributions for the MCTS evaluation step across different
     hardware architectures (placeholder data).
@@ -655,7 +655,7 @@ The gating policy can exploit both signals using the same learning algorithm.
 
 \paragraph{Deployment as a test of training fidelity.}
 The two-GPU deployment result is not merely an engineering demonstration.
-It shows that the committed-action abstraction, where K-1 approximate actions fill
+It shows that the committed-action abstraction, where K-1 reflex actions fill
 the planning delay in simulation, accurately models the dynamics of true asynchronous
 execution.
 An agent trained under this abstraction generalizes immediately to hardware-separated
