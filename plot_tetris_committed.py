@@ -16,7 +16,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import ConnectionPatch
-from plot_config import FS_TITLE, FS_BADGE, C_RED, C_NAVY, apply_style, C_BLACK, C_WHITE, C_DARK_GRAY, C_MID_GRAY, C_LIGHT_GRAY
+from plot_config import FS_TITLE, FS_BADGE, C_RED, C_NAVY, C_BLUE, apply_style, C_BLACK, C_WHITE, C_DARK_GRAY, C_MID_GRAY, C_LIGHT_GRAY
 
 # ============================================================
 # Paths & style
@@ -136,9 +136,18 @@ def plot():
     from jumanji.environments.packing.tetris.viewer import TetrisViewer
 
     viewer = TetrisViewer(num_rows=NROWS, num_cols=NCOLS, render_mode="rgb_array")
+    
+    from matplotlib.colors import to_rgba
     # Override background cell color to semi-transparent gray
     bg_cid = CV_BG % (len(viewer.colors) - 1) + 1
     viewer.colors[bg_cid] = BG_FILL_RGBA
+    
+    # Override committed and MCTS block colors to match global C_BLUE and C_RED
+    commit_cid = CV_COMMIT % (len(viewer.colors) - 1) + 1
+    viewer.colors[commit_cid] = to_rgba(C_BLUE)
+    
+    mcts_cid = CV_MCTS % (len(viewer.colors) - 1) + 1
+    viewer.colors[mcts_cid] = to_rgba(C_RED)
 
     n = len(FRAMES)
     fig, axes = plt.subplots(

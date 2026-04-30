@@ -25,7 +25,7 @@ import seaborn as sns
 from plot_config import (
     C_BLACK, C_WHITE, C_DARK_GRAY, C_MID_GRAY, C_LIGHT_GRAY,
     FS_TITLE, FS_LABEL, FS_TICK, FS_ANNOT,
-    C_RED, BAR_ALPHA, CAPSIZE, ERR_LW,
+    C_RED, C_BLUE, BAR_ALPHA, CAPSIZE, ERR_LW,
     apply_style,
 )
 apply_style()
@@ -135,10 +135,13 @@ os.makedirs(FIGS, exist_ok=True)
 
 
 
+from matplotlib.colors import to_rgba
+
 def baseline_blues(n):
-    """n blue shades from the seaborn Blues palette, skipping the palest end."""
-    full = sns.color_palette("Blues", n_colors=n + 3)
-    return full[3:]  # drop the three lightest to stay visible
+    """n shades of C_BLUE by varying opacity."""
+    base_color = to_rgba(C_BLUE)
+    alphas = np.linspace(0.3, 0.85, n)
+    return [(base_color[0], base_color[1], base_color[2], a) for a in alphas]
 
 
 def _apply_spine_style(ax):
@@ -164,15 +167,13 @@ def plot_vertical():
         labels = [b[0] for b in baselines] + [gating[0]]
         means  = np.array([b[1] for b in baselines] + [gating[1]])
         ses    = np.array([b[2] for b in baselines] + [gating[2]])
-        colors = list(baseline_blues(len(baselines))) + [GATING_COLOR]
-        alpha  = BAR_ALPHA
+        colors = list(baseline_blues(len(baselines))) + [to_rgba(GATING_COLOR, alpha=BAR_ALPHA)]
 
         x = np.arange(len(labels))
         ax.bar(
             x, means,
             width=BAR_WIDTH_V,
             color=colors,
-            alpha=alpha,
             linewidth=0,
         )
         ax.errorbar(
@@ -226,15 +227,13 @@ def plot_horizontal():
         labels = [gating[0]] + [b[0] for b in baselines]
         means  = np.array([gating[1]] + [b[1] for b in baselines])
         ses    = np.array([gating[2]] + [b[2] for b in baselines])
-        colors = [GATING_COLOR] + list(baseline_blues(len(baselines)))
-        alpha  = BAR_ALPHA
+        colors = [to_rgba(GATING_COLOR, alpha=BAR_ALPHA)] + list(baseline_blues(len(baselines)))
 
         y = np.arange(len(labels))
         ax.barh(
             y, means,
             height=BAR_HEIGHT_H,
             color=colors,
-            alpha=alpha,
             linewidth=0,
         )
         ax.errorbar(
