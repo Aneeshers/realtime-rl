@@ -19,6 +19,8 @@
 \usepackage{enumitem}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 
 \newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
 \newcommand{\am}[1]{\textcolor{blue}{{[aneesh: #1]}}}
@@ -83,7 +85,13 @@ planning.
 
 We study this intermediate regime using planning-based agents. Specifically,
 AlphaZero-style models~\cite{silver2018general} that use Monte Carlo Tree Search (MCTS)
-to improve action selection with additional computation. \am{add primer about alphazero in appendix}
+to improve action selection with additional computation
+(see Appendix~\ref{app:az_primer} for a self-contained primer).
+In MCTS, an agent repeatedly simulates plausible continuations from the current state,
+guided by a neural network that predicts action probabilities and state values;
+each additional simulation refines the estimate of which action is best.
+A key property is that more simulations reliably improve decision quality,
+at the direct cost of more compute and, in real-time settings, more elapsed game time.
 As an agent plans more, it performs better. But planning also takes time, and in
 real-time settings that time is paid directly in game outcomes. This dual property
 (planning quality scales up with compute, and real-time cost scales up with inference
@@ -689,6 +697,128 @@ more resource-efficient in real-time settings.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \appendix
+
+\section{AlphaZero and MCTS: A Self-Contained Primer}
+\label{app:az_primer}
+
+This section answers common questions about the planning infrastructure used in this
+paper. It targets readers familiar with deep RL but not with tree-search methods.
+
+\subsection*{What is a simulation?}
+
+\textbf{Q: What does ``running a simulation'' mean in MCTS?}
+
+A \emph{simulation} (also called a \emph{playout}) is one traversal of the search tree
+from the root node (the current observed state) to a leaf, followed by a backup of
+the resulting value estimate up to the root.
+Each traversal selects edges greedily according to the PUCT rule:
+\[
+  a^* = \arg\max_a \Bigl[Q(s,a)
+        + c \cdot \pi_\theta(a|s)
+          \cdot \frac{\sqrt{N(s)}}{1+N(s,a)}\Bigr],
+\]
+where $Q(s,a)$ is the empirical mean value of subtree $a$,
+$\pi_\theta(a|s)$ is the network's prior over actions,
+$N(s)$ is the total visit count of node $s$,
+and $N(s,a)$ is the visit count of edge $(s,a)$.
+Repeated simulations concentrate visits on high-value, high-prior subtrees while
+continuing to explore less-visited ones.
+After $n$ simulations the recommended action is the \emph{most-visited} child of
+the root.
+
+\subsection*{How is the final action selected?}
+
+\textbf{Q: How does the agent translate MCTS visit counts into an action?}
+
+At evaluation time the agent picks the most-visited root child.
+During training, the visit-count distribution
+$\hat{\pi}(a) \propto N(s_0,a)^{1/\tau}$
+(temperature $\tau > 0$) is recorded and used as a \emph{search target}:
+the network is updated to predict $\hat{\pi}$ at state $s_0$.
+This is the expert-iteration loop --- search produces a better-than-raw-policy
+distribution, and the network learns to imitate it, improving its prior for
+future searches.
+
+\subsection*{AlphaZero vs.\ MuZero}
+
+\textbf{Q: What is the difference between AlphaZero and MuZero?}
+
+\textbf{AlphaZero}~\cite{silver2018general} requires a \emph{perfect simulator}:
+given state $s$ and action $a$, the simulator returns the exact next state $s'$.
+MCTS is run entirely inside this simulator; the network supplies priors and value
+estimates but never models transitions.
+
+\textbf{MuZero}~\cite{schrittwieser2020muzero} replaces the perfect simulator with a
+\emph{learned latent-space dynamics model}.
+Transitions during search are predicted by a network rather than a ground-truth
+engine, so MuZero can plan in environments without a simulator (e.g.\ Atari frames).
+
+All environments in this paper expose a JAX-native step function, so we use the
+AlphaZero paradigm: ground-truth transitions, no learned dynamics.
+
+\subsection*{Single-agent AlphaZero: expert iteration}
+
+\textbf{Q: AlphaZero was designed for two-player zero-sum games. How does it transfer to single-agent settings?}
+
+The core loop is \emph{expert iteration}~\cite{anthony2017thinking},
+shown in Algorithm~\ref{alg:expert_iter}.
+The value head uses a bootstrapped return instead of a zero-sum game outcome;
+otherwise the algorithm is identical to two-player AlphaZero.
+
+\begin{algorithm}[h]
+\caption{Single-agent AlphaZero via Expert Iteration}
+\label{alg:expert_iter}
+\begin{algorithmic}[1]
+\Require Network $f_\theta = (\pi_\theta, v_\theta)$, environment $\mathcal{E}$,
+         simulations per step $n$, replay buffer $\mathcal{B}$
+\Repeat
+  \State $\mathcal{D} \leftarrow \{\}$ \Comment{episode data buffer}
+  \State $s_0 \leftarrow \mathcal{E}.\text{reset}()$
+  \For{$t = 0, 1, \ldots, T-1$}                     \Comment{\textbf{Act}}
+    \State Run $n$ MCTS simulations from $s_t$ using $f_\theta$
+    \State $\hat{\pi}_t(a) \propto N(s_t, a)^{1/\tau}$ \Comment{visit-count policy}
+    \State $a_t \sim \hat{\pi}_t$;\quad $s_{t+1} \leftarrow \mathcal{E}.\text{step}(a_t)$
+    \State $\mathcal{D} \leftarrow \mathcal{D} \cup \{(s_t,\, \hat{\pi}_t)\}$
+  \EndFor
+  \State Compute returns $z_t = \sum_{k \geq 0} \gamma^k r_{t+k}$ for each $t$ \Comment{\textbf{Store}}
+  \State $\mathcal{B} \leftarrow \mathcal{B} \cup \{(s_t, \hat{\pi}_t, z_t)\}_{t=0}^{T-1}$
+  \State Sample mini-batch from $\mathcal{B}$                     \Comment{\textbf{Learn}}
+  \State $\mathcal{L}(\theta) =
+    \displaystyle\frac{1}{|\mathcal{B}|}\sum_{(s,\hat{\pi},z)\in\mathcal{B}}
+    \Bigl[\bigl(v_\theta(s) - z\bigr)^2
+          - \hat{\pi}^\top \log \pi_\theta(s)\Bigr]$
+  \State $\theta \leftarrow \theta - \alpha\,\nabla_\theta\,\mathcal{L}(\theta)$
+\Until{convergence}
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Scaling with JAX: vectorised parallel MCTS}
+
+\textbf{Q: MCTS sounds inherently sequential. How do you run it efficiently at the scale needed for RL training?}
+
+Naively each MCTS simulation depends on the previous one (via the updated $Q$ and $N$
+tables), which conflicts with JAX's strength: massive data-parallel operations.
+We exploit two levels of parallelism.
+
+\textbf{Environment-level parallelism.}
+We maintain a batch of $E$ independent environment instances (32 in our experiments).
+Each instance has its own search tree; all $E$ leaf nodes are evaluated in a
+\emph{single batched forward pass} of the neural network, which is the GPU/TPU
+bottleneck.
+
+\textbf{Intra-tree simulation loop via \texttt{jax.lax.scan}.}
+Within each tree the $n$ simulations are unrolled as a \texttt{scan}.
+Each iteration: (1) traverse all $E$ trees to their current leaf using PUCT
+(parallelised over $E$), (2) batch-evaluate the $E$ leaves in one network call,
+(3) back-propagate values.
+Because JAX traces the full scan at compile time, the tree-update logic is fused
+into a single XLA kernel with zero Python-level iteration overhead at runtime.
+
+The result is that all $n$ simulations across all $E$ environments are compiled
+into a single \texttt{jit}-ted function that runs entirely on the accelerator,
+with one network forward pass per simulation step and no host-device transfers
+during rollout.
+
 
 \section{Environment Details}
 \label{app:envs}
