@@ -83,7 +83,7 @@ planning.
 
 We study this intermediate regime using planning-based agents. Specifically,
 AlphaZero-style models~\cite{silver2018general} that use Monte Carlo Tree Search (MCTS)
-to improve action selection with additional computation.
+to improve action selection with additional computation. \am{add primer about alphazero in appendix}
 As an agent plans more, it performs better. But planning also takes time, and in
 real-time settings that time is paid directly in game outcomes. This dual property
 (planning quality scales up with compute, and real-time cost scales up with inference
@@ -130,83 +130,74 @@ actions while MCTS searches in parallel, the trained gating policy transfers
 directly to asynchronous deployment with no retraining and no architectural
 changes.
 
-
 % =============================================================================
 \section{Background and Related Work}
 % =============================================================================
 
-% =============================================================================
-% =============================================================================
+\paragraph{Deliberation has always had a cost.}
+The idea that thinking takes time, and that this time has value, predates deep
+RL by decades. Russell and Wefald's value-of-computation~\cite{russell1991right}
+formalised when an additional computation is worth its cost; the anytime
+planning literature~\cite{korf1990rta,dean1988analysis,zilberstein1996using,likhachev2003ara}
+built algorithms around the resulting tradeoff. Applied to MCTS, this
+perspective casts simulation selection as a meta-level decision
+problem~\cite{hay2012selecting,tolpin2012simple,sezener2020static,lin2015metareasoning},
+and the cogsci revival~\cite{lieder2017strategy,griffiths2019doing,callaway2018learning}
+casts bounded-optimal cognition itself as a metalevel MDP. The question this
+literature poses, how much should the agent deliberate, given that
+deliberation is costly?, is the question we ask in deep RL.
 
-\paragraph{Real-time reinforcement learning.}
-Standard RL pauses the environment for the agent; real-time RL drops this
-assumption. The RTMDP~\cite{ramstedt2019rtrl,travnik2018reactive} formalises
-environments that progress during action selection, with generalisations
-covering action and observation
+\paragraph{Modern deep RL has mostly sidestepped it.}
+AlphaZero-family planners~\cite{silver2018general,schrittwieser2020muzero}
+treat MCTS budget as a fixed hyperparameter at deployment, with Gumbel
+MuZero~\cite{danihelka2022policy} the notable advance toward small budgets.
+Real-time RL~\cite{ramstedt2019rtrl,travnik2018reactive} reintroduces the
+cost of deliberation by formalising environments that progress during action
+selection, with extensions for action and observation
 delays~\cite{walsh2009delayed,derman2021delayed,bouteiller2021random,katsikopoulos2003markov}
-and concurrent control~\cite{xiao2020thinking}. Recent work mitigates
-inference cost through async or pipelined
-architectures~\cite{riemer2025staggered,anokhin2025handling}; we instead treat
-inference cost as a per-state decision variable.
+and concurrent control~\cite{xiao2020thinking}. Recent work mitigates inference
+cost through asynchronous and pipelined
+architectures~\cite{riemer2025staggered,anokhin2025handling}. However, across all
+of this work, inference cost is something the architecture imposes, not
+something the agent reasons about.
 
-\paragraph{Meta-control over planning compute.}
-We build on AlphaZero-family planners~\cite{silver2018general,schrittwieser2020muzero};
-Gumbel MuZero~\cite{danihelka2022policy} makes our small-budget regime
-viable. The closest precedents to our gating policy are learned controllers
-that allocate planning compute per state -- Metacontrol~\cite{hamrick2017metacontrol},
-Thinker and Dynamic Thinker~\cite{chung2023thinker,wang2024dynamic}, and
-Adaptive Lookahead~\cite{dalal2022adaptive} -- supported by Hamrick et al.'s
-empirical finding that shallow MuZero trees often suffice, with the marginal
-value of additional simulations varying sharply by
-state~\cite{hamrick2021role}. We differ from this lineage: (i)~we gate a \emph{frozen} planner, requiring no joint
-training; (ii)~deliberation cost
-is paid in \emph{environmental progress}, not in artificial reward shaping, so the policy learns a
- value-of-computation function from outcomes alone; (iv)~the
-committed-action and clock formulations make this real-time cost legible to
-both training and deployment, transferring without architectural change.
-Orthogonal ``learning to search'' work~\cite{guez2018mctsnets,farquhar2018treeqn,hamrick2020save,racaniere2017i2a}
-modifies the planner's internal behaviour rather than its budget.
+\paragraph{Adapting compute per state.}
+The closest neighbours to our work \emph{learn} to allocate planning compute. Metacontrol~\cite{hamrick2017metacontrol}
+trains a meta-controller to choose how many imagination steps to run; Thinker
+and Dynamic Thinker~\cite{chung2023thinker,wang2024dynamic} let the agent
+itself decide when to imagine alternative trajectories on top of a learned
+world model; Adaptive Lookahead~\cite{dalal2022adaptive} learns a
+state-dependent tree-search horizon. ~\cite{hamrick2021role}'s ablation
+study provides the strongest empirical motivation: shallow MuZero trees often suffice, and the marginal value of additional
+simulations varies sharply by state. In parallel, the LLM community has
+independently advanced the same idea: PonderNet and adaptive computation
+time~\cite{graves2016act,banino2021pondernet,schuster2022calm} learn per-input
+halting; test-time compute scaling~\cite{snell2024scaling,deepseek2025r1,muennighoff2025s1}
+and RL-trained reasoning-length
+controllers~\cite{aggarwal2025l1,muppidi2025predictive,fang2025thinkless,shen2025dast}
+explicitly learn per-query thinking budgets; cascaded
+routing~\cite{kim2023bigl,chen2023frugalgpt,ong2025routellm} defers easy
+queries to cheap models. The shared thesis is that a small learned policy can
+profitably decide how much computation to spend per decision.
+
+\paragraph{Our setting.}
+We share this thesis but address a setting none of these works does. We gate
+a \emph{frozen} AlphaZero-style planner, requiring no joint training between
+meta-policy and planner. The cost of deliberation is paid in
+\emph{environmental progress} (ghosts close in, pieces fall, clocks
+deplete) not in artificial reward shaping, so the gating policy learns a value-of-computation function from outcomes alone. Moreover, the
+committed-action protocol that makes this real-time cost legible during
+training also describes the dynamics of true asynchronous execution, so the
+trained policy transfers directly to a two-GPU deployment with no
+architectural change. Other axes of ``learning to
+search''~\cite{guez2018mctsnets,farquhar2018treeqn,hamrick2020save,racaniere2017i2a}
+modify the planner's internal behaviour rather than its budget, and the
+options framework~\cite{sutton1999between,bradtke1994reinforcement,bacon2017optioncritic,harb2018deliberation}
+together with classical MCTS time-management~\cite{baier2016time,huang2010timemanagement,baudis2012pachi}
+provide the formal scaffolding for variable-duration meta-decisions and the
+baselines for our clock environments.
 
 
-\paragraph{Value of computation and metareasoning.}
-Casting deliberation as a decision-theoretic problem dates to Russell and
-Wefald~\cite{russell1991right}: invest in a computation as long as the
-expected improvement in subsequent action choice exceeds the cost. Hay et
-al.~\cite{hay2012selecting} apply this view to MCTS, casting simulation
-selection as a Bayesian best-arm problem statistically distinct from UCT's
-bandit formulation; Tolpin and Shimony~\cite{tolpin2012simple}, Sezener et
-al.~\cite{sezener2020static}, and Lin et al.~\cite{lin2015metareasoning}
-extend the framework to MCTS variants and to MDP planning under time
-constraints. The cogsci revival~\cite{lieder2017strategy,griffiths2019doing,callaway2018learning}
-formalises bounded-optimal cognition as a metalevel MDP and learns to solve
-it. In our work, the gating policy implicitly
-learns a value-of-computation function from real-time outcomes, with no
-hand-designed VOC features and no explicit access to the planner's internals
-beyond a single forward pass.
-
-\paragraph{Adaptive computation in neural networks and LLMs.}
-Learned compute-allocation has a long supervised-learning
-history~\cite{graves2016act,banino2021pondernet,schuster2022calm} and an
-explosive recent one in LLMs: test-time compute
-scaling~\cite{snell2024scaling,deepseek2025r1,muennighoff2025s1} and
-RL-trained reasoning-length
-controllers~\cite{aggarwal2025l1,muppidi2025predictive,fang2025thinkless,shen2025dast} explicitly
-learn per-query thinking budgets, these are conceptual twins of our gating policy in
-the LLM domain. Cascaded
-routing~\cite{kim2023bigl,chen2023frugalgpt,ong2025routellm} similarly defers
-easy queries to cheap models. Our work realizes this thesis for
-AlphaZero-style planning under real-time environmental cost.
-
-\paragraph{Options, anytime planning, and time management.}
-Anytime planning~\cite{korf1990rta,dean1988analysis,zilberstein1996using,likhachev2003ara}
-establishes the tradeoff our gating policy operationalizes in a deep-RL
-setting. We formalize meta-decisions as variable-duration
-options~\cite{sutton1999between,bradtke1994reinforcement,bacon2017optioncritic};
-closest in spirit is \cite{harb2018deliberation}'s deliberation cost on
-options. MCTS time-management heuristics in Go
-and chess engines~\cite{baier2016time,huang2010timemanagement,baudivs2011pachi}
-form the baselines for our clock environments.
-% =============================================================================
 \section{Real-Time RL Environments}
 \label{sec:envs}
 % =============================================================================
@@ -240,7 +231,7 @@ on the final step, a placement the approximate policy would have missed.
     over the committed-action trajectory, it identifies a four-cell gap on the right
     and places the piece there.
     Piece positions are schematic; the key point is that MCTS plans
-    \emph{over} the committed-action delay, not despite it.}
+    \emph{over} the committed-action delay, not despite it. \am{reflex policy - we sample from it as we think; dark grey; make it clear that is tetris}}
   \label{fig:tetris_committed}
 \end{figure}
 
@@ -328,6 +319,8 @@ When the agent chooses a simulation budget, the corresponding time cost is deduc
 from the clock after the move is played. Committed actions during the planning phase
 are no-ops, since the board does not evolve while a player deliberates.
 
+\am{Can insert small figure here with speed clock for hex}
+
 \textbf{Speed Hex.}
 An 11$\times$11 two-player board game in which each player's clock starts at $T$ ticks.
 One natural formulation ends the game immediately when a player's clock reaches zero,
@@ -386,8 +379,7 @@ increase in real-time cost.
     \emph{Blue solid}: performance (episode return, solve rate, or win rate).
     \emph{Dashed lines}: per-step inference latency on H100,
     A100, and V100.
-    Shaded band shows $\pm$SE for H100.
-    Filled markers indicate all data points (both measured and linearly extrapolated).}
+    Shaded band shows $\pm$SE.}
   \label{fig:scaling}
 \end{figure}
 
@@ -425,7 +417,7 @@ Normalizing by $K$ or discounting the reward itself (rather than only the future
 creates an implicit bias toward $K{=}1$: longer options must accumulate proportionally
 more reward to be competitive, regardless of whether deeper planning actually earns
 more.
-Raw reward lets the policy discover when deeper planning is genuinely worth more.
+Raw reward lets the policy discover when deeper planning is worth more. \am{will double check on the reasoning on this, maybe can introduce small formalism in the appendix for this}
 
 \subsection{What the gating policy observes}
 
@@ -466,17 +458,17 @@ We evaluate across five environments spanning both mechanisms (Table~\ref{tab:en
   \caption{Evaluation environments.}
   \label{tab:envs}
   \small
-  \begin{tabular}{llll}
+  \begin{tabular}{lll}
     \toprule
-    Environment & Mechanism & Episode length & Sim options \\
+    Environment & Mechanism & Sim options \\
     \midrule
-    \multicolumn{4}{l}{\textit{Committed-action}} \\[2pt]
-    Pac-Man (Jumanji) & Committed-action & 1200 steps & 32, 64, 96, 128 \\
-    Real-Time Tetris  & Committed-action & 2000 steps & 32, 64, 96, 128 \\
-    Snake             & Committed-action & Variable   & \{1, 2, 4\}  \emph{(training)} \\[4pt]
-    \multicolumn{4}{l}{\textit{Clock}} \\[2pt]
-    Speed Hex (11$\times$11) & Explicit clock & Variable & 2, 8, 32, 128 \\
-    Timed Sokoban & Explicit clock & \todo{?} & \todo{?} \\
+    \multicolumn{3}{l}{\textit{Committed-action}} \\[2pt]
+    Pac-Man (Jumanji) & Committed-action & 32, 64, 96, 128 \\
+    Real-Time Tetris  & Committed-action & 32, 64, 96, 128 \\
+    Snake             & Committed-action & \{1, 2, 4\}  \emph{(training)} \\[4pt]
+    \multicolumn{3}{l}{\textit{Clock}} \\[2pt]
+    Speed Hex (11$\times$11) & Explicit clock & 2, 8, 32, 128 \\
+    Timed Sokoban & Explicit clock & 2, 8, 32, 64 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -489,6 +481,8 @@ For speed environments we additionally compare against \emph{greedy} (always use
 maximum simulations) and \emph{midpeak} (a bell-curve allocation that concentrates
 compute at the critical mid-game, a common heuristic in game engines \cite{baier2016time, huang2010timemanagement}).
 
+\am{need to add to appendix that bell curve is tuned per budget that we eval against}
+
 \paragraph{Base planner.}
 For committed-action environments we use an AlphaZero checkpoint trained without
 action delay ($K{=}1$) as the frozen base.
@@ -496,7 +490,7 @@ Cross-evaluation across checkpoints trained at each $K$ shows this checkpoint
 dominates at all evaluation depths (Appendix~\ref{app:cross_eval}).
 
 \paragraph{Evaluation protocol.}
-All results are averaged over 100 independent episodes; we report mean $\pm$ standard error.
+All results are averaged over 100 independent episode seeds; we report mean $\pm$ standard error.
 
 \subsection{Main results}
 
@@ -505,7 +499,7 @@ All results are averaged over 100 independent episodes; we report mean $\pm$ sta
   \includegraphics[width=\linewidth]{figures/main_results_horizontal.pdf}
   \caption{Main results (mean $\pm$\,SE, 100 episodes).
     Colored bars: gating policy (ours); blue bars: baselines.
-    Tetris RT uses the RT\_KT variant (MCTS-step committed actions).}
+    Tetris RT uses the RT\_KT variant (MCTS-step committed actions). \am{we need to talk about how to present budget results, we can say we have per budget results in appendix. We sample budgets we didn't train on, and have a budget by budget analysis in appendix. 5 budgets}}
   \label{fig:main_results}
 \end{figure}
 
@@ -517,6 +511,8 @@ reaches 45.6 ($+65\%$) using a bimodal strategy described below.
 The random baseline falls well below every fixed-$K$ policy in both environments,
 confirming that \emph{when} to allocate compute matters as much as how much.
 
+\am{add for snake, hex, and sokoban}
+
 \subsection{Learned depth distribution}
 
 In Pac-Man the policy adopts a near-binary strategy: $K{=}1$ (51.9\%) for most steps
@@ -525,25 +521,24 @@ extremes, averaging ${\approx}49$ simulations per frame, well below the 96 of th
 best fixed policy.
 In Tetris the distribution is strongly bimodal: $K{=}4$ (51.7\%), $K{=}1$ (28.1\%),
 $K{=}2$ (20.2\%), with $K{=}3$ never selected (0\%).
-The policy has effectively learned a sharp binary---react immediately on easy boards,
-plan maximally on critical ones---with $K{=}2$ handling moderate cases.
+The policy has effectively learned a sharp binary. It learns to react immediately on easy boards and plan maximally on critical ones, with $K{=}2$ handling moderate cases.
 In Snake, the strategy shifts dynamically with episode length: $K{=}1$ dominates the early game when the snake is short, while reliance on $K{=}4$ grows steadily as the snake elongates and maneuvering becomes constrained.
 Figure~\ref{fig:strategy} shows how the allocation shifts over the course of an episode.
 
 \subsection{What triggers deeper planning?}
 
-Across all environments, the gating policy concentrates compute in high-stakes states:
+Across the environments, the gating policy concentrates compute in high-stakes states:
 situations where the consequence of a suboptimal action is large and additional search
 depth is most likely to change the decision.
 
-\paragraph{Pac-Man: planning depth tracks threat.}
+\paragraph{Pac-Man}
 
 The clearest signal in Pac-Man is ghost proximity: the policy prefers $K{=}1$ when the
 nearest ghost is far away, shifts toward $K{=}2$ as the threat closes in, and reaches
 for $K{=}4$ at extreme proximity. When ghosts are frightened the threat evaporates, and
 the policy reduces planning depth accordingly.
 
-\paragraph{Tetris: a sharp easy-vs-critical binary.}
+\paragraph{Tetris}
 
 Board density is the dominant feature in Tetris.
 $K{=}1$ is selected almost exclusively on near-empty boards
@@ -558,17 +553,21 @@ and O- and T-pieces ($\bar{K}{=}2.88{\scriptstyle\pm0.04}$) receive the most
 deliberation, while the J-piece ($\bar{K}{=}2.66{\scriptstyle\pm0.04}$) receives the
 least, reflecting differences in placement geometry and expected outcome variance.
 
+\paragraph{Snake}
+
+\am{add snake analysis}
+
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{figures/interpretability_combined.pdf}
   \caption{Interpretability: state features conditioned on chosen depth $K$
     (mean $\pm$\,1\,SE, 100 episodes).
-    \emph{Top:} Pac-Man — ghost-far state elicits $K{=}4$ (deep planning when safe);
-    ghost-close state elicits $K{=}1$ (immediate reaction); rightmost panel shows
+    \emph{Top:} In Pac-Man ghost-far states elicit $K{=}4$ (deep planning when safe);
+    ghost-close states elicit $K{=}1$ (immediate reaction); rightmost panel shows
     mean nearest-ghost distance by chosen $K$.
-    \emph{Bottom:} Tetris RT — sparse board elicits $K{=}1$; dense board elicits
+    \emph{Bottom:} In Tetris RT, a sparse board elicits $K{=}1$; dense board elicits
     $K{=}4$; center panel shows board fill fraction by chosen $K$
-    ($K{=}3$ omitted — never selected); right panel shows mean chosen $K$ by
+    ($K{=}3$ omitted, never selected); right panel shows mean chosen $K$ by
     piece type.}
   \label{fig:interpretability}
 \end{figure}
@@ -586,7 +585,7 @@ clock, board contestedness, etc.}
     Lines: fraction of steps at which each depth or sim-count option was chosen.
     Pac-Man, Tetris RT, Sokoban, and Snake: $K \in \{1,2,3,4\}$; Speed Hex: sim counts
     $\{2,8,32,128\}$ (same line colors).
-    Shared legend shown on the right; line styles consistent across all panels.}
+    Shared legend shown on the right; line styles consistent across all panels. \am{change k 4 dashed}}
   \label{fig:strategy}
 \end{figure}
 
@@ -605,7 +604,7 @@ begins search while the environment GPU keeps the game moving with committed act
 When planning finishes, after $K \times 32$ simulations, the result is applied at
 the next environment step.
 
-At a target game speed of 9 FPS, $K{=}4$ planning (128 simulations,
+For tetris, at a target game speed of 9 FPS, $K{=}4$ planning (128 simulations,
 ${\approx}384$ms) completes within exactly 4 frames;
 \todo{Insert measured two-GPU latency numbers for Tetris.}
 
@@ -624,7 +623,7 @@ The separation between environment and planner is already the right abstraction.
     \emph{Center-Left:} Latency distributions for the MCTS evaluation step across different
     hardware architectures (placeholder data).
     \emph{Right Panels:} Zero-shot deployment performance on H100 hardware for Tetris RT (episode return) and Speed Hex (win rate) matches simulated training performance
-    (placeholder data), validating that the committed-action training protocol perfectly models the deployment delay.}
+    (placeholder data), validating that the committed-action training protocol perfectly models the deployment delay. \am{change sim-to-real - or justify it}}
   \label{fig:deployment}
 \end{figure}
 
