@@ -43,7 +43,7 @@ FIG_HEIGHT   = 3.0
 LINE_WIDTH   = LINE_LW
 MARKER_EVERY = 3
 MARKER_SIZE  = 4
-LINE_STYLES  = ["-", "-", "-", "--"]
+LINE_STYLES  = ["-", "-", "-", "-"]
 K3_ALPHA     = 0.30
 
 # ============================================================
