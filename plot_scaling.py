@@ -50,11 +50,10 @@ os.makedirs(FIGS, exist_ok=True)
 # Style  (matches project conventions in plot_main_results.py)
 # ─────────────────────────────────────────────────────────────────────────────
 
-BASE_SIZE  = 10
-FS_TITLE   = 16  + BASE_SIZE
-FS_LABEL   = 11  + BASE_SIZE
-FS_TICK    = 10  + BASE_SIZE
-FS_LEGEND  = 12  + BASE_SIZE
+FS_TITLE   = 22
+FS_LABEL   = 18
+FS_TICK    = 16
+FS_LEGEND  = 16
 
 PERF_COLOR = "#2E6FA8"   # blue  – planning quality
 LAT_COLOR  = "#C94040"   # red   – inference latency
@@ -64,9 +63,12 @@ LW         = 1.8
 MS_REAL    = 6           # marker size at real data points
 MS_EXTRAP  = 4           # marker size at extrapolated points
 
+from matplotlib import font_manager as _fm
+_fm.fontManager.addfont(os.path.join(HERE, "BerkeleyMonoTrial-Regular.otf"))
+
 sns.set_theme(style="white", font_scale=1.0)
 plt.rcParams.update({
-    "font.family":       "sans-serif",
+    "font.family":       "Berkeley Mono Trial",
     "font.weight":       "normal",
     "axes.titleweight":  "normal",
     "axes.labelweight":  "normal",
@@ -358,7 +360,7 @@ def _draw_env(ax, d):
     # ── x-axis ──
     ax.set_xscale("log", base=2)
     ax.set_xticks(x)
-    labels = ["2"] + [""] * 3 + ["···"] + [""] * 2 + ["256"]
+    labels = ["2"] + [""] * 3 + ["..."] + [""] * 2 + ["256"]
     ax.set_xticklabels(labels, fontsize=FS_TICK)
     ax.set_xlabel("Simulations", fontsize=FS_LABEL)
 

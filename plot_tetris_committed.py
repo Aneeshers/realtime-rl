@@ -26,9 +26,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 FIGS = os.path.join(HERE, "figures")
 os.makedirs(FIGS, exist_ok=True)
 
+from matplotlib import font_manager as _fm
+_fm.fontManager.addfont(os.path.join(os.path.dirname(os.path.abspath(__file__)), "BerkeleyMonoTrial-Regular.otf"))
+
 sns.set_theme(style="white", font_scale=1.0)
 plt.rcParams.update({
-    "font.family":      "sans-serif",
+    "font.family":      "Berkeley Mono Trial",
     "font.weight":      "normal",
     "axes.titleweight": "normal",
     "axes.grid":        False,
@@ -37,13 +40,12 @@ plt.rcParams.update({
 # ============================================================
 # Font sizes  ← adjust these
 # ============================================================
-BASE = 7
-FS_TIME     = 16 + BASE   # time label above board ("$t{+}1$ (left)")
-FS_BOT      = 15 + BASE   # action label below board ("commit: π≈", "MCTS action")
-FS_ARRLBL   =  18 + BASE   # ← + ↓ labels on arrows
-FS_BADGE    = 15 + BASE   # K = 4 badge
-FS_BRACKET  = 16 + BASE   # MCTS planning bracket text
-FS_GAP      =  15 + BASE    # "gap" annotation
+FS_TIME     = 22   # time label above board ("$t{+}1$ (left)")
+FS_BOT      = 20   # action label below board ("commit: π≈", "MCTS action")
+FS_ARRLBL   = 24   # ← + ↓ labels on arrows
+FS_BADGE    = 20   # K = 4 badge
+FS_BRACKET  = 22   # MCTS planning bracket text
+FS_GAP      = 20   # "gap" annotation
 
 # ============================================================
 # Colors & geometry

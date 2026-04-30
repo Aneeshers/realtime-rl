@@ -23,11 +23,11 @@ import seaborn as sns
 # Style controls  ← change these
 # ============================================================
 
-FONT_SIZE_TITLE  = 12
-FONT_SIZE_LABEL  = 10
-FONT_SIZE_TICK   = 9
-FONT_SIZE_LEGEND = 8
-FONT_SIZE_ANNOT  = 8
+FONT_SIZE_TITLE  = 22
+FONT_SIZE_LABEL  = 18
+FONT_SIZE_TICK   = 16
+FONT_SIZE_LEGEND = 16
+FONT_SIZE_ANNOT  = 14
 
 FIG_WIDTH        = 12.0
 FIG_HEIGHT       = 3.0
@@ -111,9 +111,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 FIGS = os.path.join(HERE, "figures")
 os.makedirs(FIGS, exist_ok=True)
 
+from matplotlib import font_manager as _fm
+_fm.fontManager.addfont(os.path.join(os.path.dirname(os.path.abspath(__file__)), "BerkeleyMonoTrial-Regular.otf"))
+
 sns.set_theme(style="white", font_scale=1.0)
 plt.rcParams.update({
-    "font.family":       "sans-serif",
+    "font.family":       "Berkeley Mono Trial",
     "font.weight":       "normal",
     "axes.titleweight":  "normal",
     "axes.labelweight":  "normal",

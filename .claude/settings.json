@@ -6,7 +6,23 @@
       "Bash(python -c ' *)",
       "Read(//tmp/**)",
       "Read(//private/tmp/**)",
-      "Bash(sips -s format png figures/scaling.pdf --out /tmp/scaling_preview2.png)"
+      "Bash(sips -s format png figures/scaling.pdf --out /tmp/scaling_preview2.png)",
+      "Bash(python3 -c ' *)",
+      "Bash(sed -n '26,35p' /Users/aneesh/Documents/Real-time-RL/plot_tetris_committed.py)",
+      "Bash(sed -n '36,50p' /Users/aneesh/Documents/Real-time-RL/plot_tetris_committed.py)",
+      "Bash(python plot_main_results.py)",
+      "Bash(python plot_strategy.py)",
+      "Bash(sips -s format png figures/scaling.pdf --out /tmp/scaling_font.png)",
+      "Bash(sips -s format png figures/main_results_vertical.pdf --out /tmp/main_results_font.png)",
+      "Bash(sips -s format png figures/scaling.pdf --out /tmp/scaling_final.png)",
+      "Bash(python plot_method.py)",
+      "Bash(python plot_tetris_committed.py)",
+      "Bash(python plot_pacman_interpretability.py)",
+      "Bash(python plot_tetris_interpretability.py)",
+      "Read(//Users/aneesh/anaconda3/**)"
+    ],
+    "additionalDirectories": [
+      "/Users/aneesh/anaconda3/lib/python3.11/site-packages/jumanji/environments/packing/tetris"
     ]
   }
 }

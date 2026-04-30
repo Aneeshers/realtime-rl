@@ -24,12 +24,10 @@ import seaborn as sns
 
 GATING_COLOR      = "#C94040"   # ← change to any color you like for the gating bar
 
-BASE_SIZE = 7
-
-FONT_SIZE_TITLE   = 10 + BASE_SIZE
-FONT_SIZE_LABEL   = 9 + BASE_SIZE
-FONT_SIZE_TICK    = 5 + BASE_SIZE
-FONT_SIZE_ANNOT   = 7 + BASE_SIZE           # "placeholder" annotation
+FONT_SIZE_TITLE  = 22
+FONT_SIZE_LABEL  = 18
+FONT_SIZE_TICK   = 16
+FONT_SIZE_ANNOT  = 14
 
 FIG_WIDTH         = 12.0        # total figure width (inches)
 FIG_HEIGHT_V      = 3.8         # height for vertical-bar figure
@@ -119,9 +117,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 FIGS = os.path.join(HERE, "figures")
 os.makedirs(FIGS, exist_ok=True)
 
+from matplotlib import font_manager as _fm
+_fm.fontManager.addfont(os.path.join(HERE, "BerkeleyMonoTrial-Regular.otf"))
+
 sns.set_theme(style="white", font_scale=1.0)
 plt.rcParams.update({
-    "font.family":       "sans-serif",
+    "font.family":       "Berkeley Mono Trial",
     "font.weight":       "normal",
     "axes.titleweight":  "normal",
     "axes.labelweight":  "normal",
