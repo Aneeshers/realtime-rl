@@ -33,27 +33,27 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import seaborn as sns
 
 # ============================================================
-# Style controls  ← change these
+# Style — sourced from plot_config.py
 # ============================================================
 
-FONT_SIZE_TITLE  = 22       # subplot titles
-FONT_SIZE_LABEL  = 18       # axis labels
-FONT_SIZE_TICK   = 16       # tick labels
-FONT_SIZE_K_BOX  = 22       # "Chosen K = 4" badge on screenshots
-FONT_SIZE_ANNOT  = 14       # small italic notes
+from plot_config import (
+    FS_TITLE, FS_LABEL, FS_TICK, FS_BADGE, FS_ANNOT,
+    C_BLUE, FILL_ALPHA, LINE_LW, MARKER_SIZE, CAPSIZE, ERR_LW,
+    apply_style,
+)
+apply_style()
 
-FIG_WIDTH        = 11.0
-FIG_HEIGHT       = 4.2
+FONT_SIZE_TITLE = FS_TITLE
+FONT_SIZE_LABEL = FS_LABEL
+FONT_SIZE_TICK  = FS_TICK
+FONT_SIZE_K_BOX = FS_BADGE
+FONT_SIZE_ANNOT = FS_ANNOT
+LINE_COLOR      = C_BLUE
 
-LINE_COLOR       = "#2c6fad"   # color for correlation line/markers
-LINE_LW          = 2.0
-MARKER_SIZE      = 7
-FILL_ALPHA       = 0.18
-CAPSIZE          = 3
-ERR_LW           = 0.9
+FIG_WIDTH  = 11.0
+FIG_HEIGHT = 4.2
 
 # ============================================================
 # Ghost distance by K  (placeholder — replace with real data)
@@ -76,19 +76,6 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 FIGS = os.path.join(HERE, "figures")
 os.makedirs(FIGS, exist_ok=True)
 
-from matplotlib import font_manager as _fm
-_fm.fontManager.addfont(os.path.join(os.path.dirname(os.path.abspath(__file__)), "BerkeleyMonoTrial-Regular.otf"))
-
-sns.set_theme(style="white", font_scale=1.0)
-plt.rcParams.update({
-    "font.family":       "Berkeley Mono Trial",
-    "font.weight":       "normal",
-    "axes.titleweight":  "normal",
-    "axes.labelweight":  "normal",
-    "axes.spines.top":   False,
-    "axes.spines.right": False,
-    "axes.grid":         False,
-})
 
 
 # ============================================================

@@ -15,8 +15,8 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import seaborn as sns
 from matplotlib.patches import ConnectionPatch
+from plot_config import FS_TITLE, FS_BADGE, C_RED, C_NAVY, apply_style
 
 # ============================================================
 # Paths & style
@@ -26,33 +26,23 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 FIGS = os.path.join(HERE, "figures")
 os.makedirs(FIGS, exist_ok=True)
 
-from matplotlib import font_manager as _fm
-_fm.fontManager.addfont(os.path.join(os.path.dirname(os.path.abspath(__file__)), "BerkeleyMonoTrial-Regular.otf"))
-
-sns.set_theme(style="white", font_scale=1.0)
-plt.rcParams.update({
-    "font.family":      "Berkeley Mono Trial",
-    "font.weight":      "normal",
-    "axes.titleweight": "normal",
-    "axes.grid":        False,
-})
+apply_style()
 
 # ============================================================
-# Font sizes  ← adjust these
+# Font sizes — derived from plot_config
 # ============================================================
-FS_TIME     = 22   # time label above board ("$t{+}1$ (left)")
-FS_BOT      = 20   # action label below board ("commit: π≈", "MCTS action")
-FS_ARRLBL   = 24   # ← + ↓ labels on arrows
-FS_BADGE    = 20   # K = 4 badge
-FS_BRACKET  = 22   # MCTS planning bracket text
-FS_GAP      = 20   # "gap" annotation
+FS_TIME    = FS_TITLE   # 22
+FS_BOT     = FS_BADGE   # 20
+FS_ARRLBL  = 24
+FS_BRACKET = FS_TITLE   # 22
+FS_GAP     = FS_BADGE   # 20
 
 # ============================================================
 # Colors & geometry
 # ============================================================
 
-GATING_COLOR  = "#C94040"
-BADGE_COLOR   = "#1a3a6b"
+GATING_COLOR  = C_RED
+BADGE_COLOR   = C_NAVY
 BG_FILL_RGBA  = (0.68, 0.85, 0.90, 0.40)   # semi-transparent light blue
 
 FIG_WIDTH  = 16.0

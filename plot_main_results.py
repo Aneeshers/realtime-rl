@@ -19,27 +19,29 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # ===========================================================================
-# Style controls  ← change these to adjust appearance
+# Style — sourced from plot_config.py
 # ===========================================================================
 
-GATING_COLOR      = "#C94040"   # ← change to any color you like for the gating bar
+from plot_config import (
+    FS_TITLE, FS_LABEL, FS_TICK, FS_ANNOT,
+    C_RED, BAR_ALPHA, CAPSIZE, ERR_LW,
+    apply_style,
+)
+apply_style()
 
-FONT_SIZE_TITLE  = 22
-FONT_SIZE_LABEL  = 18
-FONT_SIZE_TICK   = 16
-FONT_SIZE_ANNOT  = 14
+GATING_COLOR    = C_RED
+FONT_SIZE_TITLE = FS_TITLE
+FONT_SIZE_LABEL = FS_LABEL
+FONT_SIZE_TICK  = FS_TICK
+FONT_SIZE_ANNOT = FS_ANNOT
+ERR_LINEWIDTH   = ERR_LW
 
-FIG_WIDTH         = 12.0        # total figure width (inches)
-FIG_HEIGHT_V      = 3.8         # height for vertical-bar figure
-FIG_HEIGHT_H      = 4.2         # height for horizontal-bar figure
+FIG_WIDTH    = 12.0
+FIG_HEIGHT_V = 3.8
+FIG_HEIGHT_H = 4.2
 
-BAR_WIDTH_V       = 0.55        # bar width for vertical figure
-BAR_HEIGHT_H      = 0.55        # bar height for horizontal figure
-
-CAPSIZE           = 3           # error bar cap width (pts)
-ERR_LINEWIDTH     = 0.9         # error bar line width
-
-BAR_ALPHA         = 0.88        # bar opacity (same for all environments)
+BAR_WIDTH_V  = 0.55
+BAR_HEIGHT_H = 0.55
 
 # ===========================================================================
 # Data
@@ -117,19 +119,6 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 FIGS = os.path.join(HERE, "figures")
 os.makedirs(FIGS, exist_ok=True)
 
-from matplotlib import font_manager as _fm
-_fm.fontManager.addfont(os.path.join(HERE, "BerkeleyMonoTrial-Regular.otf"))
-
-sns.set_theme(style="white", font_scale=1.0)
-plt.rcParams.update({
-    "font.family":       "Berkeley Mono Trial",
-    "font.weight":       "normal",
-    "axes.titleweight":  "normal",
-    "axes.labelweight":  "normal",
-    "axes.spines.top":   False,
-    "axes.spines.right": False,
-    "axes.grid":         False,
-})
 
 
 def baseline_blues(n):

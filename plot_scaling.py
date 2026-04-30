@@ -31,7 +31,6 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import seaborn as sns
 from scipy.stats import linregress
 from matplotlib.lines import Line2D
 
@@ -50,32 +49,19 @@ os.makedirs(FIGS, exist_ok=True)
 # Style  (matches project conventions in plot_main_results.py)
 # ─────────────────────────────────────────────────────────────────────────────
 
-FS_TITLE   = 22
-FS_LABEL   = 18
-FS_TICK    = 16
-FS_LEGEND  = 16
+from plot_config import (
+    FS_TITLE, FS_LABEL, FS_TICK, FS_LEGEND,
+    C_BLUE, C_RED, FILL_ALPHA, LINE_LW,
+    apply_style,
+)
+apply_style()
 
-PERF_COLOR = "#2E6FA8"   # blue  – planning quality
-LAT_COLOR  = "#C94040"   # red   – inference latency
-
-ALPHA_BAND = 0.15        # opacity of ±SE shaded region
-LW         = 1.8
-MS_REAL    = 6           # marker size at real data points
-MS_EXTRAP  = 4           # marker size at extrapolated points
-
-from matplotlib import font_manager as _fm
-_fm.fontManager.addfont(os.path.join(HERE, "BerkeleyMonoTrial-Regular.otf"))
-
-sns.set_theme(style="white", font_scale=1.0)
-plt.rcParams.update({
-    "font.family":       "Berkeley Mono Trial",
-    "font.weight":       "normal",
-    "axes.titleweight":  "normal",
-    "axes.labelweight":  "normal",
-    "axes.spines.top":   False,
-    "axes.spines.right": False,
-    "axes.grid":         False,
-})
+PERF_COLOR = C_BLUE
+LAT_COLOR  = C_RED
+ALPHA_BAND = FILL_ALPHA
+LW         = LINE_LW
+MS_REAL    = 6
+MS_EXTRAP  = 4
 
 
 # ─────────────────────────────────────────────────────────────────────────────

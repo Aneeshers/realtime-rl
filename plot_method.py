@@ -29,18 +29,24 @@ import seaborn as sns
 # Style controls  ← change these
 # ============================================================
 
-GATING_COLOR   = "#C94040"    # red: selected action / gating output
-BADGE_COLOR    = "#1a3a6b"    # dark navy: K=1 / K=4 badge
-STATE_COLOR    = "#d0e4f7"    # light blue: state boxes in timeline
-COMMIT_COLOR   = "#bbbbbb"    # gray: committed-action boxes
-PLAN_WIN_COLOR = "#2c6fad"    # blue: planning-window shading
+from plot_config import (
+    FS_TITLE, FS_LABEL, FS_TICK, FS_BADGE, FS_LEGEND, FS_ANNOT,
+    C_RED, C_NAVY, C_STATE, C_COMMIT, C_BLUE,
+    apply_style,
+)
 
-FONT_SIZE_TITLE  = 22
-FONT_SIZE_LABEL  = 18
-FONT_SIZE_TICK   = 16
-FONT_SIZE_BADGE  = 20
-FONT_SIZE_BOX    = 16
-FONT_SIZE_ANNOT  = 14
+GATING_COLOR   = C_RED
+BADGE_COLOR    = C_NAVY
+STATE_COLOR    = C_STATE
+COMMIT_COLOR   = C_COMMIT
+PLAN_WIN_COLOR = C_BLUE
+
+FONT_SIZE_TITLE = FS_TITLE
+FONT_SIZE_LABEL = FS_LABEL
+FONT_SIZE_TICK  = FS_TICK
+FONT_SIZE_BADGE = FS_BADGE
+FONT_SIZE_BOX   = FS_LEGEND
+FONT_SIZE_ANNOT = FS_ANNOT
 
 FIG_WIDTH   = 13.5
 FIG_HEIGHT  = 4.3
@@ -53,18 +59,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 FIGS = os.path.join(HERE, "figures")
 os.makedirs(FIGS, exist_ok=True)
 
-from matplotlib import font_manager as _fm
-_fm.fontManager.addfont(os.path.join(os.path.dirname(os.path.abspath(__file__)), "BerkeleyMonoTrial-Regular.otf"))
-
-sns.set_theme(style="white", font_scale=1.0)
-plt.rcParams.update({
-    "font.family":       "Berkeley Mono Trial",
-    "font.weight":       "normal",
-    "axes.titleweight":  "normal",
-    "axes.spines.top":   False,
-    "axes.spines.right": False,
-    "axes.grid":         False,
-})
+apply_style()
 
 
 # ============================================================
@@ -82,17 +77,11 @@ def build_dense_board():
     nr, nc = env.num_rows, env.num_cols
 
     dense_grid = np.array(base_state.grid_padded)
-    patterns = {
-        9: [1, 2, 3, 4, 5, 6, 7, 1, 2, 3],
-        8: [1, 0, 3, 4, 5, 6, 7, 1, 2, 3],
-        7: [0, 2, 3, 0, 5, 6, 7, 1, 0, 3],
-        6: [1, 2, 0, 4, 5, 0, 7, 1, 2, 0],
-        5: [1, 2, 3, 4, 0, 6, 0, 1, 2, 3],
-        4: [0, 2, 3, 4, 5, 6, 7, 0, 2, 0],
-        3: [1, 0, 3, 0, 5, 0, 7, 1, 0, 3],
-    }
-    for row_idx, pattern in patterns.items():
-        dense_grid[row_idx, :nc] = pattern
+    col_heights = [7, 5, 8, 6, 4, 8, 7, 5, 7, 6]
+    for col in range(nc):
+        for offset in range(col_heights[col]):
+            row = nr - 1 - offset
+            dense_grid[row, col] = 1
 
     return (dense_grid[:nr, :nc] > 0).astype(float)
 

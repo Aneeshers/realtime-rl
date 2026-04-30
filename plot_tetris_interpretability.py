@@ -30,31 +30,29 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import seaborn as sns
 
 # ============================================================
-# Style controls  ← change these
+# Style — sourced from plot_config.py
 # ============================================================
 
-FONT_SIZE_TITLE  = 22       # subplot titles
-FONT_SIZE_LABEL  = 18       # axis labels
-FONT_SIZE_TICK   = 16       # tick labels
-FONT_SIZE_K_BOX  = 22       # "Chosen K = N" badge on screenshots
-FONT_SIZE_ANNOT  = 14       # small italic notes
+from plot_config import (
+    FS_TITLE, FS_LABEL, FS_TICK, FS_BADGE, FS_ANNOT,
+    C_BLUE, FILL_ALPHA, BAR_ALPHA, LINE_LW, MARKER_SIZE, CAPSIZE, ERR_LW,
+    apply_style,
+)
+apply_style()
 
-FIG_WIDTH        = 13.0
-FIG_HEIGHT       = 4.4
+FONT_SIZE_TITLE = FS_TITLE
+FONT_SIZE_LABEL = FS_LABEL
+FONT_SIZE_TICK  = FS_TICK
+FONT_SIZE_K_BOX = FS_BADGE
+FONT_SIZE_ANNOT = FS_ANNOT
+LINE_COLOR      = C_BLUE
+BAR_COLOR       = C_BLUE
 
-LINE_COLOR       = "#2c6fad"   # color for board-density line
-LINE_LW          = 2.0
-MARKER_SIZE      = 7
-FILL_ALPHA       = 0.18
-CAPSIZE          = 3
-ERR_LW           = 0.9
-
-BAR_COLOR        = "#2c6fad"   # color for piece-type bars
-BAR_ALPHA        = 0.85
-BAR_HEIGHT       = 0.55
+FIG_WIDTH  = 13.0
+FIG_HEIGHT = 4.4
+BAR_HEIGHT = 0.55
 
 # ============================================================
 # Real data from RT_KT gating-policy rollouts
@@ -86,19 +84,6 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 FIGS = os.path.join(HERE, "figures")
 os.makedirs(FIGS, exist_ok=True)
 
-from matplotlib import font_manager as _fm
-_fm.fontManager.addfont(os.path.join(os.path.dirname(os.path.abspath(__file__)), "BerkeleyMonoTrial-Regular.otf"))
-
-sns.set_theme(style="white", font_scale=1.0)
-plt.rcParams.update({
-    "font.family":       "Berkeley Mono Trial",
-    "font.weight":       "normal",
-    "axes.titleweight":  "normal",
-    "axes.labelweight":  "normal",
-    "axes.spines.top":   False,
-    "axes.spines.right": False,
-    "axes.grid":         False,
-})
 
 
 # ============================================================
@@ -121,19 +106,16 @@ def build_states():
     nr, nc = env.num_rows, env.num_cols
     dense_grid = np.array(base_state.grid_padded)
 
-    # Row patterns (0 = empty cell, 1–7 = piece-color IDs)
-    # Rows 3–9 are filled; rows 0–2 left empty (piece falls from top)
-    patterns = {
-        9: [1, 2, 3, 4, 5, 6, 7, 1, 2, 3],   # nearly full bottom
-        8: [1, 0, 3, 4, 5, 6, 7, 1, 2, 3],
-        7: [0, 2, 3, 0, 5, 6, 7, 1, 0, 3],
-        6: [1, 2, 0, 4, 5, 0, 7, 1, 2, 0],
-        5: [1, 2, 3, 4, 0, 6, 0, 1, 2, 3],
-        4: [0, 2, 3, 4, 5, 6, 7, 0, 2, 0],
-        3: [1, 0, 3, 0, 5, 0, 7, 1, 0, 3],
-    }
-    for row_idx, pattern in patterns.items():
-        dense_grid[row_idx, :nc] = pattern
+    # Column heights (filled solid from bottom) — no scattered mid-row gaps.
+    # A realistic Tetris stack: varied column heights create a natural staircase
+    # at the top while the lower rows are densely packed.
+    col_heights = [7, 5, 8, 6, 4, 8, 7, 5, 7, 6]
+    for col in range(nc):
+        for offset in range(col_heights[col]):
+            row = nr - 1 - offset
+            # 2×2 tile color — each block looks like a placed Tetris piece,
+            # and no full row shares a single color.
+            dense_grid[row, col] = (col // 2 + (row // 2) * 2) % 7 + 1
 
     dense_grid_jnp = jnp.array(dense_grid, dtype=base_state.grid_padded.dtype)
     dense_state = base_state.replace(grid_padded=dense_grid_jnp)
