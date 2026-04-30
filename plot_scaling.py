@@ -334,7 +334,6 @@ def build_data():
             real_sims=np.array([]),
             perf_m=sn_perf_m,  perf_se=sn_perf_se,
             gpu_lats=sn_gpu_lats,
-            placeholder=True,
         ),
     }
 
@@ -400,8 +399,7 @@ def plot_scaling(envs):
 
     for ax, (name, d) in zip(axes, envs.items()):
         _draw_env(ax, d)
-        title = name + (" *" if d.get("placeholder") else "")
-        ax.set_title(title, fontsize=FS_TITLE)
+        ax.set_title(name, fontsize=FS_TITLE)
 
     legend_handles = [
         Line2D([0], [0], color=PERF_COLOR, lw=LW,

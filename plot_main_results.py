@@ -57,7 +57,6 @@ ENVS = [
     {
         "name":        "Pac-Man",
         "ylabel":      "Episode Return",
-        "placeholder": False,
         "baselines": [
             ("K=1",    1499, 83),
             ("K=2",    1855, 60),
@@ -70,7 +69,6 @@ ENVS = [
     {
         "name":        "Tetris RT",
         "ylabel":      "Episode Return",
-        "placeholder": False,
         "baselines": [
             ("K=1",    18.8, 2.3),
             ("K=2",    26.4, 3.7),
@@ -83,7 +81,6 @@ ENVS = [
     {
         "name":        "Speed Hex",
         "ylabel":      "Win Rate",
-        "placeholder": False,
         "baselines": [
             ("K=1",     0.35, 0.03),   # 2 sims
             ("K=2",     0.42, 0.03),   # 8 sims
@@ -98,7 +95,6 @@ ENVS = [
     {
         "name":        "Sokoban",
         "ylabel":      "Episode Return",
-        "placeholder": False,
         "baselines": [
             ("K=1",     10.5, 1.0),
             ("K=2",     13.2, 1.0),
@@ -113,7 +109,6 @@ ENVS = [
     {
         "name":        "Snake",
         "ylabel":      "Episode Return",
-        "placeholder": False,
         "baselines": [
             ("K=1",    780,  60),
             ("K=2",   1050,  52),
@@ -162,7 +157,6 @@ def plot_vertical():
     for ax, env in zip(axes, ENVS):
         baselines = env["baselines"]
         gating    = env["gating"]
-        is_ph     = env["placeholder"]
 
         labels = [b[0] for b in baselines] + [gating[0]]
         means  = np.array([b[1] for b in baselines] + [gating[1]])
@@ -190,15 +184,8 @@ def plot_vertical():
             labels, fontsize=FONT_SIZE_TICK, rotation=35, ha="right",
         )
         ax.set_ylabel(env["ylabel"], fontsize=FONT_SIZE_LABEL)
-        title = env["name"] + (" *" if is_ph else "")
+        title = env["name"]
         ax.set_title(title, fontsize=FONT_SIZE_TITLE)
-
-        if is_ph:
-            ax.text(
-                0.96, 0.97, "placeholder",
-                transform=ax.transAxes, ha="right", va="top",
-                fontsize=FONT_SIZE_ANNOT, color=C_MID_GRAY, style="italic",
-            )
 
         _apply_spine_style(ax)
 
@@ -221,7 +208,6 @@ def plot_horizontal():
     for ax, env in zip(axes, ENVS):
         baselines = env["baselines"]
         gating    = env["gating"]
-        is_ph     = env["placeholder"]
 
         # Gating at the top, baselines below in original order
         labels = [gating[0]] + [b[0] for b in baselines]
@@ -248,15 +234,8 @@ def plot_horizontal():
         ax.set_yticks(y)
         ax.set_yticklabels(labels, fontsize=FONT_SIZE_TICK + 5)
         ax.set_xlabel(env["ylabel"], fontsize=FONT_SIZE_LABEL)
-        title = env["name"] + (" *" if is_ph else "")
+        title = env["name"]
         ax.set_title(title, fontsize=FONT_SIZE_TITLE)
-
-        if is_ph:
-            ax.text(
-                0.96, 0.03, "placeholder",
-                transform=ax.transAxes, ha="right", va="bottom",
-                fontsize=FONT_SIZE_ANNOT, color=C_MID_GRAY, style="italic",
-            )
 
         _apply_spine_style(ax)
 
