@@ -30,6 +30,13 @@ C_NAVY   = "#1a3a6b"   # dark navy     — K-value badges
 C_STATE  = "#d0e4f7"   # light blue    — state boxes in timeline diagrams
 C_COMMIT = "#bbbbbb"   # neutral gray  — committed-action boxes
 
+# Neutrals
+C_BLACK      = "black"
+C_WHITE      = "white"
+C_DARK_GRAY  = "#333333"
+C_MID_GRAY   = "#888888"
+C_LIGHT_GRAY = "#cccccc"
+
 # Ordered palette for K=1 … K=4 strategy lines
 K_COLORS = ["#2171b5", "#e6550d", "#31a354", "#756bb1"]
 
