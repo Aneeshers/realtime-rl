@@ -101,7 +101,6 @@ The gating policy learns to allocate computation to the moments where it matters
 and to act quickly everywhere else.
 
 Our contributions are:
-\dc{training implementation details and how that transfers; }
 \begin{enumerate}
   \item \textbf{Real-time RL environment design.}
     We identify two complementary design patterns for real-time environments:
@@ -109,31 +108,27 @@ Our contributions are:
     a slower planner computes) and \emph{explicit clocks} (a per-player timer
     depleted by thinking time).
     In both cases, the planning process is cost-aware by construction.
-
   \item \textbf{Planning quality vs.\ inference time.}
     We empirically characterize how planning quality and real-time inference cost
     co-scale with simulation count, establishing the joint tradeoff that motivates
     adaptive allocation.
-
   \item \textbf{Adaptive gating policy.}
     We formulate planning-depth selection as a variable-duration meta-decision problem
     and train a lightweight gating network on top of a frozen planner.
     The gating policy selects a depth $K \in \Kset$, determining the simulation budget
     and, in committed-action environments, the number of fast approximate actions taken
     while the planner runs.
-
-  \item \textbf{Results and interpretability.}
-    Across all four environments, the gating policy outperforms every fixed-depth
-    baseline while using less average compute.
-    The learned strategy is consistent with the intuition that deliberation should
-    be concentrated in high-stakes situations.
-
-  \item \textbf{Real-time deployment.}
-    We validate the approach in a true two-GPU real-time setup where the environment
-    and committed-action policy run on one GPU, and MCTS runs on a second GPU.
-    This demonstrates that the committed-action training protocol transfers directly
-    to deployment without architectural changes.
 \end{enumerate}
+
+We substantiate these contributions empirically. Across all four environments,
+the gating policy outperforms every fixed-depth baseline while using less
+average compute, and the learned strategy concentrates deliberation in
+high-stakes situations in interpretable, state-dependent ways. We further
+validate the approach in a true two-GPU real-time setup, with the environment running on one GPU and MCTS on a second. Because
+training already simulates the planning delay by executing $K{-}1$ committed
+actions while MCTS searches in parallel, the trained gating policy transfers
+directly to asynchronous deployment with no retraining and no architectural
+changes.
 
 
 % =============================================================================
