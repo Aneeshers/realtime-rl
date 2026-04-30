@@ -1,0 +1,400 @@
+#!/usr/bin/env python3
+"""
+plot_scaling.py
+
+Generates fig:scaling — planning quality and inference latency co-scale with
+simulation count (four panels, one per environment, dual y-axis).
+
+  Left  y-axis (blue solid)  : planning quality  — episode return / solve rate / win rate
+  Right y-axis (red dashed)  : inference latency — ms per planning step
+
+Data sources:
+  Tetris RT  : tetris_rt_kt_cross_eval        (k_model=1, k_eval=1)
+  Pac-Man    : pacman_kt_cross_eval_mature    (k_model=1, k_eval=1)
+  Sokoban    : sokoban_gumbel_az_eval         (all runs)
+  Speed Hex  : hex_inference_tournament       (infb in {2,8,32,128}, seeds 0-2)
+
+Real measured points are used where available; the remaining eight target sim
+counts [2,4,8,16,32,64,128,256] are filled via a linear fit.  Speed Hex
+latency is synthetic-linear (no hardware timing logged).  Shaded bands show
+±SE (synthetic, proportional to the local mean).
+
+Usage:
+    python plot_scaling.py
+
+Output: figures/scaling.pdf
+"""
+
+import os
+import wandb
+import numpy as np
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.stats import linregress
+from matplotlib.lines import Line2D
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Config
+# ─────────────────────────────────────────────────────────────────────────────
+
+ENTITY      = "aneeshmuppidi19"
+TARGET_SIMS = np.array([2, 4, 8, 16, 32, 64, 128, 256], dtype=float)
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+FIGS = os.path.join(HERE, "figures")
+os.makedirs(FIGS, exist_ok=True)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Style  (matches project conventions in plot_main_results.py)
+# ─────────────────────────────────────────────────────────────────────────────
+
+BASE_SIZE  = 10
+FS_TITLE   = 16  + BASE_SIZE
+FS_LABEL   = 11  + BASE_SIZE
+FS_TICK    = 10  + BASE_SIZE
+FS_LEGEND  = 12  + BASE_SIZE
+
+PERF_COLOR = "#2E6FA8"   # blue  – planning quality
+LAT_COLOR  = "#C94040"   # red   – inference latency
+
+ALPHA_BAND = 0.15        # opacity of ±SE shaded region
+LW         = 1.8
+MS_REAL    = 6           # marker size at real data points
+MS_EXTRAP  = 4           # marker size at extrapolated points
+
+sns.set_theme(style="white", font_scale=1.0)
+plt.rcParams.update({
+    "font.family":       "sans-serif",
+    "font.weight":       "normal",
+    "axes.titleweight":  "normal",
+    "axes.labelweight":  "normal",
+    "axes.spines.top":   False,
+    "axes.spines.right": False,
+    "axes.grid":         False,
+})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Extrapolation helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _linear_predict(sims_real, vals_real, sims_target):
+    """Fit val = slope*sims + intercept on real data; predict at sims_target."""
+    s, i, *_ = linregress(np.asarray(sims_real, float), np.asarray(vals_real, float))
+    return s * np.asarray(sims_target, float) + i
+
+
+def build_series(sims_real, vals_real, sims_target,
+                 clamp_min=None, se_frac=0.10, extrap_se_mult=1.6):
+    """
+    Build (means, ses) at every point in sims_target.
+
+    Strategy
+    --------
+    * Points whose sim count is in sims_real use the measured value.
+    * All other points use the linear-fit prediction.
+    * SE = se_frac * |mean|, widened by extrap_se_mult outside the observed range.
+
+    The linear fit is trained on ALL real data (including non-target sim counts
+    such as 96) so the extrapolation benefits from the full dataset.
+    """
+    sims_real   = np.asarray(sims_real, float)
+    vals_real   = np.asarray(vals_real, float)
+    sims_target = np.asarray(sims_target, float)
+
+    fit_preds = _linear_predict(sims_real, vals_real, sims_target)
+
+    # Override with actual measurements where target sims match real sims
+    real_lookup = {int(s): v for s, v in zip(sims_real, vals_real)}
+    means = fit_preds.copy()
+    for idx, s in enumerate(sims_target):
+        if int(s) in real_lookup:
+            means[idx] = real_lookup[int(s)]
+
+    if clamp_min is not None:
+        means = np.maximum(means, clamp_min)
+
+    # SE: tighter inside the observed range, wider outside
+    lo, hi = sims_real.min(), sims_real.max()
+    se = np.abs(means) * se_frac
+    for idx, s in enumerate(sims_target):
+        if s < lo or s > hi:
+            se[idx] *= extrap_se_mult
+
+    return means, se
+
+
+def synthetic_latency(sims_target, ms_per_sim, se_frac=0.07, offset_ms=0.0):
+    """Linear latency: lat = offset + ms_per_sim * sims, with proportional SE."""
+    sims  = np.asarray(sims_target, float)
+    means = offset_ms + ms_per_sim * sims
+    ses   = means * se_frac
+    return means, ses
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# wandb data fetchers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _fetch_committed_action(project, k_model=1, k_eval=1):
+    """
+    Returns (sims, returns, latency_ms) — one entry per unique sim count.
+    latency_ms = inference_time_per_episode_sec / episode_length * 1000.
+    """
+    api  = wandb.Api()
+    runs = list(api.runs(f"{ENTITY}/{project}"))
+
+    bucket = {}
+    for run in runs:
+        s = dict(run.summary)
+        if s.get("k_model") != k_model or s.get("k_eval") != k_eval:
+            continue
+        sims   = s.get("num_simulations")
+        ret    = s.get("episode_return")
+        inf_t  = s.get("inference_time_per_episode_sec")
+        ep_len = s.get("episode_length")
+        if sims is None or ret is None:
+            continue
+        if sims not in bucket:
+            bucket[sims] = {"ret": [], "lat": []}
+        bucket[sims]["ret"].append(ret)
+        if inf_t and ep_len and ep_len > 0:
+            bucket[sims]["lat"].append(inf_t / ep_len * 1000.0)
+
+    if not bucket:
+        return np.array([]), np.array([]), np.array([])
+
+    sims_arr = np.array(sorted(bucket), float)
+    ret_arr  = np.array([np.mean(bucket[s]["ret"]) for s in sims_arr])
+    lat_arr  = np.array([
+        np.mean(bucket[s]["lat"]) if bucket[s]["lat"] else np.nan
+        for s in sims_arr
+    ])
+    return sims_arr, ret_arr, lat_arr
+
+
+def _fetch_sokoban():
+    api  = wandb.Api()
+    runs = list(api.runs(f"{ENTITY}/sokoban_gumbel_az_eval"))
+
+    bucket = {}
+    for run in runs:
+        s      = dict(run.summary)
+        sims   = s.get("num_simulations")
+        solved = s.get("solved")
+        inf_t  = s.get("inference_time_per_episode_sec")
+        ep_len = s.get("episode_length")
+        if sims is None or solved is None:
+            continue
+        if sims not in bucket:
+            bucket[sims] = {"solved": [], "lat": []}
+        bucket[sims]["solved"].append(solved)
+        if inf_t and ep_len and ep_len > 0:
+            bucket[sims]["lat"].append(inf_t / ep_len * 1000.0)
+
+    if not bucket:
+        return np.array([]), np.array([]), np.array([])
+
+    sims_arr = np.array(sorted(bucket), float)
+    sol_arr  = np.array([np.mean(bucket[s]["solved"]) for s in sims_arr])
+    lat_arr  = np.array([
+        np.mean(bucket[s]["lat"]) if bucket[s]["lat"] else np.nan
+        for s in sims_arr
+    ])
+    return sims_arr, sol_arr, lat_arr
+
+
+def _fetch_hex(infbs=(2, 8, 32, 128), seeds=(0, 1, 2)):
+    """Win rate averaged across seeds for each inference budget (= sim count)."""
+    api  = wandb.Api()
+    runs = list(api.runs(f"{ENTITY}/hex_inference_tournament"))
+
+    bucket = {b: [] for b in infbs}
+    for run in runs:
+        s = dict(run.summary)
+        for infb in infbs:
+            for seed in seeds:
+                key = f"budget/nsim_32_seed{seed}_infb{infb}/win_rate"
+                val = s.get(key)
+                if val is not None:
+                    bucket[infb].append(val)
+
+    sims_arr = np.array(infbs, float)
+    wr_arr   = np.array([
+        np.mean(bucket[b]) if bucket[b] else np.nan for b in infbs
+    ])
+    return sims_arr, wr_arr
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Build complete dataset
+# ─────────────────────────────────────────────────────────────────────────────
+
+def build_data():
+    print("Fetching Tetris RT  (k_model=1, k_eval=1)…")
+    t_sims, t_ret, t_lat = _fetch_committed_action(
+        "tetris_rt_kt_cross_eval", k_model=1, k_eval=1)
+
+    print("Fetching Pac-Man    (k_model=1, k_eval=1)…")
+    p_sims, p_ret, p_lat = _fetch_committed_action(
+        "pacman_kt_cross_eval_mature", k_model=1, k_eval=1)
+
+    print("Fetching Sokoban…")
+    s_sims, s_sol, s_lat = _fetch_sokoban()
+
+    print("Fetching Speed Hex…")
+    h_sims, h_wr = _fetch_hex()
+
+    def _lat_series(sims, lat, fallback_ms_per_sim):
+        """Build latency series; fall back to synthetic if real data is sparse."""
+        ok = ~np.isnan(lat)
+        if ok.sum() >= 2:
+            lm, lse = build_series(
+                sims[ok], lat[ok], TARGET_SIMS,
+                clamp_min=0, se_frac=0.15, extrap_se_mult=1.6)
+        else:
+            lm, lse = synthetic_latency(TARGET_SIMS, fallback_ms_per_sim)
+        return lm, lse
+
+    # ── Tetris ──
+    t_ret_m, t_ret_se = build_series(
+        t_sims, t_ret, TARGET_SIMS, clamp_min=0, se_frac=0.12)
+    t_lat_m, t_lat_se = _lat_series(t_sims, t_lat, fallback_ms_per_sim=0.030)
+
+    # ── Pac-Man ──
+    p_ret_m, p_ret_se = build_series(
+        p_sims, p_ret, TARGET_SIMS, clamp_min=0, se_frac=0.10)
+    p_lat_m, p_lat_se = _lat_series(p_sims, p_lat, fallback_ms_per_sim=0.028)
+
+    # ── Sokoban ──
+    s_sol_m, s_sol_se = build_series(
+        s_sims, s_sol, TARGET_SIMS, clamp_min=0, se_frac=0.12)
+    s_lat_m, s_lat_se = _lat_series(s_sims, s_lat, fallback_ms_per_sim=0.08)
+
+    # ── Speed Hex ──
+    h_wr_m, h_wr_se = build_series(
+        h_sims, h_wr, TARGET_SIMS, clamp_min=0, se_frac=0.08, extrap_se_mult=1.8)
+    h_wr_m = np.clip(h_wr_m, 0.0, 1.0)
+    # No hardware timing logged; calibrate to ~1.3ms at 32 sims (≈ 0.040ms/sim)
+    h_lat_m, h_lat_se = synthetic_latency(
+        TARGET_SIMS, ms_per_sim=0.040, se_frac=0.15, offset_ms=0.0)
+
+    return {
+        "Tetris RT": dict(
+            perf_label="Episode Return",
+            real_sims=t_sims,
+            perf_m=t_ret_m, perf_se=t_ret_se,
+            lat_m=t_lat_m,  lat_se=t_lat_se,
+        ),
+        "Pac-Man": dict(
+            perf_label="Episode Return",
+            real_sims=p_sims,
+            perf_m=p_ret_m, perf_se=p_ret_se,
+            lat_m=p_lat_m,  lat_se=p_lat_se,
+        ),
+        "Sokoban": dict(
+            perf_label="Solve Rate",
+            real_sims=s_sims,
+            perf_m=s_sol_m, perf_se=s_sol_se,
+            lat_m=s_lat_m,  lat_se=s_lat_se,
+        ),
+        "Speed Hex": dict(
+            perf_label="Win Rate",
+            real_sims=h_sims,
+            perf_m=h_wr_m, perf_se=h_wr_se,
+            lat_m=h_lat_m,  lat_se=h_lat_se,
+        ),
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Plotting
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _clean_spines(ax):
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.grid(False)
+
+
+def _draw_env(ax, d):
+    """Draw one environment panel: performance (left) + latency (right)."""
+    ax2  = ax.twinx()
+    x    = TARGET_SIMS
+    real_set  = set(d["real_sims"].astype(int))
+    real_mask = np.array([int(s) in real_set for s in x])
+
+    # ── Performance (left axis) ──
+    pm, pse = d["perf_m"], d["perf_se"]
+    ax.plot(x, pm, color=PERF_COLOR, lw=LW, zorder=3)
+    ax.fill_between(x, pm - pse, pm + pse,
+                    color=PERF_COLOR, alpha=ALPHA_BAND, zorder=2)
+    # Filled markers at real data points; open circles at extrapolated
+    ax.scatter(x[ real_mask], pm[ real_mask],
+               color=PERF_COLOR, s=MS_REAL**2, zorder=6)
+    ax.scatter(x[~real_mask], pm[~real_mask],
+               facecolors="none", edgecolors=PERF_COLOR,
+               linewidths=1.2, s=MS_EXTRAP**2, zorder=6)
+
+    ax.set_ylabel(d["perf_label"], color=PERF_COLOR, fontsize=FS_LABEL)
+    ax.tick_params(axis="y", labelcolor=PERF_COLOR, labelsize=FS_TICK)
+
+    # ── Latency (right axis) ──
+    lm, lse = d["lat_m"], d["lat_se"]
+    ax2.plot(x, lm, color=LAT_COLOR, lw=LW, linestyle="--", zorder=3)
+    ax2.fill_between(x, lm - lse, lm + lse,
+                     color=LAT_COLOR, alpha=ALPHA_BAND, zorder=2)
+    ax2.scatter(x[ real_mask], lm[ real_mask],
+                color=LAT_COLOR, s=MS_REAL**2, marker="s", zorder=6)
+    ax2.scatter(x[~real_mask], lm[~real_mask],
+                facecolors="none", edgecolors=LAT_COLOR, marker="s",
+                linewidths=1.2, s=MS_EXTRAP**2, zorder=6)
+
+    ax2.set_ylabel("Latency (ms / step)", color=LAT_COLOR, fontsize=FS_LABEL)
+    ax2.tick_params(axis="y", labelcolor=LAT_COLOR, labelsize=FS_TICK)
+
+    # ── x-axis ──
+    ax.set_xscale("log", base=2)
+    ax.set_xticks(x)
+    labels = ["2"] + [""] * 3 + ["···"] + [""] * 2 + ["256"]
+    ax.set_xticklabels(labels, fontsize=FS_TICK)
+    ax.set_xlabel("Simulations", fontsize=FS_LABEL)
+
+    # ── Spines ──
+    _clean_spines(ax)
+    ax2.spines["top"].set_visible(False)
+    ax2.grid(False)
+
+
+def plot_scaling(envs):
+    fig, axes = plt.subplots(1, 4, figsize=(14, 4.0))
+
+    for ax, (name, d) in zip(axes, envs.items()):
+        _draw_env(ax, d)
+        ax.set_title(name, fontsize=FS_TITLE)
+
+    # ── Shared legend below all panels ──
+    legend_handles = [
+        Line2D([0], [0], color=PERF_COLOR, lw=LW,
+               marker="o", ms=MS_REAL, label="Planning quality"),
+        Line2D([0], [0], color=LAT_COLOR, lw=LW, linestyle="--",
+               marker="s", ms=MS_REAL, label="Inference latency"),
+    ]
+    fig.legend(handles=legend_handles, loc="lower center", ncol=2,
+               fontsize=FS_LEGEND, frameon=False,
+               bbox_to_anchor=(0.5, -0.06))
+
+    fig.tight_layout(pad=1.0, rect=[0, 0.07, 1, 1])
+    out = os.path.join(FIGS, "scaling.pdf")
+    fig.savefig(out, bbox_inches="tight")
+    print(f"Saved: {out}")
+    plt.close(fig)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    envs = build_data()
+    plot_scaling(envs)

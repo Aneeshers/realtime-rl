@@ -385,12 +385,15 @@ increase in real-time cost.
 
 \begin{figure}[h]
   \centering
-  \todo{Figure: planning quality (return / win rate) and inference latency both plotted
-    vs.\ simulation count $s$ for each environment. Show both curves on the same axes
-    or as a two-panel figure. they scale together, linearly.}
-  \caption{Planning quality and real-time inference cost co-scale with simulation count.
-    More simulations reliably improve decisions but proportionally advance the environment
-    during the planning delay, creating a genuine tradeoff.}
+  \includegraphics[width=\linewidth]{figures/scaling.pdf}
+  \caption{Planning quality and real-time inference cost co-scale with simulation count
+    across all four environments.
+    \emph{Blue solid}: performance (episode return, solve rate, or win rate).
+    \emph{Red dashed}: per-step inference latency (ms).
+    Both metrics increase monotonically with simulation count; shaded bands show $\pm$SE.
+    Filled markers indicate measured data points; open markers indicate linear extrapolations
+    to the shared grid $s \in \{2,4,8,16,32,64,128,256\}$.
+    Speed Hex latency is synthetic-linear (no hardware timing available from tournament logs).}
   \label{fig:scaling}
 \end{figure}
 

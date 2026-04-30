@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python probe_wandb_scaling.py)",
+      "Bash(python plot_scaling.py)",
+      "Bash(python -c ' *)",
+      "Read(//tmp/**)",
+      "Read(//private/tmp/**)",
+      "Bash(sips -s format png figures/scaling.pdf --out /tmp/scaling_preview2.png)"
+    ]
+  }
+}
