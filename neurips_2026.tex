@@ -530,6 +530,10 @@ In Tetris the distribution is strongly bimodal: $K{=}4$ (51.7\%), $K{=}1$ (28.1\
 $K{=}2$ (20.2\%), with $K{=}3$ never selected (0\%).
 The policy has effectively learned a sharp binary. It learns to react immediately on easy boards and plan maximally on critical ones, with $K{=}2$ handling moderate cases.
 In Snake, $K{=}1$ dominates throughout ($81.6\%$) with $K{=}2$ handling moderate cases ($15.2\%$) and $K{=}3$ rising as the snake elongates ($3.2\%$ overall); $K{=}4$ is never selected ($0\%$), mirroring the $K{=}3$ avoidance in Tetris.
+In Speed Hex, the learned allocation shifts with clock pressure: under the small
+clock setting ($T{=}300$) the policy relies much more heavily on the smallest
+budget, whereas under the larger clock setting ($T{=}4100$) compute is spread much
+more evenly across the available options.
 Figure~\ref{fig:strategy} shows how the allocation shifts over the course of an episode.
 
 \subsection{What triggers deeper planning?}
