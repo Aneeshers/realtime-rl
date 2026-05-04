@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 from plot_config import (
     C_BLACK, C_WHITE, C_DARK_GRAY, C_MID_GRAY, C_LIGHT_GRAY,
     FS_TITLE, FS_LABEL, FS_TICK, FS_LEGEND, FS_ANNOT,
-    C_BLUE, C_RED, BAR_ALPHA, ERR_LW, CAPSIZE,
+    C_BLUE, C_RED, BAR_ALPHA, ERR_LW, CAPSIZE, K_COLORS,
     apply_style,
 )
 apply_style()
@@ -37,7 +37,7 @@ os.makedirs(FIGS, exist_ok=True)
 
 # Colors
 GPU1_COLOR = C_BLUE   # Env + Fast Policy (GPU 0)
-GPU2_COLOR = C_RED    # MCTS (GPU 1)
+GPU2_COLOR = K_COLORS[3]    # MCTS (GPU 1) purple
 GPU_COLORS = {"h100": C_BLUE, "a100": C_RED, "a40": "#2E8B57"}
 GAME_COLORS = {"tetris": C_BLUE, "pacman": C_RED, "snake": C_BLACK}
 GPU_LINESTYLES = {"h100": "-", "a100": "--", "a40": ":"}
@@ -310,15 +310,14 @@ def _plot_transfer_bars(ax, rows):
 
 def plot_deployment():
     fig, axes = plt.subplots(
-        1, 4, figsize=(19.0, 4.4),
-        gridspec_kw={"width_ratios": [1.25, 1.05, 1.0, 1.1]},
+        2, 2, figsize=(10.5, 8.5),
     )
     summary_rows = _load_summary_rows()
     grouped_lats = _grouped_latency_samples()
-    _plot_timeline(axes[0])
-    _plot_latency_violins(axes[1], grouped_lats)
-    _plot_miss_rate_bars(axes[2], summary_rows)
-    _plot_transfer_bars(axes[3], summary_rows)
+    _plot_timeline(axes[0, 0])
+    _plot_latency_violins(axes[0, 1], grouped_lats)
+    _plot_miss_rate_bars(axes[1, 0], summary_rows)
+    _plot_transfer_bars(axes[1, 1], summary_rows)
 
     legend_handles = [
         plt.Rectangle((0, 0), 1, 1, color=C_MID_GRAY, alpha=BAR_ALPHA),
@@ -330,7 +329,7 @@ def plot_deployment():
         legend_handles,
         ["Sim", "H100", "A100", "A40"],
         loc="lower center",
-        bbox_to_anchor=(0.5, -0.03),
+        bbox_to_anchor=(0.5, -0.01),
         ncol=4,
         frameon=False,
         fontsize=SMALL_LEGEND_FS,
@@ -341,7 +340,7 @@ def plot_deployment():
     # -----------------------------------------------------------
     # Layout and save
     # -----------------------------------------------------------
-    fig.tight_layout(pad=1.0, w_pad=1.1, rect=[0, 0.08, 1, 1])
+    fig.tight_layout(pad=1.0, w_pad=1.5, h_pad=2.0, rect=[0, 0.05, 1, 1])
     out = os.path.join(FIGS, "deployment.pdf")
     fig.savefig(out, bbox_inches="tight")
     print(f"Saved: {out}")

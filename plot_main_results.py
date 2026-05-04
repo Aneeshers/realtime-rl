@@ -75,10 +75,10 @@ def _fetch_speed_hex_env():
             "name": "Speed Hex",
             "ylabel": "Expected Score",
             "baselines": [
-                ("2 sims",   0.29, 0.03),
-                ("8 sims",   0.35, 0.03),
-                ("32 sims",  0.40, 0.03),
-                ("128 sims", 0.43, 0.03),
+                ("K=1",   0.29, 0.03),
+                ("K=2",   0.35, 0.03),
+                ("K=4",  0.40, 0.03),
+                ("K=8", 0.43, 0.03),
                 ("Greedy",   0.46, 0.03),
                 ("Midpeak",  0.45, 0.03),
                 ("Random",   0.38, 0.03),
@@ -88,10 +88,10 @@ def _fetch_speed_hex_env():
 
     selected_budgets = set(_hex_selected_budgets())
     label_map = [
-        ("2 sims", "always2", runs_main),
-        ("8 sims", "always8", runs_alt),
-        ("32 sims", "always32", runs_main),
-        ("128 sims", "always128", runs_main),
+        ("K=1", "always2", runs_main),
+        ("K=2", "always8", runs_alt),
+        ("K=4", "always32", runs_main),
+        ("K=4", "always128", runs_main),
         ("Greedy", "proportional", runs_main),
         ("Midpeak", "midpeak", runs_main),
         ("Random", "random_gate", runs_main),
