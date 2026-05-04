@@ -488,6 +488,10 @@ for Speed Hex these correspond to 2/8/32/128 simulations, while for Speed Go the
 correspond to 16/32/64/96 simulations. Against the fixed-budget baselines and the
 greedy, midpeak, and random heuristics, the gating policy remains above parity on
 average and outperforms these opponents overall.
+Across environments, the learned gate does not collapse to a single option; instead
+it learns dynamic, state- and budget-dependent allocation strategies that outperform
+both fixed-depth policies and hand-designed heuristics (Figure~\ref{fig:strategy},
+Appendix Figure~\ref{fig:strategy_appendix}).
 The random baseline falls well below every fixed-$K$ policy in both environments,
 confirming that \emph{when} to allocate compute matters as much as how much.
 

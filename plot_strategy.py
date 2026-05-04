@@ -426,7 +426,7 @@ def _plot_envs_band(envs, nrows, ncols, figsize, out_name):
         ax.set_xlabel(env["xlabel"], fontsize=FONT_SIZE_LABEL)
         ax.set_ylabel("Frequency" if ax in axes[::ncols] else "", fontsize=FONT_SIZE_LABEL)
         ax.tick_params(labelsize=FONT_SIZE_TICK)
-        ax.set_title(env["title"], fontsize=FONT_SIZE_TITLE - 1)
+        ax.set_title(env["title"], fontsize=FONT_SIZE_TITLE - 5)
         _apply_spine_style(ax)
 
         if env["show_legend"]:
