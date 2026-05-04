@@ -556,13 +556,11 @@ while Tetris shifts toward deeper planning as boards become more constrained.
   \label{fig:interpretability}
 \end{figure}
 
-\paragraph{Speed environments.}
-\todo{do we need to include this? it's hard to analyze board positions}
 
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=0.82\linewidth]{figures/strategy.pdf}
+  \includegraphics[width=1\linewidth]{figures/strategy_band.pdf}
   \caption{Clock pressure changes how compute is allocated. In both Speed Hex and
     Speed Go, the learned policy is much more reactive under the small budget
     ($T{=}300$) and distributes mass toward deeper options once more clock is
@@ -626,7 +624,7 @@ it avoids this state-augmentation problem entirely.
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=0.78\linewidth]{figures/deployment.pdf}
+  \includegraphics[width=0.8\linewidth]{figures/deployment.pdf}
   \caption{Validation of the real-time, asynchronous 2-GPU deployment.
     The timeline illustrates asynchronous execution, while the remaining panels
     summarize measured latency, average deadline misses, and return relative to
