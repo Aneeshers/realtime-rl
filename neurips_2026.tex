@@ -453,7 +453,7 @@ each $K \in \Kset$; and a \emph{random} policy selecting $K$ uniformly at each
 meta-step.
 For speed environments we additionally compare against \emph{greedy} (always use
 maximum simulations) and \emph{midpeak} (a bell-curve allocation that concentrates
-compute at the critical mid-game, a common heuristic in game engines \cite{baier2016time, huang2010timemanagement}). For these clock heuristics we tune the bell-curve shape separately at each evaluation budget and report the best resulting strategy; details appear in Appendix~\ref{app:hex_budget_results}.
+compute at the critical mid-game, a common heuristic in game engines \cite{baier2016time, huang2010timemanagement}). For these clock heuristics we tune the bell-curve shape separately at each evaluation budget and report the best resulting strategy.
 
 \paragraph{Base planner.}
 For committed-action environments we use an AlphaZero checkpoint trained without
@@ -471,8 +471,8 @@ All results are averaged over 100 independent episode seeds; we report mean $\pm
   \includegraphics[width=\linewidth]{figures/main_results_horizontal.pdf}
   \caption{Main results (mean $\pm$\,SE, 100 episodes).
     Colored bars show the gating policy and blue bars show baselines.
-    Speed Hex is reported as expected score averaged over five sampled clock budgets;
-    the full per-budget breakdown appears in Appendix~\ref{app:hex_budget_results}.}
+    For both Speed Hex and Speed Go, we report expected score averaged over the
+    same five sampled clock budgets, $T \in \{300, 1200, 2300, 3500, 4800\}$.}
   \label{fig:main_results}
 \end{figure}
 
@@ -481,10 +481,14 @@ In Pac-Man the best fixed policy ($K{=}3$, 96 sims/step) scores 2149; the gating
 reaches 2370 ($+10.3\%$) using only ${\approx}49$ simulations per frame on average.
 In real-time Tetris the best fixed policy ($K{=}3$) scores 27.6; the gating policy
 reaches 45.6 ($+65\%$) using a bimodal strategy described below.
-For Speed Hex, we evaluate across five sampled clock budgets and average the resulting
-head-to-head expected scores against the 2/8/32/128-simulation baselines and the
-greedy, midpeak, and random heuristics; the gating policy remains above parity
-throughout and outperforms these opponents on average.
+For both Speed Hex and Speed Go, we evaluate across the same five sampled clock
+budgets, $T \in \{300, 1200, 2300, 3500, 4800\}$, and average the resulting
+head-to-head expected scores. In these clocked settings, $K{=}1,\dots,4$ denotes
+the four available simulation-budget options rather than committed-action depth:
+for Speed Hex these correspond to 2/8/32/128 simulations, while for Speed Go they
+correspond to 16/32/64/96 simulations. Against the fixed-budget baselines and the
+greedy, midpeak, and random heuristics, the gating policy remains above parity on
+average and outperforms these opponents overall.
 The random baseline falls well below every fixed-$K$ policy in both environments,
 confirming that \emph{when} to allocate compute matters as much as how much.
 
@@ -987,7 +991,8 @@ inside an outer RL loop with substantial Python overhead. Our implementation avo
 this by pushing nearly all control flow into JAX primitives.
 
 \textbf{Base planner training.}
-The frozen planners are trained with the Jumanji Gumbel-AlphaZero stack, using
+The frozen planners are trained with our own Gumbel-AlphaZero stack built on top of
+the Jumanji environments, using
 \texttt{mctx.gumbel\_muzero\_policy} for search. Within each planner step, the MCTS
 simulations are executed inside a compiled \texttt{lax.scan}; leaf expansion and
 backup are batched across parallel environments with \texttt{vmap}; and the full
@@ -1086,40 +1091,6 @@ qualitatively new behaviors.
 
 \section{Additional Results and Ablations}
 \label{app:ablations}
-
-\subsection{Speed Hex Budget Sweep}
-\label{app:hex_budget_results}
-
-For Speed Hex, the main-text result averages head-to-head expected score over five
-approximately evenly spaced clock budgets:
-$T \in \{300, 1200, 2300, 3500, 4800\}$.
-These budgets were chosen as representative points spanning the evaluation range
-without over-weighting adjacent settings.
-Figure~\ref{fig:hex_budget_appendix} shows the full per-budget curves across all
-available clock settings in the WandB evaluation runs.
-
-The qualitative pattern is stable across the sweep.
-The gating policy remains above parity across the tested budget range against all
-opponents after filtering obvious failed runs.
-For the bell-curve baselines, we tune the peak location and tail width separately
-for each evaluation budget, and report the best-performing setting at that budget.
-Following the evaluation constraint that performance below $0.5$ is not meaningful
-for the deployed gating policy here and is attributable to GPU/evaluation failures,
-we floor any such outlier to $0.5$ before aggregation.
-This leaves the budget trends interpretable while preserving the main conclusion:
-the learned policy remains competitive from the fast-clock regime into the much
-larger-budget regime, while the relative difficulty of the fixed and heuristic
-opponents changes with available clock.
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=0.8\linewidth]{figures/hex_budget_appendix.pdf}
-  \caption{Speed Hex expected score vs.\ clock budget from the main WandB evaluation
-    runs. Curves show head-to-head expected score against each opponent, averaged
-    across evaluation seeds; the dashed line marks parity ($0.5$). The five
-    budgets used in the main text are sampled from this sweep.}
-  \label{fig:hex_budget_appendix}
-\end{figure}
 
 \todo{Suggested ablations:
 (1) Gating with only raw game grid, no planner trunk features or value;

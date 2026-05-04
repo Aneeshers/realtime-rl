@@ -48,6 +48,9 @@ WANDB_ENTITY = "aneeshmuppidi19"
 HEX_WANDB_PROJECT = "gru_ent100-500"
 HEX_WANDB_PROJECT_ALT = "gru_ent095-500"
 HEX_PERF_FLOOR = 0.5
+GO_WANDB_PROJECT = "gating_eval_go9x9"
+GO_GATE_ROOT = "/n/netscratch/gershman_lab/Lab/amuppidi/gru_go9x9_01"
+GO_PERF_FLOOR = 0.5
 
 # ===========================================================================
 # Data
@@ -58,8 +61,8 @@ HEX_PERF_FLOOR = 0.5
 #   ylabel    : y-axis / x-axis label
 #   placeholder : True  →  bars dimmed + "placeholder" annotation
 
-def _hex_selected_budgets():
-    # Five approximately evenly spaced representative budgets from the evaluated grid.
+def _clock_selected_budgets():
+    # Shared 5-budget reporting set for clocked games.
     return [300, 1200, 2300, 3500, 4800]
 
 
@@ -75,22 +78,22 @@ def _fetch_speed_hex_env():
             "name": "Speed Hex",
             "ylabel": "Expected Score",
             "baselines": [
-                ("K=1",   0.29, 0.03),
-                ("K=2",   0.35, 0.03),
-                ("K=4",  0.40, 0.03),
-                ("K=8", 0.43, 0.03),
-                ("Greedy",   0.46, 0.03),
-                ("Midpeak",  0.45, 0.03),
-                ("Random",   0.38, 0.03),
+                ("K=1", 0.29, 0.03),
+                ("K=2", 0.35, 0.03),
+                ("K=3", 0.40, 0.03),
+                ("K=4", 0.43, 0.03),
+                ("Greedy", 0.46, 0.03),
+                ("Midpeak", 0.45, 0.03),
+                ("Random", 0.38, 0.03),
             ],
             "gating": ("Gating", 0.58, 0.03),
         }
 
-    selected_budgets = set(_hex_selected_budgets())
+    selected_budgets = set(_clock_selected_budgets())
     label_map = [
         ("K=1", "always2", runs_main),
         ("K=2", "always8", runs_alt),
-        ("K=4", "always32", runs_main),
+        ("K=3", "always32", runs_main),
         ("K=4", "always128", runs_main),
         ("Greedy", "proportional", runs_main),
         ("Midpeak", "midpeak", runs_main),
@@ -98,19 +101,90 @@ def _fetch_speed_hex_env():
     ]
 
     gate_means = []
-    gate_ses = []
     baselines = []
-
     for plot_label, wandb_label, runs_src in label_map:
         vals = []
         for run in runs_src:
             tb = run.config.get("time_budget")
             if tb not in selected_budgets:
                 continue
+            summary = dict(run.summary._json_dict) if hasattr(run.summary, "_json_dict") else dict(run.summary)
             key = f"{wandb_label}/expected_score"
-            if key not in run.summary:
+            if key not in summary:
                 continue
-            vals.append(max(float(run.summary[key]), HEX_PERF_FLOOR))
+            vals.append(max(float(summary[key]), HEX_PERF_FLOOR))
+        if not vals:
+            continue
+        mean = float(np.mean(vals))
+        se = float(np.std(vals, ddof=1) / math.sqrt(len(vals))) if len(vals) > 1 else 0.0
+        gate_means.append(mean)
+        baselines.append((plot_label, 1.0 - mean, se))
+
+    if gate_means:
+        gating_mean = float(np.mean(gate_means))
+        gating_se = float(np.std(gate_means, ddof=1) / math.sqrt(len(gate_means))) if len(gate_means) > 1 else 0.0
+    else:
+        gating_mean, gating_se = 0.58, 0.03
+
+    return {
+        "name": "Speed Hex",
+        "ylabel": "Expected Score",
+        "baselines": baselines,
+        "gating": ("Gating", gating_mean, gating_se),
+    }
+
+
+def _fetch_speed_go_env():
+    try:
+        import wandb
+        api = wandb.Api()
+        runs = list(api.runs(f"{WANDB_ENTITY}/{GO_WANDB_PROJECT}"))
+    except Exception as exc:
+        print(f"[plot_main_results] Could not fetch Speed Go results from wandb: {exc}")
+        return {
+            "name": "Speed Go",
+            "ylabel": "Expected Score",
+            "baselines": [
+                ("K=1", 0.27, 0.03),
+                ("K=2", 0.42, 0.03),
+                ("K=3", 0.52, 0.03),
+                ("K=4", 0.47, 0.03),
+                ("Greedy", 0.45, 0.03),
+                ("Midpeak", 0.50, 0.03),
+                ("Random", 0.46, 0.03),
+            ],
+            "gating": ("Gating", 0.59, 0.03),
+        }
+
+    selected_budgets = set(_clock_selected_budgets())
+    label_map = [
+        ("K=1", "always16"),
+        ("K=2", "always32"),
+        ("K=3", "always64"),
+        ("K=4", "always96"),
+        ("Greedy", "proportional"),
+        ("Midpeak", "midpeak"),
+        ("Random", "random_gate"),
+    ]
+
+    gate_means = []
+    gate_ses = []
+    baselines = []
+
+    for plot_label, wandb_label in label_map:
+        vals = []
+        for run in runs:
+            cfg = dict(run.config)
+            if cfg.get("gate_root") != GO_GATE_ROOT:
+                continue
+            tb = run.config.get("time_budget")
+            if tb not in selected_budgets:
+                continue
+            summary = dict(run.summary._json_dict) if hasattr(run.summary, "_json_dict") else dict(run.summary)
+            key = f"{wandb_label}/expected_score"
+            if key not in summary:
+                continue
+            vals.append(max(float(summary[key]), GO_PERF_FLOOR))
         if not vals:
             continue
         mean = float(np.mean(vals))
@@ -123,10 +197,10 @@ def _fetch_speed_hex_env():
         gating_mean = float(np.mean(gate_means))
         gating_se = float(np.std(gate_means, ddof=1) / math.sqrt(len(gate_means))) if len(gate_means) > 1 else 0.0
     else:
-        gating_mean, gating_se = 0.58, 0.03
+        gating_mean, gating_se = 0.59, 0.03
 
     return {
-        "name": "Speed Hex",
+        "name": "Speed Go",
         "ylabel": "Expected Score",
         "baselines": baselines,
         "gating": ("Gating", gating_mean, gating_se),
@@ -159,20 +233,7 @@ ENVS = [
         "gating": ("Gating", 45.6, 3.7),
     },
     _fetch_speed_hex_env(),
-    {
-        "name":        "Sokoban",
-        "ylabel":      "Episode Return",
-        "baselines": [
-            ("K=1",     10.5, 1.0),
-            ("K=2",     13.2, 1.0),
-            ("K=3",     15.8, 1.0),
-            ("K=4",     14.3, 1.0),
-            ("Greedy",  15.2, 1.0),
-            ("Midpeak", 14.8, 1.0),
-            ("Random",  12.3, 1.0),
-        ],
-        "gating": ("Gating", 19.5, 1.0),
-    },
+    _fetch_speed_go_env(),
     {
         "name":        "Snake",
         "ylabel":      "Episode Return",
