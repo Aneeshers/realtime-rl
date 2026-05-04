@@ -18,7 +18,7 @@ Data sources:
 Real measured points are used where available; the remaining eight target sim
 counts [2,4,8,16,32,64,128,256] are filled via a linear fit.  Speed Hex and
 Snake latency are synthetic-linear (no hardware timing logged).  Shaded bands
-show ±SE for H100; A100 and V100 latency lines are synthetic estimates.
+show ±SE for H100; A100 and a40 latency lines are synthetic estimates.
 
 Usage:
     python plot_scaling.py
@@ -64,10 +64,10 @@ LW         = LINE_LW
 MS_REAL    = 6
 MS_EXTRAP  = 4
 
-# GPU latency comparison — H100 measured; A100/V100 synthetic ramp
-GPU_COLORS  = {"H100": LAT_COLOR, "A100": "#E07840", "V100": "#9E5090"}
-GPU_STYLES  = {"H100": "--",      "A100": "-.",       "V100": ":"}
-GPU_FACTORS = {"H100": 1.0,       "A100": 1.30,       "V100": 1.70}
+# GPU latency comparison — H100 measured; A100/a40 synthetic ramp
+GPU_COLORS  = {"H100": LAT_COLOR, "A100": "#E07840", "a40": "#9E5090"}
+GPU_STYLES  = {"H100": "--",      "A100": "-.",       "a40": ":"}
+GPU_FACTORS = {"H100": 1.0,       "A100": 1.30,       "a40": 1.70}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -141,7 +141,7 @@ def _all_gpu_lats(h100_m, h100_se):
     return {
         "H100": (h100_m, h100_se),
         "A100": _gpu_ramp(h100_m, h100_se, "A100"),
-        "V100": _gpu_ramp(h100_m, h100_se, "V100"),
+        "a40": _gpu_ramp(h100_m, h100_se, "a40"),
     }
 
 
@@ -366,9 +366,9 @@ def _draw_env(ax, d):
     ax.set_ylabel(d["perf_label"], color=PERF_COLOR, fontsize=FS_LABEL)
     ax.tick_params(axis="y", labelcolor=PERF_COLOR, labelsize=FS_TICK)
 
-    # ── Latency (right axis) — H100 measured, A100/V100 synthetic estimates ──
+    # ── Latency (right axis) — H100 measured, A100/a40 synthetic estimates ──
     gpu_lats = d["gpu_lats"]
-    for gpu in ("H100", "A100", "V100"):
+    for gpu in ("H100", "A100", "a40"):
         lm, lse = gpu_lats[gpu]
         ax2.plot(x, lm, color=GPU_COLORS[gpu], lw=LW,
                  linestyle=GPU_STYLES[gpu], zorder=3)
@@ -408,8 +408,8 @@ def plot_scaling(envs):
                linestyle="--", marker="s", ms=MS_REAL, label="H100 latency"),
         Line2D([0], [0], color=GPU_COLORS["A100"], lw=LW,
                linestyle="-.", label="A100"),
-        Line2D([0], [0], color=GPU_COLORS["V100"], lw=LW,
-               linestyle=":",  label="V100"),
+        Line2D([0], [0], color=GPU_COLORS["a40"], lw=LW,
+               linestyle=":",  label="a40"),
     ]
     fig.legend(handles=legend_handles, loc="lower center", ncol=4,
                fontsize=FS_LEGEND, frameon=False,

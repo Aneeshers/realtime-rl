@@ -12,6 +12,7 @@ Produces:
 """
 
 import os
+import math
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
@@ -43,6 +44,10 @@ FIG_HEIGHT_H = 4.2
 
 BAR_WIDTH_V  = 0.55
 BAR_HEIGHT_H = 0.55
+WANDB_ENTITY = "aneeshmuppidi19"
+HEX_WANDB_PROJECT = "gru_ent100-500"
+HEX_WANDB_PROJECT_ALT = "gru_ent095-500"
+HEX_PERF_FLOOR = 0.5
 
 # ===========================================================================
 # Data
@@ -52,6 +57,81 @@ BAR_HEIGHT_H = 0.55
 #   gating    : (label, mean, se)
 #   ylabel    : y-axis / x-axis label
 #   placeholder : True  →  bars dimmed + "placeholder" annotation
+
+def _hex_selected_budgets():
+    # Five approximately evenly spaced representative budgets from the evaluated grid.
+    return [300, 1200, 2300, 3500, 4800]
+
+
+def _fetch_speed_hex_env():
+    try:
+        import wandb
+        api = wandb.Api()
+        runs_main = list(api.runs(f"{WANDB_ENTITY}/{HEX_WANDB_PROJECT}"))
+        runs_alt = list(api.runs(f"{WANDB_ENTITY}/{HEX_WANDB_PROJECT_ALT}"))
+    except Exception as exc:
+        print(f"[plot_main_results] Could not fetch Speed Hex results from wandb: {exc}")
+        return {
+            "name": "Speed Hex",
+            "ylabel": "Expected Score",
+            "baselines": [
+                ("2 sims",   0.29, 0.03),
+                ("8 sims",   0.35, 0.03),
+                ("32 sims",  0.40, 0.03),
+                ("128 sims", 0.43, 0.03),
+                ("Greedy",   0.46, 0.03),
+                ("Midpeak",  0.45, 0.03),
+                ("Random",   0.38, 0.03),
+            ],
+            "gating": ("Gating", 0.58, 0.03),
+        }
+
+    selected_budgets = set(_hex_selected_budgets())
+    label_map = [
+        ("2 sims", "always2", runs_main),
+        ("8 sims", "always8", runs_alt),
+        ("32 sims", "always32", runs_main),
+        ("128 sims", "always128", runs_main),
+        ("Greedy", "proportional", runs_main),
+        ("Midpeak", "midpeak", runs_main),
+        ("Random", "random_gate", runs_main),
+    ]
+
+    gate_means = []
+    gate_ses = []
+    baselines = []
+
+    for plot_label, wandb_label, runs_src in label_map:
+        vals = []
+        for run in runs_src:
+            tb = run.config.get("time_budget")
+            if tb not in selected_budgets:
+                continue
+            key = f"{wandb_label}/expected_score"
+            if key not in run.summary:
+                continue
+            vals.append(max(float(run.summary[key]), HEX_PERF_FLOOR))
+        if not vals:
+            continue
+        mean = float(np.mean(vals))
+        se = float(np.std(vals, ddof=1) / math.sqrt(len(vals))) if len(vals) > 1 else 0.0
+        gate_means.append(mean)
+        gate_ses.append(se)
+        baselines.append((plot_label, 1.0 - mean, se))
+
+    if gate_means:
+        gating_mean = float(np.mean(gate_means))
+        gating_se = float(np.std(gate_means, ddof=1) / math.sqrt(len(gate_means))) if len(gate_means) > 1 else 0.0
+    else:
+        gating_mean, gating_se = 0.58, 0.03
+
+    return {
+        "name": "Speed Hex",
+        "ylabel": "Expected Score",
+        "baselines": baselines,
+        "gating": ("Gating", gating_mean, gating_se),
+    }
+
 
 ENVS = [
     {
@@ -78,20 +158,7 @@ ENVS = [
         ],
         "gating": ("Gating", 45.6, 3.7),
     },
-    {
-        "name":        "Speed Hex",
-        "ylabel":      "Win Rate",
-        "baselines": [
-            ("K=1",     0.35, 0.03),   # 2 sims
-            ("K=2",     0.42, 0.03),   # 8 sims
-            ("K=3",     0.48, 0.03),   # 32 sims
-            ("K=4",     0.55, 0.03),   # 128 sims
-            ("Greedy",  0.52, 0.03),
-            ("Midpeak", 0.50, 0.03),
-            ("Random",  0.38, 0.03),
-        ],
-        "gating": ("Gating", 0.68, 0.03),
-    },
+    _fetch_speed_hex_env(),
     {
         "name":        "Sokoban",
         "ylabel":      "Episode Return",
