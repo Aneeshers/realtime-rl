@@ -566,7 +566,8 @@ while Tetris shifts toward deeper planning as boards become more constrained.
   \caption{Clock pressure changes how compute is allocated. In both Speed Hex and
     Speed Go, the learned policy is much more reactive under the small budget
     ($T{=}300$) and distributes mass toward deeper options once more clock is
-    available ($T{=}4100$).}
+    available ($T{=}4100$). Additional per-environment strategy profiles appear in
+    Appendix Figure~\ref{fig:strategy_appendix}.}
   \label{fig:strategy}
 \end{figure}
 
@@ -948,7 +949,9 @@ We use the $K{=}1$ checkpoint as the frozen base for all committed-action experi
     becomes more reactive later in the episode, Tetris shifts toward deeper
     planning as the board densifies, Snake remains mostly reactive with occasional
     deeper planning in constrained states, and both clock games become less
-    reactive when more time is available.}
+    reactive when more time is available. This figure complements
+    Figure~\ref{fig:strategy} by showing the full cross-environment strategy
+    profiles rather than only the clock-game comparison.}
   \label{fig:strategy_appendix}
 \end{figure}
 
