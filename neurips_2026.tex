@@ -159,7 +159,7 @@ casts bounded-optimal cognition itself as a metalevel MDP. The question this
 literature poses, how much should the agent deliberate, given that
 deliberation is costly?, is the question we ask in deep RL.
 
-\paragraph{Modern deep RL has mostly sidestepped it.}
+\paragraph{Model-based RL has mostly sidestepped it.}
 AlphaZero-family planners~\cite{silver2018general,schrittwieser2020muzero}
 treat MCTS budget as a fixed hyperparameter at deployment, with Gumbel
 MuZero~\cite{danihelka2022policy} the notable advance toward small budgets.
@@ -221,26 +221,23 @@ deliberating.
 Computation time is therefore a direct cost in game outcomes. A more deliberate agent
 pays in world-progression steps rather than wall-clock seconds.
 
-Figure~\ref{fig:tetris_committed} illustrates the mechanism for real-time Tetris.
-An I-shaped piece spawns at the top of the board.
-The gating policy selects $K{=}4$, reserving four game ticks for the planner.
-During ticks $t{+}1$ through $t{+}3$, a fast reflex policy ($\pi_{reflex}$)
-takes committed actions, here, moving the piece left each tick as gravity pulls it
-down.
-MCTS runs 128 simulations in the background over those same ticks, simulating the
-committed-action trajectory to find the best action for tick $t{+}4$.
-It identifies a four-cell gap on the right side of the board and places the piece there
-on the final step, a placement the reflex policy would have missed.
+%Figure~\ref{fig:tetris_committed} illustrates the mechanism for real-time Tetris.
+%An I-shaped piece spawns at the top of the board.
+%The gating policy selects $K{=}4$, reserving four game ticks for the planner.
+%During ticks $t{+}1$ through $t{+}3$, a fast reflex policy ($\pi_{reflex}$)
+%takes committed actions, here, moving the piece left each tick as gravity pulls it down.
+% MCTS runs 128 simulations in the background over those same ticks, simulating the committed-action trajectory to find the best action for tick $t{+}4$.
+%It identifies a four-cell gap on the right side of the board and places the piece there on the final step, a placement the reflex policy would have missed.
 
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{figures/tetris_committed.pdf}
-  \caption{Committed-action execution in real-time Tetris with $K{=}4$.
-    The first $K{-}1$ steps are committed reflex actions while MCTS plans in the
-    background; on the $K$-th step the planner output is applied. The key point is
-    that MCTS plans \emph{over} the committed-action delay, not despite it.}
-  \label{fig:tetris_committed}
-\end{figure}
+%\begin{figure}[t]
+%  \centering
+%  %\includegraphics[width=\linewidth]{figures/tetris_committed.pdf}
+ % \caption{Committed-action execution in real-time Tetris with $K{=}4$.
+  %  The first $K{-}1$ steps are committed reflex actions while MCTS plans in the
+   % background; on the $K$-th step the planner output is applied. The key point is
+   % that MCTS plans %\emph{over} the committed-action delay, not despite it.}
+ % \label{fig:tetris_committed}
+%\end{figure}
 
 \begin{figure}[t]
   \centering
@@ -264,13 +261,13 @@ In committed-action environments, acting and planning happen concurrently.
 When the gating policy selects a planning depth $K$, it reserves $K$ environment steps
 for the planner. The agent takes $K{-}1$ \emph{committed actions}, which are fast reflex actions
 decisions drawn from the planner's own policy, while the full planner runs in the
-background. On the $K$-th step, the planner's result is applied.
+background (Figure \ref{fig:realtime-rl-gating-diagram}). On the $K$-th step, the planner's result is applied.
 The MCTS tree accounts for this explicitly: its recurrent function simulates the $K{-}1$
 committed-action steps, so search is conducted over the same future the agent will
 actually experience. The cost of deeper planning is exactly $K{-}1$ additional steps
 of world progression before the carefully chosen action lands.
 
-\textbf{Pac-Man~\cite{jumanji2022}.}
+\textbf{Pac-Man~\cite{bonnet2024jumanji}.}
 Ghosts advance every step regardless of the agent's action.
 Committed actions keep the agent moving under a reflex policy while MCTS
 computes. A deeper plan means the agent has navigated farther before the MCTS action
@@ -335,14 +332,10 @@ than forfeiting.
 This forces the gating policy to reason about how to distribute a finite budget across
 the full game, knowing that spending too much early degrades late-game play quality
 rather than triggering an immediate loss.
-The gating policy is a GRU-based network that maintains a recurrent hidden state across
-moves, allowing it to track game progression and remaining budget jointly.
-The policy generalizes across different clock settings (fast, medium, near-unlimited)
-without retraining, because the remaining clock is part of every observation.
+
 
 \textbf{Timed Sokoban.}
-\todo{Describe Sokoban setup: clock-augmented single-agent puzzle, observation includes
-remaining budget, same formulation as speed Hex.}
+\todo{We might take this section out and replace with Go}
 
 \paragraph{Simulation option calibration.}
 For clock environments, the equal-budget constraint does not apply.
@@ -409,14 +402,6 @@ discount of $\gamma^{K_t}$:
 \end{equation}
 We adapt Generalized Advantage Estimation~\cite{schulman2015high} to carry the
 per-step discount factor $\gamma^{K_t}$ through the advantage computation.
-
-\paragraph{Reward formulation.}
-We use the raw, unnormalized meta-reward~\eqref{eq:meta_reward}.
-Normalizing by $K$ or discounting the reward itself (rather than only the future value)
-creates an implicit bias toward $K{=}1$: longer options must accumulate proportionally
-more reward to be competitive, regardless of whether deeper planning actually earns
-more.
-Raw reward lets the policy discover when deeper planning is worth more. \am{will double check on the reasoning on this, maybe can introduce small formalism in the appendix for this}
 
 \subsection{What the gating policy observes}
 
@@ -603,7 +588,7 @@ clock, board contestedness, etc.}
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\linewidth]{figures/strategy.pdf}
+  \includegraphics[width=0.8\linewidth]{figures/strategy.pdf}
   \caption{Planning depth frequency over normalized episode time (10 equal bins).
     Lines show the fraction of steps assigned to each depth or simulation budget.}
   \label{fig:strategy}
@@ -664,7 +649,7 @@ it avoids this state-augmentation problem entirely.
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=\linewidth]{figures/deployment.pdf}
+  \includegraphics[width=0.7\linewidth]{figures/deployment.pdf}
   \caption{Validation of the real-time, asynchronous 2-GPU deployment.
     The timeline illustrates asynchronous execution, while the remaining panels
     summarize measured latency, average deadline misses, and return relative to
