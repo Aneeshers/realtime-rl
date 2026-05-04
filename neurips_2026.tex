@@ -135,8 +135,7 @@ Our contributions are:
 \end{enumerate}
 
 We substantiate these contributions empirically. Across five environments,
-the gating policy outperforms every fixed-depth baseline while using less
-average compute, and the learned strategy concentrates deliberation in
+the gating policy outperforms every fixed-depth baseline, and the learned strategy concentrates deliberation in
 high-stakes situations in interpretable, state-dependent ways. We further
 validate the approach in a true two-GPU real-time setup, with the environment running on one GPU and MCTS on a second. Because
 training already simulates the planning delay by executing $K{-}1$ committed
@@ -891,8 +890,8 @@ episode, allowing it to track game progression and clock pressure jointly.
 \paragraph{Training notes.}
 Early experiments fine-tuned the gating policy against fixed-budget opponents rather
 than via self-play.
-This regime exhibited plasticity loss---the network's ability to adapt to new opponents
-degraded over successive fine-tuning rounds---consistent with findings in continual RL
+This regime exhibited plasticity loss, the network's ability to adapt to new opponents
+degraded over successive fine-tuning rounds, consistent with findings in continual RL
 settings~\citep{muppidi2024fast, boopathy2024permutation}.
 We therefore switched to self-play, which eliminated plasticity loss entirely.
 In self-play we found that increasing entropy regularization was the single most
