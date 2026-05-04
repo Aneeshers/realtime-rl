@@ -976,6 +976,50 @@ state across moves within each game to track temporal context.
   \end{tabular}
 \end{table}
 
+\subsection{JAX implementation and batching strategy}
+
+The main computational challenge is that our system nests a meta-policy on top of
+an AlphaZero-style planner, so a naive implementation would repeatedly invoke MCTS
+inside an outer RL loop with substantial Python overhead. Our implementation avoids
+this by pushing nearly all control flow into JAX primitives.
+
+\textbf{Base planner training.}
+The frozen planners are trained with the Jumanji Gumbel-AlphaZero stack, using
+\texttt{mctx.gumbel\_muzero\_policy} for search. Within each planner step, the MCTS
+simulations are executed inside a compiled \texttt{lax.scan}; leaf expansion and
+backup are batched across parallel environments with \texttt{vmap}; and the full
+self-play/training pipeline is wrapped in \texttt{jit}. In the multi-device setting,
+the leading batch dimension is sharded with \texttt{pmap}, so each accelerator runs
+the same compiled self-play/update program on its local slice of environments.
+
+\textbf{Gating-policy training.}
+For the gating layer, we again compile whole rollouts rather than individual steps.
+Each PPO rollout is one \texttt{jit}-compiled \texttt{lax.scan} over meta-decisions,
+and advantage computation is another reverse \texttt{lax.scan}. The recurrent Speed
+Hex gate uses the same pattern: the GRU unroll is expressed as a scan, while PPO
+operates on sequence chunks rather than on Python loops over timesteps.
+
+\textbf{Evaluating all budget options in parallel.}
+The key batching trick is that, during gating training and evaluation, we compute
+the transition for every available budget option at each meta-step and only then
+select the branch corresponding to the gate's chosen action. Concretely, for
+$K \in \{1,2,3,4\}$ we run all four \texttt{meta\_step\_one\_k} branches, stack the
+resulting rewards, discounts, next states, and next observations, and use a batched
+selection operator to pick the chosen branch per environment. This spends extra
+compute relative to evaluating only the selected option, but it preserves static
+shapes, keeps the whole computation batched, and avoids recompilation or Python-side
+control flow. In practice this systems tradeoff is what makes the meta-MCTS stack
+fast enough to train routinely rather than as a one-off systems effort.
+
+\textbf{Practical effect.}
+These engineering choices --- \texttt{mctx} for search, \texttt{vmap} for environment
+parallelism, \texttt{jit} for whole-program compilation, \texttt{pmap} for device
+parallelism, and \texttt{lax.scan} for both MCTS inner loops and PPO rollout loops ---
+reduce wall-clock training time dramatically. In our internal runs, the end-to-end
+training workflow dropped from roughly two weeks in an earlier less-batched pipeline
+to roughly six hours in the optimized JAX implementation. The full implementation is
+included in our anonymous code submission.
+
 
 \section{Timing Results}
 \label{app:timing}
