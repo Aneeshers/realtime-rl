@@ -509,7 +509,7 @@ def _plot_envs_band(envs, nrows, ncols, figsize, out_name):
 
 def plot_strategy():
     _plot_envs(MAIN_ENVS, 1, 4, (13.5, 3.6), "strategy.pdf")
-    _plot_envs_band(MAIN_ENVS, 1, 4, (13.5, 3.6), "strategy_band.pdf")
+    _plot_envs_band(MAIN_ENVS, 1, 4, (16.0, 2.6), "strategy_band.pdf")
     _plot_envs(APPENDIX_ENVS, 3, 3, (13.0, 9.0), "strategy_appendix.pdf")
 
 

@@ -200,7 +200,7 @@ def _plot_timeline(ax, show_inset=True, title="Asynchronous Execution\nTimeline 
     ax.text(FRAME_MS * 4.5, 3.0, "K=1", color=C_DARK_GRAY,
             fontsize=FS_ANNOT, ha="center", va="top")
 
-    ax.set_ylim(1, 38)
+    ax.set_ylim(-2, 38)
     ax.set_xlim(0, TIMELINE_LIMIT)
     ax.set_xlabel("Time (ms)", fontsize=FS_LABEL)
     ax.set_yticks([14, 27])
@@ -208,13 +208,6 @@ def _plot_timeline(ax, show_inset=True, title="Asynchronous Execution\nTimeline 
     ax.tick_params(axis="x", labelsize=FS_TICK)
     ax.set_title(title, fontsize=TITLE_FS)
     _apply_spine_style(ax)
-
-    legend_handles = [
-        plt.Rectangle((0, 0), 1, 1, facecolor=GPU1_COLOR, alpha=BAR_ALPHA, label="Env + $\\pi_{reflex}$ (fast policy)"),
-        plt.Rectangle((0, 0), 1, 1, facecolor=GPU2_COLOR, alpha=BAR_ALPHA, label="MCTS (planning)"),
-    ]
-    ax.legend(handles=legend_handles, loc="upper right", fontsize=SMALL_LEGEND_FS,
-              frameon=False, handlelength=1.2, handletextpad=0.5)
 
     if show_inset:
         _draw_gpu_inset(ax)
@@ -416,7 +409,7 @@ def _plot_transfer_bars(ax, rows):
 
 
 def plot_deployment():
-    fig, axes = plt.subplots(1, 3, figsize=(14.0, 4.2))
+    fig, axes = plt.subplots(1, 3, figsize=(15.5, 3.4))
     summary_rows = _load_summary_rows()
     grouped_lats = _grouped_latency_samples()
     _plot_latency_violins(axes[0], grouped_lats)
@@ -450,7 +443,7 @@ def plot_deployment():
 
 def plot_deployment_timeline():
     fig, axes = plt.subplots(
-        1, 2, figsize=(12.8, 4.8),
+        1, 2, figsize=(14.0, 3.8),
         gridspec_kw={"width_ratios": [1.0, 1.7]},
     )
     _plot_timeline_schematic(axes[0])

@@ -640,16 +640,12 @@ it avoids this state-augmentation problem entirely.
   \centering
   \includegraphics[width=\linewidth]{figures/deployment_timeline.pdf}
   \caption{\textbf{Two-GPU real-time deployment pipeline.}
-    At each meta-decision, the current game state is transferred to GPU~1, which
-    immediately begins MCTS while GPU~0 keeps the environment running at full speed
-    by replaying the committed (reflex) action sequence.
-    A larger chosen depth $K$ simply gives the planner more wall-clock time---the
-    game never pauses.
-    Once planning finishes, the new committed-action sequence takes effect at the
-    next meta-decision boundary.
-    The left schematic shows the two-GPU loop; the right Gantt chart shows the
-    resulting execution trace at 9\,FPS, with a $K{=}4$ meta-step spanning four
-    111\,ms frames followed immediately by a $K{=}1$ recovery step.}
+    GPU~0 runs the environment continuously via committed (reflex) actions;
+    GPU~1 runs MCTS in parallel, so a larger $K$ buys more planning time without
+    pausing the game.
+    \emph{Left:} schematic of the two-GPU loop.
+    \emph{Right:} execution trace at 9\,FPS---a $K{=}4$ meta-step spans four 111\,ms
+    frames, followed by a $K{=}1$ recovery step.}
   \label{fig:deployment_timeline}
 \end{figure}
 
@@ -657,16 +653,13 @@ it avoids this state-augmentation problem entirely.
   \centering
   \includegraphics[width=\linewidth]{figures/deployment.pdf}
   \caption{\textbf{Simulation-trained policies transfer cleanly to hardware deployment.}
-    \emph{Left:} MCTS latency distributions across three environments and three GPU
-    classes (H100, A100, A40), pooled over all measured frame rates (8--12\,FPS).
-    \emph{Centre:} Average deadline miss rate per GPU class; H100 and A100 stay
-    well below 1\% across all environments, while A40 breaks down only at the
-    tightest deadline regimes.
-    \emph{Right:} Episode return relative to the simulation baseline (100\,\%) at
-    9\,FPS, showing that sim-trained policies retain nearly full performance on
-    real hardware.
-    Full per-environment, per-FPS, per-GPU results appear in
-    Appendix~\ref{app:deployment_details}.}
+    \emph{Left:} MCTS latency variance tightens with GPU class---H100 is most
+    consistent, A100 intermediate, A40 widest.
+    \emph{Centre:} H100 and A100 miss deadlines rarely; A40 breaks down only at
+    the tightest frame rates.
+    \emph{Right:} Deployed returns at 9\,FPS match simulation closely across all
+    environments and GPU classes.
+    See Appendix~\ref{app:deployment_details} for the full breakdown.}
   \label{fig:deployment}
 \end{figure}
 
