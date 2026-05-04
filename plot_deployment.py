@@ -10,6 +10,7 @@ Generates fig:deployment — a one-row dashboard validating the 2-GPU real-time 
 
 Produces:
     figures/deployment.pdf
+    figures/deployment_timeline.pdf
 """
 
 import json
@@ -18,6 +19,7 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle, FancyArrowPatch
 
 # ===========================================================================
 # Style — sourced from plot_config.py
@@ -180,7 +182,7 @@ def _grouped_latency_samples():
     }
 
 
-def _plot_timeline(ax):
+def _plot_timeline(ax, show_inset=True, title="Asynchronous Execution\nTimeline (9 FPS)"):
     ax.broken_barh(GPU1_BLOCKS, (10, 8), facecolors=GPU1_COLOR, alpha=BAR_ALPHA, edgecolor="none")
     ax.broken_barh(GPU2_BLOCKS, (20, 8), facecolors=GPU2_COLOR, alpha=BAR_ALPHA, edgecolor="none")
 
@@ -201,10 +203,99 @@ def _plot_timeline(ax):
     ax.set_xlim(0, TIMELINE_LIMIT)
     ax.set_xlabel("Time (ms)", fontsize=FS_LABEL)
     ax.set_yticks([14, 24])
-    ax.set_yticklabels(["GPU 0\n(Env + $\\pi_{reflex}$)", "GPU 1\n(MCTS)"], fontsize=FS_TICK)
+    ax.set_yticklabels(["", ""], fontsize=FS_TICK)
     ax.tick_params(axis="x", labelsize=FS_TICK)
-    ax.set_title("Asynchronous Execution\nTimeline (9 FPS)", fontsize=TITLE_FS)
+    ax.set_title(title, fontsize=TITLE_FS)
     _apply_spine_style(ax)
+    _draw_timeline_lane_diagrams(ax)
+    if show_inset:
+        _draw_gpu_inset(ax)
+
+
+def _draw_gpu_board(ax, x0, y0, w, h, label, wire="#4B342A", subtitle=None):
+    """Wire-style GPU board in axis coordinates."""
+    fill = "#F4E7D3"
+    chip = "#E3C7A1"
+    ax.add_patch(Rectangle((x0, y0), w, h, facecolor=fill, edgecolor=wire,
+                           linewidth=1.4, transform=ax.transAxes, clip_on=False))
+    ax.add_patch(Rectangle((x0 + 0.29 * w, y0 + 0.27 * h), 0.42 * w, 0.40 * h,
+                           facecolor=chip, edgecolor=wire, linewidth=1.2,
+                           transform=ax.transAxes, clip_on=False))
+    for xx in np.linspace(x0 + 0.10 * w, x0 + 0.90 * w, 6):
+        ax.plot([xx, xx], [y0, y0 - 0.10 * h], color=wire, lw=1.0,
+                transform=ax.transAxes, clip_on=False)
+        ax.plot([xx, xx], [y0 + h, y0 + 1.10 * h], color=wire, lw=1.0,
+                transform=ax.transAxes, clip_on=False)
+    ax.text(x0 + 0.5 * w, y0 + h + 0.08 * h, label, ha="center", va="bottom",
+            fontsize=max(FS_ANNOT - 1, 6), color=wire, transform=ax.transAxes)
+    if subtitle:
+        ax.text(x0 + 0.5 * w, y0 + 0.48 * h, subtitle, ha="center", va="center",
+                fontsize=max(FS_ANNOT - 2, 6), color=wire, transform=ax.transAxes)
+
+
+def _draw_timeline_lane_diagrams(ax):
+    """Use GPU board drawings instead of y-axis text labels."""
+    _draw_gpu_board(ax, -0.24, 0.26, 0.12, 0.15, "GPU 0", subtitle="Env")
+    _draw_gpu_board(ax, -0.24, 0.58, 0.12, 0.15, "GPU 1", subtitle="MCTS")
+    ax.text(-0.06, 0.39, "$t$", transform=ax.transAxes, ha="center", va="center",
+            fontsize=FS_LABEL, color=C_DARK_GRAY, clip_on=False)
+    ax.text(-0.06, 0.71, "$t$", transform=ax.transAxes, ha="center", va="center",
+            fontsize=FS_LABEL, color=C_DARK_GRAY, clip_on=False)
+
+
+def _draw_gpu_inset(ax):
+    """Small wire-style schematic of the 2-GPU deployment."""
+    inset = ax.inset_axes([0.52, 0.61, 0.42, 0.31])
+    inset.set_axis_off()
+
+    wire = "#4B342A"
+    _draw_gpu_board(inset, 0.04, 0.18, 0.38, 0.60, "GPU 0", wire=wire, subtitle="Env + reflex")
+    _draw_gpu_board(inset, 0.58, 0.18, 0.38, 0.60, "GPU 1", wire=wire, subtitle="MCTS")
+
+    # interconnect arrows
+    inset.add_patch(FancyArrowPatch((0.43, 0.60), (0.57, 0.60),
+                                    arrowstyle="-|>", mutation_scale=10,
+                                    linewidth=1.2, color=wire))
+    inset.add_patch(FancyArrowPatch((0.57, 0.36), (0.43, 0.36),
+                                    arrowstyle="-|>", mutation_scale=10,
+                                    linewidth=1.2, color=wire))
+
+    inset.text(0.23, 0.86, "GPU 0", ha="center", va="bottom",
+               fontsize=max(FS_ANNOT - 1, 6), color=wire)
+    inset.text(0.23, 0.06, "Env + reflex", ha="center", va="bottom",
+               fontsize=max(FS_ANNOT - 1, 6), color=wire)
+    inset.text(0.77, 0.86, "GPU 1", ha="center", va="bottom",
+               fontsize=max(FS_ANNOT - 1, 6), color=wire)
+    inset.text(0.77, 0.06, "MCTS", ha="center", va="bottom",
+               fontsize=max(FS_ANNOT - 1, 6), color=wire)
+    inset.text(0.50, 0.66, "state", ha="center", va="bottom",
+               fontsize=max(FS_ANNOT - 2, 6), color=wire)
+    inset.text(0.50, 0.22, "action", ha="center", va="bottom",
+               fontsize=max(FS_ANNOT - 2, 6), color=wire)
+
+
+def _plot_timeline_schematic(ax):
+    """Standalone left-panel schematic for the 2-GPU async setup."""
+    ax.set_axis_off()
+
+    wire = "#4B342A"
+    _draw_gpu_board(ax, 0.10, 0.28, 0.28, 0.34, "GPU 0", wire=wire, subtitle="Env")
+    _draw_gpu_board(ax, 0.62, 0.28, 0.28, 0.34, "GPU 1", wire=wire, subtitle="MCTS")
+
+    ax.add_patch(FancyArrowPatch((0.39, 0.53), (0.61, 0.53),
+                                 arrowstyle="-|>", mutation_scale=14,
+                                 linewidth=1.5, color=wire,
+                                 transform=ax.transAxes))
+    ax.add_patch(FancyArrowPatch((0.61, 0.37), (0.39, 0.37),
+                                 arrowstyle="-|>", mutation_scale=14,
+                                 linewidth=1.5, color=wire,
+                                 transform=ax.transAxes))
+    ax.text(0.50, 0.57, "state", ha="center", va="bottom",
+            fontsize=FS_ANNOT, color=wire, transform=ax.transAxes)
+    ax.text(0.50, 0.27, "action", ha="center", va="top",
+            fontsize=FS_ANNOT, color=wire, transform=ax.transAxes)
+    ax.text(0.50, 0.78, "Two-GPU asynchronous loop", ha="center", va="center",
+            fontsize=TITLE_FS, color=C_BLACK, transform=ax.transAxes)
 
 
 def _plot_latency_violins(ax, grouped_lats):
@@ -342,6 +433,20 @@ def plot_deployment():
     # -----------------------------------------------------------
     fig.tight_layout(pad=1.0, w_pad=1.5, h_pad=2.0, rect=[0, 0.05, 1, 1])
     out = os.path.join(FIGS, "deployment.pdf")
+    fig.savefig(out, bbox_inches="tight")
+    print(f"Saved: {out}")
+    plt.close(fig)
+
+
+def plot_deployment_timeline():
+    fig, axes = plt.subplots(
+        1, 2, figsize=(12.8, 3.8),
+        gridspec_kw={"width_ratios": [1.0, 1.7]},
+    )
+    _plot_timeline_schematic(axes[0])
+    _plot_timeline(axes[1], show_inset=False, title="Execution Timeline (9 FPS)")
+    fig.tight_layout(pad=0.9, w_pad=2.0)
+    out = os.path.join(FIGS, "deployment_timeline.pdf")
     fig.savefig(out, bbox_inches="tight")
     print(f"Saved: {out}")
     plt.close(fig)
@@ -631,3 +736,4 @@ def print_summary():
 if __name__ == "__main__":
     print_summary()
     plot_deployment()
+    plot_deployment_timeline()
