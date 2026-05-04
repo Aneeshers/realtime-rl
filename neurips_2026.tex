@@ -70,7 +70,7 @@ A chess player under time pressure blitzes most moves and reserves deliberation 
 critical board positions.
 A skilled Tetris player barely pauses on easy placements but slows when the board
 grows dense.
-This adaptive allocation of cognitive effort is so natural, yet it is entirely absent from the standard reinforcement learning (RL) framework \cite{travnik2018reactive, ramstedt2019rtrl}.
+This adaptive allocation of cognitive effort is so natural, yet it is entirely absent from the standard reinforcement learning (RL) framework \citep{travnik2018reactive, ramstedt2019rtrl}.
 
 In standard RL the environment waits. The agent may deliberate indefinitely before
 committing to an action, and computation time carries no cost whatsoever.
@@ -88,7 +88,7 @@ planning reliably improves decisions, but at an environment cost that grows with
 planning.
 
 We study this intermediate regime using planning-based agents. Specifically,
-AlphaZero-style models~\cite{silver2018general} that use Monte Carlo Tree Search (MCTS)
+AlphaZero-style models~\citep{silver2018general} that use Monte Carlo Tree Search (MCTS)
 to improve action selection with additional computation
 (see Appendix~\ref{app:az_primer} for a self-contained primer).
 In MCTS, an agent repeatedly simulates plausible continuations from the current state,
@@ -164,44 +164,44 @@ The central idea behind our approach is metareasoning: the agent should reason n
 only about which action to take, but also about how much computation that decision
 deserves. This view has a long history. Early metareasoning and anytime-planning
 work studied how agents should trade computation against acting now
-~\cite{russell1991right,korf1990rta,dean1988analysis,zilberstein1996using,likhachev2003ara}.
+~\citep{russell1991right,korf1990rta,dean1988analysis,zilberstein1996using,likhachev2003ara}.
 Applied to MCTS, the same idea turns simulation budgeting into a meta-level control
-problem~\cite{hay2012selecting,tolpin2012simple,sezener2020static,lin2015metareasoning}.
+problem~\citep{hay2012selecting,tolpin2012simple,sezener2020static,lin2015metareasoning}.
 The cognitive-science literature sharpens this further by modeling bounded
 deliberation itself as a metalevel MDP
-~\cite{lieder2017strategy,griffiths2019doing,callaway2018learning}. Our work
+~\citep{lieder2017strategy,griffiths2019doing,callaway2018learning}. Our work
 brings that metareasoning perspective into deep RL with modern planners.
 
 \paragraph{Model-based RL has mostly sidestepped it.}
-AlphaZero-family planners~\cite{silver2018general,schrittwieser2020muzero}
+AlphaZero-family planners~\citep{silver2018general,schrittwieser2020muzero}
 treat MCTS budget as a fixed hyperparameter at deployment, with Gumbel
-MuZero~\cite{danihelka2022policy} the notable advance toward small budgets.
-Real-time RL~\cite{ramstedt2019rtrl,travnik2018reactive} reintroduces the
+MuZero~\citep{danihelka2022policy} the notable advance toward small budgets.
+Real-time RL~\citep{ramstedt2019rtrl,travnik2018reactive} reintroduces the
 cost of deliberation by formalising environments that progress during action
 selection, with extensions for action and observation
-delays~\cite{walsh2009delayed,derman2021delayed,bouteiller2021random,katsikopoulos2003markov}
-and concurrent control~\cite{xiao2020thinking}. Recent work mitigates inference
+delays~\citep{walsh2009delayed,derman2021delayed,bouteiller2021random,katsikopoulos2003markov}
+and concurrent control~\citep{xiao2020thinking}. Recent work mitigates inference
 cost through asynchronous and pipelined
-architectures~\cite{riemer2025staggered,anokhin2025handling}. However, across all
+architectures~\citep{riemer2025staggered,anokhin2025handling}. However, across all
 of this work, inference cost is something the architecture imposes, not
 something the agent reasons about.
 
 \paragraph{Adapting compute per state.}
-The closest neighbours to our work \emph{learn} to allocate planning compute. Metacontrol~\cite{hamrick2017metacontrol}
+The closest neighbours to our work \emph{learn} to allocate planning compute. Metacontrol~\citep{hamrick2017metacontrol}
 trains a meta-controller to choose how many imagination steps to run; Thinker
-and Dynamic Thinker~\cite{chung2023thinker,wang2024dynamic} let the agent
+and Dynamic Thinker~\citep{chung2023thinker,wang2024dynamic} let the agent
 itself decide when to imagine alternative trajectories on top of a learned
-world model; Adaptive Lookahead~\cite{dalal2022adaptive} learns a
-state-dependent tree-search horizon. ~\cite{hamrick2021role}'s ablation
+world model; Adaptive Lookahead~\citep{dalal2022adaptive} learns a
+state-dependent tree-search horizon. \citet{hamrick2021role}'s ablation
 study provides the strongest empirical motivation: shallow MuZero trees often suffice, and the marginal value of additional
 simulations varies sharply by state. In parallel, the LLM community has
 independently advanced the same idea: PonderNet and adaptive computation
-time~\cite{graves2016act,banino2021pondernet,schuster2022calm} learn per-input
-halting; test-time compute scaling~\cite{snell2024scaling,deepseek2025r1,muennighoff2025s1}
+time~\citep{graves2016act,banino2021pondernet,schuster2022calm} learn per-input
+halting; test-time compute scaling~\citep{snell2024scaling,deepseek2025r1,muennighoff2025s1}
 and RL-trained reasoning-length
-controllers~\cite{aggarwal2025l1,muppidi2025predictive,fang2025thinkless,shen2025dast}
+controllers~\citep{aggarwal2025l1,muppidi2025predictive,fang2025thinkless,shen2025dast}
 explicitly learn per-query thinking budgets; cascaded
-routing~\cite{kim2023bigl,chen2023frugalgpt,ong2025routellm} defers easy
+routing~\citep{kim2023bigl,chen2023frugalgpt,ong2025routellm} defers easy
 queries to cheap models. The shared thesis is that a small learned policy can
 profitably decide how much computation to spend per decision.
 
@@ -215,10 +215,10 @@ committed-action protocol that makes this real-time cost legible during
 training also describes the dynamics of true asynchronous execution, so the
 trained policy transfers directly to a two-GPU deployment with no
 architectural change. Other axes of ``learning to
-search''~\cite{guez2018mctsnets,farquhar2018treeqn,hamrick2020save,racaniere2017i2a}
+search''~\citep{guez2018mctsnets,farquhar2018treeqn,hamrick2020save,racaniere2017i2a}
 modify the planner's internal behaviour rather than its budget, and the
-options framework~\cite{sutton1999between,bradtke1994reinforcement,bacon2017optioncritic,harb2018deliberation}
-together with classical MCTS time-management~\cite{baier2016time,huang2010timemanagement,baudis2012pachi}
+options framework~\citep{sutton1999between,bradtke1994reinforcement,bacon2017optioncritic,harb2018deliberation}
+together with classical MCTS time-management~\citep{baier2016time,huang2010timemanagement,baudis2012pachi}
 provide the formal scaffolding for variable-duration meta-decisions and the
 baselines for our clock environments.
 
@@ -377,9 +377,9 @@ We formalize planning-depth selection as a discrete variable-duration control pr
 At each meta-step the gating policy $\pigate(K \mid s_t)$ selects a depth
 $K_t \in \Kset$.
 The agent executes $K_t{-}1$ committed actions followed by the planner's chosen
-action, accumulating rewards over all $K_t$ steps:
+action, accumulating $\gamma$-discounted rewards over all $K_t$ steps:
 \begin{equation}
-  R_t = \sum_{k=0}^{K_t - 1} r_{t+k}.
+  R_t = \sum_{k=0}^{K_t - 1} \gamma^k\, r_{t+k}.
   \label{eq:meta_reward}
 \end{equation}
 The same formulation covers clock environments: the $K_t{-}1$ committed actions
@@ -762,7 +762,7 @@ AlphaZero paradigm: ground-truth transitions, no learned dynamics.
 
 \textbf{AlphaZero was designed for two-player zero-sum games. How does it transfer to single-agent settings?}
 
-The core loop is \emph{expert iteration}~\cite{anthony2017thinking},
+The core loop is \emph{expert iteration}~\cite{anthony2021expert},
 shown in Algorithm~\ref{alg:expert_iter}.
 The value head uses a bootstrapped return instead of a zero-sum game outcome;
 otherwise the algorithm is identical to two-player AlphaZero.
@@ -859,23 +859,25 @@ model match the deployment-time reflex behavior more closely.
 \subsection{Committed-action execution}
 \label{app:committed_action}
 
-During the $K{-}1$ delay steps while the MCTS planner is running, the agent must
-continue acting in the environment.
-We evaluate two variants.
+During the $K{-}1$ delay steps while the MCTS planner is running, the agent executes
+committed actions in the environment.
+In all variants these are drawn from the argmax of the base model's raw policy
+logits---a single inexpensive forward pass, with no additional MCTS compute.
+The two variants differ only in what the \emph{MCTS tree simulates} during its internal
+rollout of the delay window, not in what is executed in the environment.
 
-\textbf{RT (logit)} uses the argmax of the base model's raw policy logits as the
-committed action at each delay step---a single inexpensive forward pass per step.
+\textbf{RT\_KStep (noop)} simulates the delay steps inside the tree using a fixed
+action (gravity/noop), which is fast but mismatches what the agent will actually do.
 
-\textbf{RT\_KT (MCTS-step)} uses one full MCTS step (a small tree search) as the
-committed action at each delay step, producing higher-quality interim decisions at
-the cost of additional compute.
-This variant is more consistent with Pac-Man, where the committed (blueprint) policy
-leverages the planner's tree internally.
+\textbf{RT\_KT (logit)} simulates the delay steps inside the tree using
+$\mathrm{argmax}(\pi_{\mathrm{logits}})$, matching the committed actions the agent
+executes at deployment and making the search model more accurate at no extra
+environment cost.
 All Tetris results reported in the main paper use the RT\_KT variant.
 
-In both variants the MCTS recurrent function simulates the same $K{-}1$ committed-action
-steps on each edge of the main search tree, ensuring that search is conducted over the
-exact future the agent will experience.
+Crucially, neither variant uses MCTS for the committed actions executed in the
+environment, so there is no compute-parity violation: every option $K \in \Kset$
+uses the same number of policy forward passes for its delay steps.
 
 \subsection{Speed Hex}
 Speed Hex is built on the pgx Hex library (11$\times$11 board).
@@ -1070,13 +1072,6 @@ to roughly six hours in the optimized JAX implementation. The full implementatio
 included in our anonymous code submission.
 
 
-\section{Timing Results}
-\label{app:timing}
-
-Full timing table for all environments and $K$ options:
-\todo{Insert complete latency / FPS table once measurements are collected.}
-
-
 \section{Detailed Two-GPU Deployment Breakdown}
 \label{app:deployment_details}
 
@@ -1189,15 +1184,20 @@ each $(K, \pi_{\mathrm{reflex}})$ pair defines an option of length $K$ terminati
 with the MCTS action.
 
 \paragraph{Deployment.}
-In real-time deployment the holding time between meta-decisions is genuinely
-stochastic: it equals $K \times T_{\mathrm{frame}}$ plus the actual MCTS
-execution time, which varies with search dynamics.
-This is a true SMDP in the continuous-time sense~\citep{puterman1994mdp}.
-Our measurements show that the execution-time component is tightly concentrated
-(H100: mean $122$\,ms, p95 $205$\,ms; A40: mean $197$\,ms, p95 $338$\,ms),
-so the gap between the deterministic simulation discount $\gamma^K$ and the
-true continuous-time discount is small, which is precisely why sim-to-real
-transfer succeeds without retraining.
+In real-time deployment the holding time between meta-decisions equals
+$K \times T_{\mathrm{frame}}$: MCTS runs concurrently on GPU~1 while the
+environment executes the $K$ reflex frames on GPU~0, so the two durations
+\emph{overlap} rather than sum.
+Given $K$, the elapsed wall-clock time is $K \times T_{\mathrm{frame}}$
+regardless of MCTS latency, provided search completes within the deadline.
+The holding time is stochastic only because $K$ is chosen stochastically
+by $\pigate$; this is a true SMDP in the continuous-time
+sense~\citep{puterman1994mdp}.
+Our measurements confirm that MCTS latency stays well within the frame budget
+(H100: mean $122$\,ms, p95 $205$\,ms; A40: mean $197$\,ms, p95 $338$\,ms
+vs.\ a $K{=}4$ budget of $444$\,ms at 9\,FPS), so the deterministic
+simulation discount $\gamma^K$ matches the deployment discount closely,
+which is why sim-to-real transfer succeeds without retraining.
 
 \subsection*{How committed-action training avoids state augmentation}
 
