@@ -385,7 +385,7 @@ increase in real-time cost.
     count across all five environments.
     \emph{Blue solid}: performance (episode return, solve rate, or win rate).
     \emph{Dashed lines}: per-step inference latency on H100,
-    A100, and V100.
+    A100, and A40.
     Shaded band shows $\pm$SE.}
   \label{fig:scaling}
 \end{figure}
@@ -518,7 +518,7 @@ reaches 45.6 ($+65\%$) using a bimodal strategy described below.
 The random baseline falls well below every fixed-$K$ policy in both environments,
 confirming that \emph{when} to allocate compute matters as much as how much.
 
-\am{add for snake, hex, and sokoban}
+In Snake the best fixed policy ($K{=}1$) scores 14.91; the gating policy reaches 16.54 ($+10.9\%$) by predominantly reacting quickly ($K{=}1$, 81.6\% of steps) while selectively invoking deeper planning as the board becomes constrained.
 
 \subsection{Learned depth distribution}
 
@@ -529,7 +529,7 @@ best fixed policy.
 In Tetris the distribution is strongly bimodal: $K{=}4$ (51.7\%), $K{=}1$ (28.1\%),
 $K{=}2$ (20.2\%), with $K{=}3$ never selected (0\%).
 The policy has effectively learned a sharp binary. It learns to react immediately on easy boards and plan maximally on critical ones, with $K{=}2$ handling moderate cases.
-In Snake, the strategy shifts dynamically with episode length: $K{=}1$ dominates the early game when the snake is short, while reliance on $K{=}4$ grows steadily as the snake elongates and maneuvering becomes constrained.
+In Snake, $K{=}1$ dominates throughout ($81.6\%$) with $K{=}2$ handling moderate cases ($15.2\%$) and $K{=}3$ rising as the snake elongates ($3.2\%$ overall); $K{=}4$ is never selected ($0\%$), mirroring the $K{=}3$ avoidance in Tetris.
 Figure~\ref{fig:strategy} shows how the allocation shifts over the course of an episode.
 
 \subsection{What triggers deeper planning?}
@@ -562,20 +562,44 @@ least, reflecting differences in placement geometry and expected outcome varianc
 
 \paragraph{Snake}
 
-\am{add snake analysis}
+Spatial constraint---not goal difficulty---is the primary trigger, and $K{=}2$
+and $K{=}3$ respond to \emph{different} aspects of it.
+$K{=}1$ dominates on open boards: mean snake length $8.76{\scriptstyle\pm0.04}$,
+flood-fill reachability $134.7$ cells (93.5\% of the $12{\times}12$ grid),
+local body density $26.9\%$ in the $3{\times}3$ neighbourhood, and $3.27$ valid moves.
+$K{=}3$ activates when space is scarce: length $20.42{\scriptstyle\pm0.25}$,
+reachability drops to $120.4$ cells (${\downarrow}10.5\%$),
+local density rises to $33.6\%$, and only $2.85$ valid moves remain---the fewest
+of any $K$.
+Crucially, $K{=}3$'s mean fruit distance ($7.81$) is \emph{similar} to $K{=}1$'s
+($8.09$), confirming that the trigger is topological crowding, not goal difficulty.
+$K{=}2$ occupies a distinct niche: it fires on the most open boards (most valid
+moves, $3.45$; lowest local density, $23.5\%$) but with the \emph{farthest} fruit
+($9.96$ cells).
+The policy has learned to reach for one extra planning step specifically when
+navigating toward a distant goal on an uncrowded board---a separate concern from
+spatial danger.
+The post-eating transition reinforces the picture: immediately after consuming
+fruit (1{,}546 events, snake just grew longer), $K{=}3$ usage spikes from
+$3.2\%$ to $13.5\%$ ($4{\times}$), showing the policy responds in real time to
+body-growth events as a prospective spatial risk signal.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{figures/interpretability_combined.pdf}
   \caption{Interpretability: state features conditioned on chosen depth $K$
     (mean $\pm$\,1\,SE, 100 episodes).
-    \emph{Top:} In Pac-Man ghost-far states elicit $K{=}4$ (deep planning when safe);
-    ghost-close states elicit $K{=}1$ (immediate reaction); rightmost panel shows
-    mean nearest-ghost distance by chosen $K$.
-    \emph{Bottom:} In Tetris RT, a sparse board elicits $K{=}1$; dense board elicits
-    $K{=}4$; center panel shows board fill fraction by chosen $K$
-    ($K{=}3$ omitted, never selected); right panel shows mean chosen $K$ by
-    piece type.}
+    \emph{Top:} In Pac-Man, ghost-far states elicit $K{=}4$; ghost-close states
+    elicit $K{=}1$; rightmost panel shows mean nearest-ghost distance by chosen $K$.
+    \emph{Middle:} In Tetris RT, a sparse board elicits $K{=}1$; a dense board
+    elicits $K{=}4$; center panel shows board fill by chosen $K$
+    ($K{=}3$ never selected); right panel shows mean chosen $K$ by piece type.
+    \emph{Bottom:} In Snake, flood-fill reachability (left) and local $3{\times}3$
+    body density (center) by chosen $K$: $K{=}3$ triggers on the most constrained
+    boards (reachability $120.4$ vs.\ $134.7$ for $K{=}1$; $K{=}4$ never selected).
+    Right: $K$ distribution overall (faded) vs.\ immediately after eating fruit
+    (solid); $K{=}3$ spikes $4{\times}$ ($3.2\%{\to}13.5\%$) when the snake has
+    just grown, signalling prospective spatial risk.}
   \label{fig:interpretability}
 \end{figure}
 
@@ -602,8 +626,8 @@ clock, board contestedness, etc.}
 \label{sec:deployment}
 % =============================================================================
 
-We validate the committed-action framework in a true two-GPU real-time setup using
-real-time Tetris.
+We validate the committed-action framework in a true two-GPU real-time setup across
+three committed-action environments: real-time Tetris, Pac-Man, and Snake.
 One GPU runs the environment and executes committed actions continuously; a second GPU
 runs the MCTS planner.
 At each meta-decision the current game state is transferred to the planning GPU, which
@@ -611,26 +635,73 @@ begins search while the environment GPU keeps the game moving with committed act
 When planning finishes, after $K \times 32$ simulations, the result is applied at
 the next environment step.
 
-For tetris, at a target game speed of 9 FPS, $K{=}4$ planning (128 simulations,
-${\approx}384$ms) completes within exactly 4 frames;
-\todo{Insert measured two-GPU latency numbers for Tetris.}
+Figure~\ref{fig:deployment} summarizes 45 measured deployments:
+3 environments $\times$ 3 GPU classes $\times$ 5 frame rates (8--12\,FPS).
+The asynchronous execution pattern itself is unchanged from training: a $K{=}4$
+meta-step at 9\,FPS spans four 111\,ms frames, while reflex actions keep the
+environment moving and MCTS finishes asynchronously on the second GPU.
+
+The latency measurements show that the deployment remains comfortably in-budget on
+modern accelerators for most of this operating range.
+At 9\,FPS in Tetris, where the $K{=}4$ budget is 444\,ms, H100 latency is
+$123.9$\,ms on average (p95 $207.6$\,ms; $0.014\%$ miss rate), A100 is
+$186.3$\,ms (p95 $312.1$\,ms; $0.014\%$), and A40 is $197.7$\,ms
+(p95 $339.0$\,ms; $0.046\%$).
+Across all tested FPS values, H100 remains extremely reliable in all three
+environments, and A100 remains near-perfect in Tetris and Snake.
+The main failures arise exactly where the budget becomes tight.
+In Tetris on A40, p95 slack shrinks from $+162.2$\,ms at 8\,FPS to $-4.1$\,ms
+at 12\,FPS, and the miss rate jumps from $0.046\%$ to $50.669\%$.
+Pac-Man is the most latency-sensitive environment overall: at 12\,FPS, miss rate
+reaches $30.369\%$ on A100 and $13.073\%$ on A40, whereas Snake remains negligible
+throughout ($\le 0.005\%$ on all hardware/FPS settings tested).
+
+The return results show that simulation-to-deployment transfer remains strong despite
+these hardware and frame-rate changes.
+At 9\,FPS, deployed Tetris return is $41.4 \pm 4.2$ on H100 versus
+$45.6 \pm 3.7$ in simulation, $46.2 \pm 4.5$ on A100, and $42.7 \pm 7.7$ on A40.
+Pac-Man remains close to its simulated return of $2370 \pm 59$ on H100
+($2287.4 \pm 55.2$) and A40 ($2368.3 \pm 116.0$), with a larger but still
+functional drop on A100 ($2117.2 \pm 64.3$).
+Snake is similarly stable: simulation return is $16.54 \pm 1.26$, compared to
+$15.0 \pm 0.6$ on H100, $15.9 \pm 0.6$ on A100, and $14.9 \pm 1.2$ on A40.
+The learned depth distributions also transfer cleanly. In Tetris, for example,
+the deployed policy remains strongly bimodal:
+$K{=}4$: $52.8\%$, $K{=}1$: $29.1\%$, $K{=}2$: $18.1\%$, $K{=}3$: $0\%$
+on H100 at 9\,FPS, versus $51.7\%$, $28.1\%$, $20.2\%$, $0\%$ in simulation.
 
 This result demonstrates a key property of the committed-action training protocol.
 Because training simulates the planning delay by actually executing committed actions
 in the environment, the learned policy requires no modification for deployment.
 The separation between environment and planner is already the right abstraction.
+The Real-Time RL framework~\citep{ramstedt2019rtrl} fixes the computation budget to
+exactly one timestep via a 1-step delay RTMDP state augmentation---adequate for
+lightweight policies but insufficient for variable-depth MCTS spanning
+$K \in \{1,\ldots,4\}$ frames, where a naive extension would require carrying $K$
+stale actions in the state.
+Appendix~\ref{app:deployment_details} gives the full environment-by-FPS-by-GPU
+deployment breakdown, while Appendix~\ref{app:rtrl_smdp} gives a formal account
+of how committed-action training relates to the RTMDP and SMDP formalisms and why
+it avoids this state-augmentation problem entirely.
 
 \begin{figure}[h]
   \centering
   \includegraphics[width=\linewidth]{figures/deployment.pdf}
   \caption{Validation of the real-time, asynchronous 2-GPU deployment.
-    \emph{Left:} Timeline of execution showing the environment and fast committed-action
-    policy ($\pi_{reflex}$) operating continuously on GPU 1 while the MCTS planner
-    evaluates deeper meta-decisions asynchronously on GPU 2.
-    \emph{Center-Left:} Latency distributions for the MCTS evaluation step across different
-    hardware architectures (placeholder data).
-    \emph{Right Panels:} Zero-shot deployment performance on H100 hardware for Tetris RT (episode return) and Speed Hex (win rate) matches simulated training performance
-    (placeholder data), validating that the committed-action training protocol perfectly models the deployment delay. \am{change sim-to-real - or justify it}}
+    \emph{Left:} Timeline of execution showing the environment and committed-action
+    policy ($\pi_{reflex}$) running at 9\,FPS on GPU~0 while the MCTS planner
+    runs asynchronously on GPU~1.
+    A K{=}4 meta-step spans 4 frames (444\,ms); MCTS finishes at $\approx$200\,ms,
+    leaving large slack before the deadline.
+    \emph{Center-left:} Measured MCTS latency distributions aggregated across
+    Tetris, Pac-Man, and Snake for H100, A100, and A40 deployments.
+    \emph{Center-right:} Average deadline miss rate across environments, showing
+    H100 remains near-zero overall while A40 incurs the largest reliability cost.
+    \emph{Right:} Sim-to-real return normalized to simulation (simulation $=100\%$)
+    at 9\,FPS.
+    Transfer remains strong across all three environments, even as hardware
+    reliability diverges near the deadline boundary. Full per-environment,
+    per-FPS, per-GPU results appear in Appendix~\ref{app:deployment_details}.}
   \label{fig:deployment}
 \end{figure}
 
@@ -975,6 +1046,63 @@ Full timing table for all environments and $K$ options:
 \todo{Insert complete latency / FPS table once measurements are collected.}
 
 
+\section{Detailed Two-GPU Deployment Breakdown}
+\label{app:deployment_details}
+
+We ran the full asynchronous deployment grid for all 45 settings:
+3 environments (Tetris, Pac-Man, Snake) $\times$ 3 GPUs (H100, A100, A40)
+$\times$ 5 frame rates (8--12\,FPS).
+Figure~\ref{fig:deployment_appendix} gives the complete breakdown by environment,
+GPU, and FPS for return, deadline miss rate, and p95 slack to deadline.
+
+Several patterns are clear.
+First, H100 is consistently reliable across the entire tested range.
+In Tetris its miss rate stays at $0.014\%$ for all FPS values, with p95 slack
+remaining positive from $+291.0$\,ms at 8\,FPS to $+123.6$\,ms at 12\,FPS.
+Snake is even easier: H100 and A100 stay at $0.001\%$ miss rate throughout, and
+A40 stays at or below $0.005\%$.
+
+Second, the deployment boundary appears where slack collapses.
+Tetris on A40 is the clearest example: p95 slack decreases monotonically from
+$+162.2$\,ms (8\,FPS) to $-4.1$\,ms (12\,FPS), and the miss rate jumps from
+$0.046\%$ to $50.669\%$.
+By contrast, Tetris on A100 remains usable even at 12\,FPS, with p95 slack still
+positive at $+24.5$\,ms and miss rate only $0.188\%$.
+
+Third, Pac-Man is the most timing-sensitive environment.
+Even with positive p95 slack throughout, A100 and A40 exhibit non-trivial miss
+rates across all FPS values.
+At 12\,FPS, Pac-Man reaches $30.369\%$ misses on A100 and $13.073\%$ on A40,
+whereas H100 stays much lower at $3.927\%$.
+This indicates that for Pac-Man, the far latency tail beyond the p95 threshold
+matters operationally even when the central mass remains in-budget.
+
+Finally, return remains comparatively stable over a broad deployment range despite
+these timing differences.
+Tetris returns remain in the $41$--$50$ range on H100/A100 and in the high-30s to
+low-40s on A40 except at the most constrained settings.
+Pac-Man degrades more gradually with hardware and FPS than its miss-rate curve might
+suggest, while Snake is nearly flat across all tested settings.
+Together these results support the main-text conclusion: the committed-action
+training protocol transfers robustly to asynchronous hardware deployment, and the
+observed failures emerge in predictable deadline-limited regimes rather than as
+qualitatively new behaviors.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{figures/deployment_appendix.pdf}
+  \caption{Detailed two-GPU deployment breakdown across Tetris, Pac-Man, and Snake.
+    \emph{Top row:} return vs.\ FPS with SE bars.
+    \emph{Middle row:} deadline miss rate vs.\ FPS on a log scale.
+    \emph{Bottom row:} p95 slack to the $K{=}4$ deadline.
+    Each column is one environment; colors indicate hardware class.
+    The qualitative transition is clear: Snake stays robust throughout, Tetris fails
+    only near the tightest A40 regime, and Pac-Man is the most latency-sensitive
+    environment overall.}
+  \label{fig:deployment_appendix}
+\end{figure}
+
+
 \section{Additional Results and Ablations}
 \label{app:ablations}
 
@@ -983,6 +1111,90 @@ Full timing table for all environments and $K$ options:
 (2) Gating with only planner features, no spatial branch;
 (3) Reward mode: raw vs.\ $\gamma^K$-discounted vs.\ per-step normalized;
 (4) Sensitivity to entropy coefficient.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Real-Time RL, SMDPs, and Committed-Action Training}
+\label{app:rtrl_smdp}
+
+\subsection*{The RTRL framework and its single-step restriction}
+
+\citet{ramstedt2019rtrl} formalise real-time interaction via the
+\emph{Real-Time Markov Decision Process} (RTMDP), which augments the environment
+state with the action currently in execution:
+$\mathbf{x}_t = (s_t, a_t)$,
+where $a_t$ was selected one step earlier based on $s_{t-1}$.
+The transition is
+$p(\mathbf{x}_{t+1} \mid \mathbf{x}_t, \hat{a}_t) =
+ p(s_{t+1} \mid s_t, a_t)\,\delta(a_{t+1} - \hat{a}_t)$,
+passing the newly selected action $\hat{a}_t$ forward as the next state component.
+This is equivalent to a \emph{constant 1-step delay MDP}~\citep{walsh2009delayed}:
+the action the agent emits is applied one timestep later, and the policy must
+learn to predict where the state will be when the action lands.
+
+The framework is well-suited for lightweight policies whose evaluation time
+fits within one frame.
+For MCTS planning, however, the computation budget spans $K \in \{1,2,3,4\}$
+frames ($111$--$444$\,ms at 9\,FPS).
+A direct extension to a $K$-step delay MDP would require augmenting the state
+with the $K$ most recent actions,
+$\mathbf{x}_t = (s_t, a_{t-K+1}, \ldots, a_t)$,
+whose size grows with planning depth.
+Worse, under \emph{variable} $K$ the augmented state space would change
+dimensionality at each meta-step, and the policy would need to predict the
+state $K$ steps ahead through a chain of arbitrary committed actions---a
+hard credit-assignment problem that does not arise in the 1-step case.
+
+\subsection*{Training is a discrete SMDP; deployment is a genuine SMDP}
+
+\paragraph{Simulation.}
+In training the environment is synchronous: MCTS runs in zero simulated time.
+Each meta-step proceeds by (1) gating chooses $K$, (2) $K{-}1$ committed
+argmax steps execute, (3) the MCTS result is applied.
+From the meta-policy's perspective this is a
+\emph{Semi-Markov Decision Process}~\citep{puterman1994mdp} with \emph{deterministic}
+holding time $\tau = K$ (chosen by the meta-action).
+Successive meta-decisions are spaced $K$ environment steps apart and the
+appropriate discount is $\gamma^K$, which is exactly the discount applied
+in training.
+Formally this is a discrete SMDP with options~\citep{sutton1999between}:
+each $(K, \pi_{\mathrm{reflex}})$ pair defines an option of length $K$ terminating
+with the MCTS action.
+
+\paragraph{Deployment.}
+In real-time deployment the holding time between meta-decisions is genuinely
+stochastic: it equals $K \times T_{\mathrm{frame}}$ plus the actual MCTS
+execution time, which varies with search dynamics.
+This is a true SMDP in the continuous-time sense~\citep{puterman1994mdp}.
+Our measurements show that the execution-time component is tightly concentrated
+(H100: mean $122$\,ms, p95 $205$\,ms; A40: mean $197$\,ms, p95 $338$\,ms),
+so the gap between the deterministic simulation discount $\gamma^K$ and the
+true continuous-time discount is small, which is precisely why sim-to-real
+transfer succeeds without retraining.
+
+\subsection*{How committed-action training avoids state augmentation}
+
+The central reason the $K$-step RTMDP state augmentation is unnecessary in
+our framework is that \emph{the committed action at each intermediate step is
+computed from the current state, not from a state $K$ steps ago}.
+Specifically, the committed action at frame $t$ is
+$a_t = \arg\max_a \pi_\theta(a \mid s_t)$, evaluated fresh in $\sim$2\,ms---well
+within the $111$\,ms frame budget.
+Only the MCTS result is stale: it was computed on $s_0$ (start of meta-step)
+but applied at $s_K$ (after $K{-}1$ committed steps).
+This staleness is explicitly modeled in training: the $K{-}1$ committed steps
+actually execute in the environment before the MCTS action lands, so the policy
+learns to handle the $K$-step gap without any state augmentation.
+
+In the RTRL vocabulary, the committed-action component operates in the
+\emph{turn-based} regime (computation time $\ll$ frame time, so the environment
+effectively pauses during action selection), while the MCTS component operates
+in a $K$-step delay regime whose effects are absorbed by the training curriculum
+rather than by augmenting the state space.
+The key property that makes this possible---and that the standard RTMDP does not
+exploit---is that the intermediate policy $\pi_{\mathrm{reflex}}$ is a
+\emph{deterministic function of the current state}, so its actions do not need
+to be carried in the state to recover the Markov property.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
