@@ -236,14 +236,9 @@ on the final step, a placement the reflex policy would have missed.
   \centering
   \includegraphics[width=\linewidth]{figures/tetris_committed.pdf}
   \caption{Committed-action execution in real-time Tetris with $K{=}4$.
-    The I-piece spawns at top center (light blue).
-    Ticks $t{+}1$–$t{+}3$ are committed actions from the reflex policy
-    $\pi_{reflex}$ that move the piece left while gravity falls it one row per tick.
-    Tick $t{+}4$ (red): the MCTS result fires, having searched 128 simulations
-    over the committed-action trajectory, it identifies a four-cell gap on the right
-    and places the piece there.
-    Piece positions are schematic; the key point is that MCTS plans
-    \emph{over} the committed-action delay, not despite it.}
+    The first $K{-}1$ steps are committed reflex actions while MCTS plans in the
+    background; on the $K$-th step the planner output is applied. The key point is
+    that MCTS plans \emph{over} the committed-action delay, not despite it.}
   \label{fig:tetris_committed}
 \end{figure}
 
@@ -382,11 +377,8 @@ increase in real-time cost.
   \centering
   \includegraphics[width=\linewidth]{figures/scaling.pdf}
   \caption{Planning quality and real-time inference latency co-scale with simulation
-    count across all five environments.
-    \emph{Blue solid}: performance (episode return, solve rate, or win rate).
-    \emph{Dashed lines}: per-step inference latency on H100,
-    A100, and A40.
-    Shaded band shows $\pm$SE.}
+    count across all five environments. Blue denotes performance; dashed curves
+    denote per-step latency on H100, A100, and A40; shading shows $\pm$SE.}
   \label{fig:scaling}
 \end{figure}
 
@@ -505,8 +497,7 @@ All results are averaged over 100 independent episode seeds; we report mean $\pm
   \centering
   \includegraphics[width=\linewidth]{figures/main_results_horizontal.pdf}
   \caption{Main results (mean $\pm$\,SE, 100 episodes).
-    Colored bars: gating policy (ours); blue bars: baselines.
-    Tetris RT uses the RT\_KT variant (MCTS-step committed actions).
+    Colored bars show the gating policy and blue bars show baselines.
     Speed Hex is reported as expected score averaged over five sampled clock budgets;
     the full per-budget breakdown appears in Appendix~\ref{app:hex_budget_results}.}
   \label{fig:main_results}
@@ -598,18 +589,9 @@ body-growth events as a prospective spatial risk signal.
   \centering
   \includegraphics[width=\linewidth]{figures/interpretability_combined.pdf}
   \caption{Interpretability: state features conditioned on chosen depth $K$
-    (mean $\pm$\,1\,SE, 100 episodes).
-    \emph{Top:} In Pac-Man, ghost-far states elicit $K{=}4$; ghost-close states
-    elicit $K{=}1$; rightmost panel shows mean nearest-ghost distance by chosen $K$.
-    \emph{Middle:} In Tetris RT, a sparse board elicits $K{=}1$; a dense board
-    elicits $K{=}4$; center panel shows board fill by chosen $K$
-    ($K{=}3$ never selected); right panel shows mean chosen $K$ by piece type.
-    \emph{Bottom:} In Snake, flood-fill reachability (left) and local $3{\times}3$
-    body density (center) by chosen $K$: $K{=}3$ triggers on the most constrained
-    boards (reachability $120.4$ vs.\ $134.7$ for $K{=}1$; $K{=}4$ never selected).
-    Right: $K$ distribution overall (faded) vs.\ immediately after eating fruit
-    (solid); $K{=}3$ spikes $4{\times}$ ($3.2\%{\to}13.5\%$) when the snake has
-    just grown, signalling prospective spatial risk.}
+    (mean $\pm$\,1\,SE, 100 episodes). Across Pac-Man, Tetris, and Snake, larger
+    chosen depths align with states that are more constrained, risky, or
+    strategically consequential.}
   \label{fig:interpretability}
 \end{figure}
 
@@ -623,10 +605,7 @@ clock, board contestedness, etc.}
   \centering
   \includegraphics[width=\linewidth]{figures/strategy.pdf}
   \caption{Planning depth frequency over normalized episode time (10 equal bins).
-    Lines: fraction of steps at which each depth or sim-count option was chosen.
-    Pac-Man, Tetris RT, Sokoban, and Snake: $K \in \{1,2,3,4\}$; Speed Hex: sim counts
-    $\{2,8,32,128\}$ (same line colors).
-    Shared legend shown on the right; line styles consistent across all panels.}
+    Lines show the fraction of steps assigned to each depth or simulation budget.}
   \label{fig:strategy}
 \end{figure}
 
@@ -687,20 +666,10 @@ it avoids this state-augmentation problem entirely.
   \centering
   \includegraphics[width=\linewidth]{figures/deployment.pdf}
   \caption{Validation of the real-time, asynchronous 2-GPU deployment.
-    \emph{Left:} Timeline of execution showing the environment and committed-action
-    policy ($\pi_{reflex}$) running at 9\,FPS on GPU~0 while the MCTS planner
-    runs asynchronously on GPU~1.
-    A K{=}4 meta-step spans 4 frames (444\,ms); MCTS finishes at $\approx$200\,ms,
-    leaving large slack before the deadline.
-    \emph{Center-left:} Measured MCTS latency distributions aggregated across
-    Tetris, Pac-Man, and Snake for H100, A100, and A40 deployments.
-    \emph{Center-right:} Average deadline miss rate across environments, showing
-    H100 remains near-zero overall while A40 incurs the largest reliability cost.
-    \emph{Right:} Sim-to-real return normalized to simulation (simulation $=100\%$)
-    at 9\,FPS.
-    Transfer remains strong across all three environments, even as hardware
-    reliability diverges near the deadline boundary. Full per-environment,
-    per-FPS, per-GPU results appear in Appendix~\ref{app:deployment_details}.}
+    The timeline illustrates asynchronous execution, while the remaining panels
+    summarize measured latency, average deadline misses, and return relative to
+    simulation across H100, A100, and A40. Full per-environment, per-FPS, per-GPU
+    results appear in Appendix~\ref{app:deployment_details}.}
   \label{fig:deployment}
 \end{figure}
 
@@ -1081,13 +1050,9 @@ qualitatively new behaviors.
   \centering
   \includegraphics[width=\linewidth]{figures/deployment_appendix.pdf}
   \caption{Detailed two-GPU deployment breakdown across Tetris, Pac-Man, and Snake.
-    \emph{Top row:} return vs.\ FPS with SE bars.
-    \emph{Middle row:} deadline miss rate vs.\ FPS on a log scale.
-    \emph{Bottom row:} p95 slack to the $K{=}4$ deadline.
-    Each column is one environment; colors indicate hardware class.
-    The qualitative transition is clear: Snake stays robust throughout, Tetris fails
-    only near the tightest A40 regime, and Pac-Man is the most latency-sensitive
-    environment overall.}
+    Top: return vs.\ FPS. Middle: deadline miss rate. Bottom: p95 slack to the
+    $K{=}4$ deadline. Snake remains robust, Tetris fails only near the tightest
+    A40 regime, and Pac-Man is the most latency-sensitive.}
   \label{fig:deployment_appendix}
 \end{figure}
 
@@ -1121,12 +1086,9 @@ opponents changes with available clock.
   \centering
   \includegraphics[width=0.8\linewidth]{figures/hex_budget_appendix.pdf}
   \caption{Speed Hex expected score vs.\ clock budget from the main WandB evaluation
-    runs (primarily \texttt{gru\_ent100-500}, with the 8-simulation baseline drawn
-    from \texttt{gru\_ent095-500}).
-    Each curve is the gating policy's head-to-head expected score against one fixed
-    or heuristic opponent, averaged across evaluation seeds.
-    The dashed line marks parity ($0.5$ expected score). The five budgets used for
-    the main-text summary are sampled from this broader sweep.}
+    runs. Curves show head-to-head expected score against each opponent, averaged
+    across evaluation seeds; the dashed line marks parity ($0.5$). The five
+    budgets used in the main text are sampled from this sweep.}
   \label{fig:hex_budget_appendix}
 \end{figure}
 
