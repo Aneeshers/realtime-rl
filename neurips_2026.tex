@@ -362,15 +362,17 @@ simulations also take longer to run, and in real-time settings that longer infer
 is exactly what advances the environment, or depletes the clock, before the agent
 acts.
 We verify empirically that this relationship is approximately linear over the
-simulation ranges we study (Figure~\ref{fig:scaling}): each additional batch of
-simulations yields a roughly equal gain in decision quality and a roughly equal
-increase in real-time cost.
+simulation ranges we study (Figure~\ref{fig:scaling}) in Pac-Man, real-time
+Tetris, and 2-player Speed Hex: each additional batch of simulations yields a
+roughly equal gain in decision quality and a roughly equal increase in real-time
+cost. The full five-environment scaling results, including Sokoban and Snake,
+appear in Appendix~\ref{app:sim_calibration}.
 
 \begin{figure}[h]
   \centering
   \includegraphics[width=\linewidth]{figures/scaling.pdf}
   \caption{Planning quality and real-time inference latency co-scale with simulation
-    count across all five environments. Blue denotes performance; dashed curves
+    count in Pac-Man, real-time Tetris, and 2-player Speed Hex. Blue denotes performance; dashed curves
     denote per-step latency on H100, A100, and A40; shading shows $\pm$SE.}
   \label{fig:scaling}
 \end{figure}
@@ -910,8 +912,17 @@ options that differ in cost but not quality waste planning budget.
 
 For speed Hex we found that options $\{2, 8, 32, 128\}$ satisfy this criterion across
 the relevant range of clock settings.
-\todo{Insert calibration curves: win rate vs.\ sims, latency vs.\ sims, with chosen
-options marked.}
+Figure~\ref{fig:scaling_appendix} shows the full co-scaling results across all five
+evaluation environments.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{figures/scaling_appendix.pdf}
+  \caption{Full co-scaling results across Pac-Man, real-time Tetris, 2-player Speed
+    Hex, Timed Sokoban, and Snake. Blue denotes planning quality; dashed curves
+    denote per-step latency on H100, A100, and A40; shading shows $\pm$SE.}
+  \label{fig:scaling_appendix}
+\end{figure}
 
 
 \section{Cross-Evaluation and Base Model Selection}

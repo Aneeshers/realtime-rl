@@ -2,8 +2,13 @@
 """
 plot_scaling.py
 
-Generates fig:scaling — planning quality and inference latency co-scale with
-simulation count (five panels, one per environment, dual y-axis).
+Generates the co-scaling figures used in the paper.
+
+Main text:
+  fig:scaling — Pac-Man, Tetris RT, and 2-player Speed Hex.
+
+Appendix:
+  full five-environment scaling figure including Sokoban and Snake.
 
   Left  y-axis (blue solid)  : planning quality  — episode return / solve rate / win rate
   Right y-axis (red dashed)  : inference latency — ms per planning step
@@ -24,7 +29,9 @@ show ±SE for H100; A100 and a40 latency lines are synthetic estimates.
 Usage:
     python plot_scaling.py
 
-Output: figures/scaling.pdf
+Outputs:
+    figures/scaling.pdf
+    figures/scaling_appendix.pdf
 """
 
 import os
@@ -459,10 +466,13 @@ def _draw_env(ax, d):
     ax2.grid(False)
 
 
-def plot_scaling(envs):
-    fig, axes = plt.subplots(1, 5, figsize=(17.5, 4.0))
+def plot_scaling(envs, env_order, out_name, figsize):
+    fig, axes = plt.subplots(1, len(env_order), figsize=figsize)
+    if len(env_order) == 1:
+        axes = [axes]
 
-    for ax, (name, d) in zip(axes, envs.items()):
+    for ax, name in zip(axes, env_order):
+        d = envs[name]
         _draw_env(ax, d)
         ax.set_title(name, fontsize=FS_TITLE)
 
@@ -481,7 +491,7 @@ def plot_scaling(envs):
                bbox_to_anchor=(0.5, -0.06))
 
     fig.tight_layout(pad=1.0, rect=[0, 0.07, 1, 1])
-    out = os.path.join(FIGS, "scaling.pdf")
+    out = os.path.join(FIGS, out_name)
     fig.savefig(out, bbox_inches="tight")
     print(f"Saved: {out}")
     plt.close(fig)
@@ -491,4 +501,15 @@ def plot_scaling(envs):
 
 if __name__ == "__main__":
     envs = build_data()
-    plot_scaling(envs)
+    plot_scaling(
+        envs,
+        env_order=["Pac-Man", "Tetris RT", "Speed Hex"],
+        out_name="scaling.pdf",
+        figsize=(10.8, 4.0),
+    )
+    plot_scaling(
+        envs,
+        env_order=["Pac-Man", "Tetris RT", "Speed Hex", "Sokoban", "Snake"],
+        out_name="scaling_appendix.pdf",
+        figsize=(17.5, 4.0),
+    )
