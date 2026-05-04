@@ -45,17 +45,18 @@
 % =============================================================================
 \begin{abstract}
 % =============================================================================
-
-Deliberating takes time, and in real-time settings that time is not free.
+%X What are we doing
+Deliberating takes time, and especially in real-time settings that time is not free.
 Standard reinforcement learning (RL) sidesteps this, as the environment waits indefinitely
-for the agent's decision, so computation is costless.
-We study environments where this assumption fails, where the environment progresses
-while the agent plans, and the cost of deliberation is paid in outcomes rather than
-wall-clock seconds.
-We train a lightweight meta-policy that decides how much computation to invest at each step.
-The meta-policy consistently outperforms every fixed-budget baseline while using
-less average compute.
-Moreover, we validate the full pipeline in a true two-GPU real-time setup. We demonstrate these results across real-time Pac-Man, Tetris, Snake, timed Sokoban,
+for the agent's decision.
+Instead we here study environments that progress while waiting for the agent's action, which naturally creates a \textit{cost of deliberation}.
+%Y why is this hard
+Crucially, in these settings, there are state-dependent trade-offs between taking more time to deliberate or being able to react quickly. Furthermore, deliberating how much to deliberate, in the limit, risks complete paralysis.  
+% Z our genius insight
+To address this, we propose a simple two step process: 
+In the first step we train a standard MCTS policy and in the second step we train a \textit{lightweight} meta-policy that decides how many search steps to invest at a given step.
+Our meta-policy consistently outperforms every fixed-budget baseline and handcoded heuristics while using less average compute.
+Moreover, we validate the full pipeline in a true two-GPU real-time setup. We demonstrate these results across real-time versions of Pac-Man, Tetris, Snake, timed Sokoban,
 and two-player speed Hex.
 
 \end{abstract}
