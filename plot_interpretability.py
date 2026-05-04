@@ -29,11 +29,11 @@ from plot_config import (
 )
 apply_style()
 
-FONT_SIZE_TITLE = FS_TITLE
-FONT_SIZE_LABEL = FS_LABEL
-FONT_SIZE_TICK  = FS_TICK
-FONT_SIZE_K_BOX = FS_BADGE
-FONT_SIZE_ANNOT = FS_ANNOT
+FONT_SIZE_TITLE = FS_TITLE - 1
+FONT_SIZE_LABEL = FS_LABEL - 1
+FONT_SIZE_TICK  = FS_TICK - 1
+FONT_SIZE_K_BOX = FS_BADGE - 1
+FONT_SIZE_ANNOT = FS_ANNOT - 1
 LINE_COLOR      = C_BLUE
 BAR_COLOR       = C_BLUE
 
@@ -255,48 +255,36 @@ def plot(far_state, close_state, sparse_state, dense_state, tetris_env,
         render_mode="rgb_array",
     )
 
-    # Wider and shorter canvas.
-    fig = plt.figure(figsize=(16.5, 9.2))
-    # Make the row tighter
-    subfigs = fig.subfigures(3, 1, height_ratios=[0.74, 0.74, 0.74], hspace=0.03)
+    # Create figure with three rows - slightly wider to give boards more room
+    fig = plt.figure(figsize=(16.0, 10.2))
+    subfigs = fig.subfigures(3, 1, hspace=0.04)
 
-    outer_width_ratios = [3.4, 1.2]
-    boards_wspace = 0.0
-    plots_wspace = 0.18
-
-    # Common row layout:
-    #   [ board block | plot block ]
-    # Inside the board block, the two state panels have their own tiny wspace.
-    # Inside the plot block, the chart spacing remains normal.
-    outer_width_ratios = [2.95, 1.55]
-    boards_wspace = 0.02
-    plots_wspace = 0.25
-
+    # Common layout parameters for all rows
+    # Boards get less relative width since they're cropped/small
+    board_to_plot_ratio = [0.95, 0.8]  # Reduced board width relative to plots
+    main_wspace = 0.06
+    board_wspace = 0.01  # Very tight spacing between paired boards
     # ── Top Row: PacMan ───────────────────────────────────────────────────────
-    gs_outer = subfigs[0].add_gridspec(
+    gs_top = subfigs[0].add_gridspec(
         1, 2,
-        width_ratios=outer_width_ratios,
-        wspace=0.06,
-        left=0.02,
-        right=0.985,
-        top=0.96,
-        bottom=0.12,
+        width_ratios=board_to_plot_ratio,
+        wspace=main_wspace,
     )
-    gs_boards = gs_outer[0, 0].subgridspec(
+    
+    gs_boards = gs_top[0].subgridspec(
         1, 2,
-        width_ratios=[1.0, 1.0],
-        wspace=boards_wspace,
+        wspace=board_wspace,
     )
-    gs_plots = gs_outer[0, 1].subgridspec(
+    
+    gs_plots = gs_top[1].subgridspec(
         1, 2,
-        width_ratios=[0.82, 1.0],
-        wspace=plots_wspace,
+        wspace=0.25,
     )
 
-    ax_close  = subfigs[0].add_subplot(gs_boards[0, 0])
-    ax_far    = subfigs[0].add_subplot(gs_boards[0, 1])
-    ax_line   = subfigs[0].add_subplot(gs_plots[0, 0])
-    ax_pellet = subfigs[0].add_subplot(gs_plots[0, 1])
+    ax_close  = subfigs[0].add_subplot(gs_boards[0])
+    ax_far    = subfigs[0].add_subplot(gs_boards[1])
+    ax_line   = subfigs[0].add_subplot(gs_plots[0])
+    ax_pellet = subfigs[0].add_subplot(gs_plots[1])
 
     for ax, state, k_txt, title_txt, crop in [
         (ax_close, close_state, "Chosen K = 1", "Ghost close", PACMAN_CROP_LEFT),
@@ -339,7 +327,7 @@ def plot(far_state, close_state, sparse_state, dense_state, tetris_env,
     ax_line.set_xticks(xs)
     ax_line.set_xticklabels([f"K={k}" for k in ks], fontsize=FONT_SIZE_TICK)
     ax_line.set_ylabel("Nearest ghost distance", fontsize=FONT_SIZE_LABEL)
-    ax_line.set_title("Threat proximity\nby chosen K", fontsize=FONT_SIZE_TITLE)
+    ax_line.set_title("Threat proximity", fontsize=FONT_SIZE_TITLE)
     ax_line.set_ylim(bottom=0)
     _spine_clean(ax_line)
 
@@ -368,35 +356,31 @@ def plot(far_state, close_state, sparse_state, dense_state, tetris_env,
     ax_pellet.set_xticks(xs)
     ax_pellet.set_xticklabels([f"K={k}" for k in p_ks], fontsize=FONT_SIZE_TICK)
     ax_pellet.set_ylabel("Pellet fraction", fontsize=FONT_SIZE_LABEL)
-    ax_pellet.set_title("Pellet fraction\nby chosen K", fontsize=FONT_SIZE_TITLE)
+    ax_pellet.set_title("Pellet fraction", fontsize=FONT_SIZE_TITLE)
     ax_pellet.set_ylim(0, 1.1)
     _spine_clean(ax_pellet)
 
     # ── Middle Row: Tetris ────────────────────────────────────────────────────
-    gs_outer = subfigs[1].add_gridspec(
+    gs_mid = subfigs[1].add_gridspec(
         1, 2,
-        width_ratios=outer_width_ratios,
-        wspace=0.06,
-        left=0.02,
-        right=0.985,
-        top=0.96,
-        bottom=0.12,
+        width_ratios=board_to_plot_ratio,
+        wspace=main_wspace,
     )
-    gs_boards = gs_outer[0, 0].subgridspec(
+    
+    gs_boards = gs_mid[0].subgridspec(
         1, 2,
-        width_ratios=[1.0, 1.0],
-        wspace=boards_wspace,
+        wspace=board_wspace,
     )
-    gs_plots = gs_outer[0, 1].subgridspec(
+    
+    gs_plots = gs_mid[1].subgridspec(
         1, 2,
-        width_ratios=[0.82, 1.0],
-        wspace=plots_wspace,
+        wspace=0.25,
     )
 
-    ax_sparse = subfigs[1].add_subplot(gs_boards[0, 0])
-    ax_dense  = subfigs[1].add_subplot(gs_boards[0, 1])
-    ax_fill   = subfigs[1].add_subplot(gs_plots[0, 0])
-    ax_piece  = subfigs[1].add_subplot(gs_plots[0, 1])
+    ax_sparse = subfigs[1].add_subplot(gs_boards[0])
+    ax_dense  = subfigs[1].add_subplot(gs_boards[1])
+    ax_fill   = subfigs[1].add_subplot(gs_plots[0])
+    ax_piece  = subfigs[1].add_subplot(gs_plots[1])
 
     for ax, state, k_txt, title_txt in [
         (ax_sparse, sparse_state, "Chosen K = 1", "Sparse board"),
@@ -431,7 +415,7 @@ def plot(far_state, close_state, sparse_state, dense_state, tetris_env,
     ax_fill.set_xticks(k_vals)
     ax_fill.set_xticklabels([f"K={int(k)}" for k in k_vals], fontsize=FONT_SIZE_TICK)
     ax_fill.set_ylabel("Board fill fraction", fontsize=FONT_SIZE_LABEL)
-    ax_fill.set_title("Board density\nby chosen K", fontsize=FONT_SIZE_TITLE)
+    ax_fill.set_title("Board density", fontsize=FONT_SIZE_TITLE)
     ax_fill.set_ylim(bottom=0)
     _spine_clean(ax_fill)
 
@@ -448,35 +432,30 @@ def plot(far_state, close_state, sparse_state, dense_state, tetris_env,
     ax_piece.set_yticks(y)
     ax_piece.set_yticklabels(pieces, fontsize=FONT_SIZE_TICK)
     ax_piece.set_xlabel("Mean chosen K", fontsize=FONT_SIZE_LABEL)
-    ax_piece.set_title("Piece complexity\nvs. deliberation", fontsize=FONT_SIZE_TITLE)
+    ax_piece.set_title("Piece complexity", fontsize=FONT_SIZE_TITLE)
     _spine_clean(ax_piece)
     ax_piece.set_xlim(left=2.5, right=3.1)
 
-    # ── Bottom Row: Snake ─────────────────────────────────────────────────────
-    gs_outer = subfigs[2].add_gridspec(
+    gs_bot = subfigs[2].add_gridspec(
         1, 2,
-        width_ratios=outer_width_ratios,
-        wspace=0.06,
-        left=0.02,
-        right=0.985,
-        top=0.96,
-        bottom=0.12,
+        width_ratios=board_to_plot_ratio,
+        wspace=main_wspace,
     )
-    gs_boards = gs_outer[0, 0].subgridspec(
+    
+    gs_boards = gs_bot[0].subgridspec(
         1, 2,
-        width_ratios=[1.0, 1.0],
-        wspace=boards_wspace,
+        wspace=board_wspace,
     )
-    gs_plots = gs_outer[0, 1].subgridspec(
+    
+    gs_plots = gs_bot[1].subgridspec(
         1, 2,
-        width_ratios=[0.82, 1.0],
-        wspace=plots_wspace,
+        wspace=0.25,
     )
 
-    ax_short   = subfigs[2].add_subplot(gs_boards[0, 0])
-    ax_long    = subfigs[2].add_subplot(gs_boards[0, 1])
-    ax_reach   = subfigs[2].add_subplot(gs_plots[0, 0])
-    ax_posteat = subfigs[2].add_subplot(gs_plots[0, 1])
+    ax_short   = subfigs[2].add_subplot(gs_boards[0])
+    ax_long    = subfigs[2].add_subplot(gs_boards[1])
+    ax_reach   = subfigs[2].add_subplot(gs_plots[0])
+    ax_posteat = subfigs[2].add_subplot(gs_plots[1])
 
     for ax, state, k_txt, title_txt in [
         (ax_short, short_snake, "Chosen K = 2", "Short snake"),
@@ -519,7 +498,7 @@ def plot(far_state, close_state, sparse_state, dense_state, tetris_env,
     ax_reach.set_xticks(xs)
     ax_reach.set_xticklabels(["K=1", "K=2", "K=3", "K=4"], fontsize=FONT_SIZE_TICK)
     ax_reach.set_ylabel("Reachable cells", fontsize=FONT_SIZE_LABEL)
-    ax_reach.set_title("Reachability\nby chosen K", fontsize=FONT_SIZE_TITLE)
+    ax_reach.set_title("Reachability", fontsize=FONT_SIZE_TITLE)
     ax_reach.set_ylim(0, 148)
     ax_reach.axhline(144, color=C_MID_GRAY, linestyle="--", linewidth=0.8)
     _spine_clean(ax_reach)
@@ -547,7 +526,7 @@ def plot(far_state, close_state, sparse_state, dense_state, tetris_env,
     ax_posteat.set_xticks(x_k)
     ax_posteat.set_xticklabels(["K=1", "K=2", "K=3", "K=4"], fontsize=FONT_SIZE_TICK)
     ax_posteat.set_ylabel("% of steps", fontsize=FONT_SIZE_LABEL)
-    ax_posteat.set_title("Overall vs. \npost-eating", fontsize=FONT_SIZE_TITLE)
+    ax_posteat.set_title("Overall / post-eating", fontsize=FONT_SIZE_TITLE)
     ax_posteat.set_ylim(0, 95)
     ax_posteat.annotate(
         "4.2x",

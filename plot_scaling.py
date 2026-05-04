@@ -13,11 +13,12 @@ Data sources:
   Pac-Man    : pacman_kt_cross_eval_mature    (k_model=1, k_eval=1)
   Sokoban    : sokoban_gumbel_az_eval         (all runs)
   Speed Hex  : hex_inference_tournament       (infb in {2,8,32,128}, seeds 0-2)
-  Snake      : synthetic placeholder (training in progress)
+  Snake      : snake_kt_cross_eval           (best committed-action K=1 curve)
 
 Real measured points are used where available; the remaining eight target sim
-counts [2,4,8,16,32,64,128,256] are filled via a linear fit.  Speed Hex and
-Snake latency are synthetic-linear (no hardware timing logged).  Shaded bands
+counts [2,4,8,16,32,64,128,256] are filled via a linear fit. Speed Hex latency
+is synthetic-linear (no hardware timing logged). Snake now uses measured
+cross-eval returns and H100 latency from WandB where available. Shaded bands
 show ±SE for H100; A100 and a40 latency lines are synthetic estimates.
 
 Usage:
@@ -217,26 +218,91 @@ def _fetch_sokoban():
     return sims_arr, sol_arr, lat_arr
 
 
-def _fetch_hex(infbs=(2, 8, 32, 128), seeds=(0, 1, 2)):
-    """Win rate averaged across seeds for each inference budget (= sim count)."""
-    api  = wandb.Api()
-    runs = list(api.runs(f"{ENTITY}/hex_inference_tournament"))
+def _fetch_hex(project="hex_inference_tournament", nsim_tag="nsim_32",
+               infbs=(2, 8, 32, 128), seeds=(0, 1, 2)):
+    """
+    Aggregate budget win rates and timing from a W&B project.
 
-    bucket = {b: [] for b in infbs}
+    Supports both single full-round-robin runs and pair-sharded runs in the same
+    project by reconstructing win_rate from summed wins/games.
+    """
+    api = wandb.Api()
+    runs = list(api.runs(f"{ENTITY}/{project}"))
+
+    win_buckets = {b: {"wins": 0.0, "games": 0.0} for b in infbs}
+    time_buckets = {b: [] for b in infbs}
+
     for run in runs:
         s = dict(run.summary)
         for infb in infbs:
             for seed in seeds:
-                key = f"budget/nsim_32_seed{seed}_infb{infb}/win_rate"
-                val = s.get(key)
-                if val is not None:
-                    bucket[infb].append(val)
+                base = f"{nsim_tag}_seed{seed}_infb{infb}"
+
+                wins = s.get(f"budget/{base}/wins")
+                games = s.get(f"budget/{base}/games")
+                if wins is not None and games is not None:
+                    win_buckets[infb]["wins"] += float(wins)
+                    win_buckets[infb]["games"] += float(games)
+
+                # Backward-compatible fallback for older single-run summaries.
+                wr = s.get(f"budget/{base}/win_rate")
+                if wr is not None and (wins is None or games is None):
+                    win_buckets[infb]["wins"] += float(wr)
+                    win_buckets[infb]["games"] += 1.0
+
+                t = s.get(f"timing/{base}/avg_decision_time_s")
+                if t is not None:
+                    time_buckets[infb].append(float(t) * 1000.0)
 
     sims_arr = np.array(infbs, float)
-    wr_arr   = np.array([
-        np.mean(bucket[b]) if bucket[b] else np.nan for b in infbs
+    wr_arr = np.array([
+        (win_buckets[b]["wins"] / win_buckets[b]["games"])
+        if win_buckets[b]["games"] > 0 else np.nan
+        for b in infbs
     ])
-    return sims_arr, wr_arr
+    lat_arr = np.array([
+        np.mean(time_buckets[b]) if time_buckets[b] else np.nan
+        for b in infbs
+    ])
+    return sims_arr, wr_arr, lat_arr
+
+
+def _fetch_snake_best_k1():
+    """
+    Returns the strongest Snake cross-eval curve for committed-action K=1.
+
+    The Snake cross-eval project logs multiple trained models evaluated at
+    k_eval=1. For the scaling figure we take the best available committed-action
+    curve over k_model for each sim count, then use the matching H100 latency.
+    """
+    api = wandb.Api()
+    runs = list(api.runs(f"{ENTITY}/snake_kt_cross_eval"))
+
+    bucket = {}
+    for run in runs:
+        s = dict(run.summary)
+        if s.get("k_eval") != 1:
+            continue
+        sims = s.get("num_simulations")
+        ret = s.get("episode_return")
+        inf_t = s.get("inference_time_per_episode_sec")
+        ep_len = s.get("episode_length")
+        if sims is None or ret is None:
+            continue
+        lat = np.nan
+        if inf_t and ep_len and ep_len > 0:
+            lat = inf_t / ep_len * 1000.0
+        entry = bucket.get(sims)
+        if entry is None or ret > entry["ret"]:
+            bucket[sims] = {"ret": ret, "lat": lat}
+
+    if not bucket:
+        return np.array([]), np.array([]), np.array([])
+
+    sims_arr = np.array(sorted(bucket), float)
+    ret_arr = np.array([bucket[s]["ret"] for s in sims_arr])
+    lat_arr = np.array([bucket[s]["lat"] for s in sims_arr])
+    return sims_arr, ret_arr, lat_arr
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -256,7 +322,10 @@ def build_data():
     s_sims, s_sol, s_lat = _fetch_sokoban()
 
     print("Fetching Speed Hex...")
-    h_sims, h_wr = _fetch_hex()
+    h_sims, h_wr, h_lat = _fetch_hex()
+
+    print("Fetching Snake      (best k_eval=1 cross-eval curve)...")
+    sn_sims, sn_ret, sn_lat = _fetch_snake_best_k1()
 
     def _lat_series_gpu(sims, lat, fallback_ms_per_sim):
         """Build per-GPU latency series; fall back to synthetic if data is sparse."""
@@ -288,17 +357,12 @@ def build_data():
     h_wr_m, h_wr_se = build_series(
         h_sims, h_wr, TARGET_SIMS, clamp_min=0, se_frac=0.08, extrap_se_mult=1.8)
     h_wr_m = np.clip(h_wr_m, 0.0, 1.0)
-    # No hardware timing logged; calibrate to ~1.3ms at 32 sims
-    h_lat_m, h_lat_se = synthetic_latency(
-        TARGET_SIMS, ms_per_sim=0.040, se_frac=0.15, offset_ms=0.0)
-    h_gpu_lats = _all_gpu_lats(h_lat_m, h_lat_se)
+    h_gpu_lats = _lat_series_gpu(h_sims, h_lat, fallback_ms_per_sim=0.040)
 
-    # ── Snake (synthetic placeholder — training in progress) ──
-    sn_perf_m  = np.array([700., 750., 820., 870., 900., 960., 1050., 1150.])
-    sn_perf_se = sn_perf_m * 0.13
-    sn_lat_m, sn_lat_se = synthetic_latency(
-        TARGET_SIMS, ms_per_sim=0.026, se_frac=0.12)
-    sn_gpu_lats = _all_gpu_lats(sn_lat_m, sn_lat_se)
+    # ── Snake ──
+    sn_perf_m, sn_perf_se = build_series(
+        sn_sims, sn_ret, TARGET_SIMS, clamp_min=0, se_frac=0.12)
+    sn_gpu_lats = _lat_series_gpu(sn_sims, sn_lat, fallback_ms_per_sim=0.026)
 
     return {
         "Tetris RT": dict(
@@ -331,9 +395,10 @@ def build_data():
         ),
         "Snake": dict(
             perf_label="Episode Return",
-            real_sims=np.array([]),
-            perf_m=sn_perf_m,  perf_se=sn_perf_se,
+            real_sims=sn_sims,
+            perf_m=sn_perf_m, perf_se=sn_perf_se,
             gpu_lats=sn_gpu_lats,
+            placeholder=False,
         ),
     }
 

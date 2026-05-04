@@ -38,7 +38,7 @@ C_MID_GRAY   = "#888888"
 C_LIGHT_GRAY = "#cccccc"
 
 # Ordered palette for K=1 … K=4 strategy lines
-K_COLORS = ["#2171b5", "#e6550d", "#31a354", "#756bb1"]
+K_COLORS = [C_BLUE, C_RED, "#31a354", "#756bb1"]
 
 # ── Plot element defaults ─────────────────────────────────────────────────────
 FILL_ALPHA  = 0.18   # fill_between variance bands
