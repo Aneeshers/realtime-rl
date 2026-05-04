@@ -183,36 +183,45 @@ def _grouped_latency_samples():
 
 
 def _plot_timeline(ax, show_inset=True, title="Asynchronous Execution\nTimeline (9 FPS)"):
-    ax.broken_barh(GPU1_BLOCKS, (10, 8), facecolors=GPU1_COLOR, alpha=BAR_ALPHA, edgecolor="none")
-    ax.broken_barh(GPU2_BLOCKS, (20, 8), facecolors=GPU2_COLOR, alpha=BAR_ALPHA, edgecolor="none")
+    # GPU 0 (blue): height=16, center=14 → (6,16); GPU 1 (purple): center=27 → (23,8)
+    ax.broken_barh(GPU1_BLOCKS, (6, 16), facecolors=GPU1_COLOR, alpha=BAR_ALPHA, edgecolor="none")
+    ax.broken_barh(GPU2_BLOCKS, (23, 8), facecolors=GPU2_COLOR, alpha=BAR_ALPHA, edgecolor="none")
 
     for k in range(1, 7):
         ax.axvline(FRAME_MS * k, color=C_LIGHT_GRAY, linestyle="--", linewidth=0.8, zorder=0)
 
-    ax.annotate("", xy=(FRAME_MS * 4, 7), xytext=(0, 7),
+    ax.annotate("", xy=(FRAME_MS * 4, 4), xytext=(0, 4),
                 arrowprops=dict(arrowstyle="<->", color=C_DARK_GRAY, lw=1.0))
-    ax.text(FRAME_MS * 2, 5.5, "K=4 meta-step", color=C_DARK_GRAY,
+    ax.text(FRAME_MS * 2, 3.0, "K=4 meta-step", color=C_DARK_GRAY,
             fontsize=FS_ANNOT, ha="center", va="top")
 
-    ax.annotate("", xy=(FRAME_MS * 5, 7), xytext=(FRAME_MS * 4, 7),
+    ax.annotate("", xy=(FRAME_MS * 5, 4), xytext=(FRAME_MS * 4, 4),
                 arrowprops=dict(arrowstyle="<->", color=C_DARK_GRAY, lw=1.0))
-    ax.text(FRAME_MS * 4.5, 5.5, "K=1", color=C_DARK_GRAY,
+    ax.text(FRAME_MS * 4.5, 3.0, "K=1", color=C_DARK_GRAY,
             fontsize=FS_ANNOT, ha="center", va="top")
 
-    ax.set_ylim(3, 35)
+    ax.set_ylim(1, 38)
     ax.set_xlim(0, TIMELINE_LIMIT)
     ax.set_xlabel("Time (ms)", fontsize=FS_LABEL)
-    ax.set_yticks([14, 24])
-    ax.set_yticklabels(["", ""], fontsize=FS_TICK)
+    ax.set_yticks([14, 27])
+    ax.set_yticklabels(["GPU 0\n(Env + $\\pi_{reflex}$)", "GPU 1\n(MCTS)"], fontsize=FS_TICK)
     ax.tick_params(axis="x", labelsize=FS_TICK)
     ax.set_title(title, fontsize=TITLE_FS)
     _apply_spine_style(ax)
-    _draw_timeline_lane_diagrams(ax)
+
+    legend_handles = [
+        plt.Rectangle((0, 0), 1, 1, facecolor=GPU1_COLOR, alpha=BAR_ALPHA, label="Env + $\\pi_{reflex}$ (fast policy)"),
+        plt.Rectangle((0, 0), 1, 1, facecolor=GPU2_COLOR, alpha=BAR_ALPHA, label="MCTS (planning)"),
+    ]
+    ax.legend(handles=legend_handles, loc="upper right", fontsize=SMALL_LEGEND_FS,
+              frameon=False, handlelength=1.2, handletextpad=0.5)
+
     if show_inset:
         _draw_gpu_inset(ax)
 
 
-def _draw_gpu_board(ax, x0, y0, w, h, label, wire="#4B342A", subtitle=None):
+def _draw_gpu_board(ax, x0, y0, w, h, label, wire="#4B342A", subtitle=None,
+                    subtitle_fs=None, label_fs=None, label_offset=0.08):
     """Wire-style GPU board in axis coordinates."""
     fill = "#F4E7D3"
     chip = "#E3C7A1"
@@ -226,20 +235,25 @@ def _draw_gpu_board(ax, x0, y0, w, h, label, wire="#4B342A", subtitle=None):
                 transform=ax.transAxes, clip_on=False)
         ax.plot([xx, xx], [y0 + h, y0 + 1.10 * h], color=wire, lw=1.0,
                 transform=ax.transAxes, clip_on=False)
-    ax.text(x0 + 0.5 * w, y0 + h + 0.08 * h, label, ha="center", va="bottom",
-            fontsize=max(FS_ANNOT - 1, 6), color=wire, transform=ax.transAxes)
+    lfs = label_fs if label_fs is not None else max(FS_ANNOT - 1, 6)
+    ax.text(x0 + 0.5 * w, y0 + h + label_offset * h, label, ha="center", va="bottom",
+            fontsize=lfs, color=wire, transform=ax.transAxes)
     if subtitle:
+        fs = subtitle_fs if subtitle_fs is not None else max(FS_ANNOT - 2, 6)
         ax.text(x0 + 0.5 * w, y0 + 0.48 * h, subtitle, ha="center", va="center",
-                fontsize=max(FS_ANNOT - 2, 6), color=wire, transform=ax.transAxes)
+                fontsize=fs, color=wire, transform=ax.transAxes)
 
 
 def _draw_timeline_lane_diagrams(ax):
     """Use GPU board drawings instead of y-axis text labels."""
-    _draw_gpu_board(ax, -0.24, 0.26, 0.12, 0.15, "GPU 0", subtitle="Env")
-    _draw_gpu_board(ax, -0.24, 0.58, 0.12, 0.15, "GPU 1", subtitle="MCTS")
-    ax.text(-0.06, 0.39, "$t$", transform=ax.transAxes, ha="center", va="center",
+    # Bar centers in axes fraction: GPU0 ≈ 0.34, GPU1 ≈ 0.66  (ylim 3–35, bars at y=14, y=24)
+    _draw_gpu_board(ax, -0.34, 0.23, 0.22, 0.22, "GPU 0",
+                    subtitle="Env+$\\pi_{reflex}$", subtitle_fs=max(FS_ANNOT - 1, 6))
+    _draw_gpu_board(ax, -0.34, 0.55, 0.22, 0.22, "GPU 1",
+                    subtitle="MCTS", subtitle_fs=max(FS_ANNOT - 1, 6))
+    ax.text(-0.05, 0.39, "$t$", transform=ax.transAxes, ha="center", va="center",
             fontsize=FS_LABEL, color=C_DARK_GRAY, clip_on=False)
-    ax.text(-0.06, 0.71, "$t$", transform=ax.transAxes, ha="center", va="center",
+    ax.text(-0.05, 0.71, "$t$", transform=ax.transAxes, ha="center", va="center",
             fontsize=FS_LABEL, color=C_DARK_GRAY, clip_on=False)
 
 
@@ -279,14 +293,17 @@ def _plot_timeline_schematic(ax):
     ax.set_axis_off()
 
     wire = "#4B342A"
-    _draw_gpu_board(ax, 0.10, 0.28, 0.28, 0.34, "GPU 0", wire=wire, subtitle="Env")
-    _draw_gpu_board(ax, 0.62, 0.28, 0.28, 0.34, "GPU 1", wire=wire, subtitle="MCTS")
+    # Wider boards: w=0.36 (was 0.28); GPU 0 at x=0.04, GPU 1 at x=0.60
+    _draw_gpu_board(ax, 0.04, 0.28, 0.36, 0.34, "GPU 0", wire=wire, subtitle="Env",
+                    label_fs=FS_LABEL, label_offset=0.22)
+    _draw_gpu_board(ax, 0.60, 0.28, 0.36, 0.34, "GPU 1", wire=wire, subtitle="MCTS",
+                    label_fs=FS_LABEL, label_offset=0.22)
 
-    ax.add_patch(FancyArrowPatch((0.39, 0.53), (0.61, 0.53),
+    ax.add_patch(FancyArrowPatch((0.41, 0.53), (0.59, 0.53),
                                  arrowstyle="-|>", mutation_scale=14,
                                  linewidth=1.5, color=wire,
                                  transform=ax.transAxes))
-    ax.add_patch(FancyArrowPatch((0.61, 0.37), (0.39, 0.37),
+    ax.add_patch(FancyArrowPatch((0.59, 0.37), (0.41, 0.37),
                                  arrowstyle="-|>", mutation_scale=14,
                                  linewidth=1.5, color=wire,
                                  transform=ax.transAxes))
@@ -294,8 +311,7 @@ def _plot_timeline_schematic(ax):
             fontsize=FS_ANNOT, color=wire, transform=ax.transAxes)
     ax.text(0.50, 0.27, "action", ha="center", va="top",
             fontsize=FS_ANNOT, color=wire, transform=ax.transAxes)
-    ax.text(0.50, 0.78, "Two-GPU asynchronous loop", ha="center", va="center",
-            fontsize=TITLE_FS, color=C_BLACK, transform=ax.transAxes)
+    ax.set_title("Two-GPU asynchronous loop", fontsize=TITLE_FS, color=C_BLACK)
 
 
 def _plot_latency_violins(ax, grouped_lats):
@@ -400,15 +416,12 @@ def _plot_transfer_bars(ax, rows):
 
 
 def plot_deployment():
-    fig, axes = plt.subplots(
-        2, 2, figsize=(10.5, 8.5),
-    )
+    fig, axes = plt.subplots(1, 3, figsize=(14.0, 4.2))
     summary_rows = _load_summary_rows()
     grouped_lats = _grouped_latency_samples()
-    _plot_timeline(axes[0, 0])
-    _plot_latency_violins(axes[0, 1], grouped_lats)
-    _plot_miss_rate_bars(axes[1, 0], summary_rows)
-    _plot_transfer_bars(axes[1, 1], summary_rows)
+    _plot_latency_violins(axes[0], grouped_lats)
+    _plot_miss_rate_bars(axes[1], summary_rows)
+    _plot_transfer_bars(axes[2], summary_rows)
 
     legend_handles = [
         plt.Rectangle((0, 0), 1, 1, color=C_MID_GRAY, alpha=BAR_ALPHA),
@@ -420,7 +433,7 @@ def plot_deployment():
         legend_handles,
         ["Sim", "H100", "A100", "A40"],
         loc="lower center",
-        bbox_to_anchor=(0.5, -0.01),
+        bbox_to_anchor=(0.5, -0.04),
         ncol=4,
         frameon=False,
         fontsize=SMALL_LEGEND_FS,
@@ -428,10 +441,7 @@ def plot_deployment():
         handletextpad=0.5,
     )
 
-    # -----------------------------------------------------------
-    # Layout and save
-    # -----------------------------------------------------------
-    fig.tight_layout(pad=1.0, w_pad=1.5, h_pad=2.0, rect=[0, 0.05, 1, 1])
+    fig.tight_layout(pad=1.0, w_pad=1.5, rect=[0, 0.08, 1, 1])
     out = os.path.join(FIGS, "deployment.pdf")
     fig.savefig(out, bbox_inches="tight")
     print(f"Saved: {out}")
@@ -440,12 +450,12 @@ def plot_deployment():
 
 def plot_deployment_timeline():
     fig, axes = plt.subplots(
-        1, 2, figsize=(12.8, 3.8),
+        1, 2, figsize=(12.8, 4.8),
         gridspec_kw={"width_ratios": [1.0, 1.7]},
     )
     _plot_timeline_schematic(axes[0])
     _plot_timeline(axes[1], show_inset=False, title="Execution Timeline (9 FPS)")
-    fig.tight_layout(pad=0.9, w_pad=2.0)
+    fig.tight_layout(pad=0.9, w_pad=2.5)
     out = os.path.join(FIGS, "deployment_timeline.pdf")
     fig.savefig(out, bbox_inches="tight")
     print(f"Saved: {out}")

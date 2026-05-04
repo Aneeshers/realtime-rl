@@ -596,11 +596,11 @@ runs the MCTS planner.
 At each meta-decision the current game state is transferred to the planning GPU, which
 begins search while the environment GPU keeps the game moving with committed actions.
 When planning finishes, after $K \times 32$ simulations, the result is applied at
-the next environment step.
+the next environment step (Figure~\ref{fig:deployment_timeline}).
 
 Figure~\ref{fig:deployment} summarizes 45 measured deployments:
 3 environments $\times$ 3 GPU classes $\times$ 5 frame rates (8--12\,FPS).
-The asynchronous execution pattern itself is unchanged from training: a $K{=}4$
+The asynchronous execution pattern is unchanged from training: a $K{=}4$
 meta-step at 9\,FPS spans four 111\,ms frames, while reflex actions keep the
 environment moving and MCTS finishes asynchronously on the second GPU.
 
@@ -638,14 +638,35 @@ it avoids this state-augmentation problem entirely.
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=0.8\linewidth]{figures/deployment.pdf}
-  \caption{Policies trained in simulation transfer cleanly to real asynchronous deployment.
-    In the top-left timeline, GPU 0 keeps the environment moving with reflex
-    actions while GPU 1 runs MCTS in parallel, so a larger chosen depth buys the
-    planner more wall-clock time without pausing the game. The remaining panels
-    summarize measured latency, average deadline misses, and return relative to
-    simulation across H100, A100, and A40. Full per-environment, per-FPS, per-GPU
-    results appear in Appendix~\ref{app:deployment_details}.}
+  \includegraphics[width=\linewidth]{figures/deployment_timeline.pdf}
+  \caption{\textbf{Two-GPU real-time deployment pipeline.}
+    At each meta-decision, the current game state is transferred to GPU~1, which
+    immediately begins MCTS while GPU~0 keeps the environment running at full speed
+    by replaying the committed (reflex) action sequence.
+    A larger chosen depth $K$ simply gives the planner more wall-clock time---the
+    game never pauses.
+    Once planning finishes, the new committed-action sequence takes effect at the
+    next meta-decision boundary.
+    The left schematic shows the two-GPU loop; the right Gantt chart shows the
+    resulting execution trace at 9\,FPS, with a $K{=}4$ meta-step spanning four
+    111\,ms frames followed immediately by a $K{=}1$ recovery step.}
+  \label{fig:deployment_timeline}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{figures/deployment.pdf}
+  \caption{\textbf{Simulation-trained policies transfer cleanly to hardware deployment.}
+    \emph{Left:} MCTS latency distributions across three environments and three GPU
+    classes (H100, A100, A40), pooled over all measured frame rates (8--12\,FPS).
+    \emph{Centre:} Average deadline miss rate per GPU class; H100 and A100 stay
+    well below 1\% across all environments, while A40 breaks down only at the
+    tightest deadline regimes.
+    \emph{Right:} Episode return relative to the simulation baseline (100\,\%) at
+    9\,FPS, showing that sim-trained policies retain nearly full performance on
+    real hardware.
+    Full per-environment, per-FPS, per-GPU results appear in
+    Appendix~\ref{app:deployment_details}.}
   \label{fig:deployment}
 \end{figure}
 
