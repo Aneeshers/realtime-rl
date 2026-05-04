@@ -45,8 +45,8 @@ FONT_SIZE_LEGEND = FS_LEGEND
 FONT_SIZE_ANNOT  = FS_ANNOT
 LINE_COLORS      = K_COLORS
 
-FIG_WIDTH    = 21.0
-FIG_HEIGHT   = 3.0
+FIG_WIDTH    = 12.5
+FIG_HEIGHT   = 6.8
 LINE_WIDTH   = LINE_LW
 MARKER_EVERY = 3
 MARKER_SIZE  = 4
@@ -255,7 +255,8 @@ def _apply_spine_style(ax):
 # ============================================================
 
 def plot_strategy():
-    fig, axes = plt.subplots(1, len(ENVS), figsize=(FIG_WIDTH, FIG_HEIGHT))
+    fig, axes = plt.subplots(2, 3, figsize=(FIG_WIDTH, FIG_HEIGHT))
+    axes = axes.flatten()
 
     for ax, env in zip(axes, ENVS):
         for i, (series, se, label) in enumerate(
@@ -295,16 +296,16 @@ def plot_strategy():
         ax.set_xlim(0.05, 1.05)
         ax.set_ylim(bottom=0)
         ax.set_xlabel(env["xlabel"], fontsize=FONT_SIZE_LABEL)
-        ax.set_ylabel("Frequency" if ax is axes[0] else "", fontsize=FONT_SIZE_LABEL)
+        ax.set_ylabel("Frequency" if ax in (axes[0], axes[3]) else "", fontsize=FONT_SIZE_LABEL)
         ax.tick_params(labelsize=FONT_SIZE_TICK)
         ax.set_title(env["title"], fontsize=FONT_SIZE_TITLE)
         _apply_spine_style(ax)
 
         if env["show_legend"]:
             ax.legend(fontsize=FONT_SIZE_LEGEND, frameon=False,
-                      loc="center left", bbox_to_anchor=(1.05, 0.5), handlelength=1.5)
+                      loc="center left", bbox_to_anchor=(1.02, 0.5), handlelength=1.5)
 
-    fig.tight_layout(pad=0.8)
+    fig.tight_layout(pad=0.8, w_pad=1.0, h_pad=1.2)
     out = os.path.join(FIGS, "strategy.pdf")
     fig.savefig(out, bbox_inches="tight")
     print(f"Saved: {out}")
