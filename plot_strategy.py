@@ -23,6 +23,7 @@ Keys expected per project:
 
 Saves:
   figures/strategy.pdf
+  figures/strategy_band.pdf
   figures/strategy_appendix.pdf
 
 Usage:
@@ -387,8 +388,64 @@ def _plot_envs(envs, nrows, ncols, figsize, out_name):
     plt.close(fig)
 
 
+def _plot_envs_band(envs, nrows, ncols, figsize, out_name):
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
+    axes = np.atleast_1d(axes).flatten()
+
+    for ax, env in zip(axes, envs):
+        series_arr = np.array([np.where(np.isnan(s), 0.0, s) for s in env["series"]], dtype=float)
+        se_arr = np.array([np.where(np.isnan(s), 0.0, s) for s in env["se_series"]], dtype=float)
+
+        lower = np.zeros_like(T, dtype=float)
+        for i, label in enumerate(env["legend"]):
+            upper = lower + series_arr[i]
+            ax.fill_between(
+                T,
+                lower,
+                upper,
+                color=LINE_COLORS[i],
+                alpha=0.85,
+                linewidth=0,
+                label=label,
+            )
+            center = 0.5 * (lower + upper)
+            band_half = np.minimum(se_arr[i], np.minimum(center - lower, upper - center))
+            if np.any(band_half > 0):
+                ax.fill_between(
+                    T,
+                    np.maximum(lower, center - band_half),
+                    np.minimum(upper, center + band_half),
+                    color="white",
+                    alpha=0.18,
+                    linewidth=0,
+                )
+            lower = upper
+
+        ax.set_xlim(0.05, 1.05)
+        ax.set_ylim(0.0, 1.0)
+        ax.set_xlabel(env["xlabel"], fontsize=FONT_SIZE_LABEL)
+        ax.set_ylabel("Frequency" if ax in axes[::ncols] else "", fontsize=FONT_SIZE_LABEL)
+        ax.tick_params(labelsize=FONT_SIZE_TICK)
+        ax.set_title(env["title"], fontsize=FONT_SIZE_TITLE - 1)
+        _apply_spine_style(ax)
+
+        if env["show_legend"]:
+            ax.legend(fontsize=FONT_SIZE_LEGEND, frameon=False,
+                      loc="center left", bbox_to_anchor=(1.02, 0.5), handlelength=1.5)
+
+    for ax in axes[len(envs):]:
+        ax.axis("off")
+
+    fig.tight_layout(pad=0.8, w_pad=1.0, h_pad=1.2)
+    out = os.path.join(FIGS, out_name)
+    fig.savefig(out, bbox_inches="tight")
+    print(f"Saved: {out}")
+    plt.close(fig)
+
+
 def plot_strategy():
     _plot_envs(MAIN_ENVS, 1, 4, (13.5, 3.6), "strategy.pdf")
+    _plot_envs_band(MAIN_ENVS, 1, 4, (13.5, 3.6), "strategy_band.pdf")
     _plot_envs(APPENDIX_ENVS, 3, 3, (13.0, 9.0), "strategy_appendix.pdf")
 
 
