@@ -3,7 +3,9 @@
 plot_strategy.py
 
 Planning-depth allocation frequency over normalized episode time.
-6 panels: Pac-Man | Tetris RT | Speed Hex (early/late) | Speed Go (early/late)
+Main text: 4 panels for Speed Hex / Speed Go under early and late clocks.
+Appendix: full strategy figure including Pac-Man, Tetris RT, Snake, and both
+clock games under early and late clocks.
 
 Real data is pulled from wandb for Pac-Man, Tetris RT, Speed Hex, and Speed Go
 via _fetch_env_strategy().
@@ -11,6 +13,7 @@ via _fetch_env_strategy().
 Wandb projects queried:
   pacman_strategy_eval   (entity: aneeshmuppidi19)
   tetris_rt_strategy_eval
+  snake_strategy_eval
   gru_ent100-earlylate
   gating_eval_go9x9
 
@@ -18,7 +21,9 @@ Keys expected per project:
   strategy/bin{00-09}_k{1-4}_mean
   strategy/bin{00-09}_k{1-4}_se
 
-Saves: figures/strategy.pdf
+Saves:
+  figures/strategy.pdf
+  figures/strategy_appendix.pdf
 
 Usage:
     python plot_strategy.py
@@ -153,6 +158,13 @@ _PLACEHOLDER_TETRIS_SERIES = [
     np.array([0.14, 0.21, 0.31, 0.41, 0.51, 0.61, 0.66, 0.70, 0.74, 0.77]),
 ]
 
+_PLACEHOLDER_SNAKE_SERIES = [
+    np.array([0.88, 0.87, 0.86, 0.84, 0.83, 0.82, 0.81, 0.79, 0.77, 0.75]),
+    np.array([0.10, 0.11, 0.11, 0.13, 0.14, 0.14, 0.15, 0.16, 0.17, 0.18]),
+    np.array([0.01, 0.01, 0.02, 0.02, 0.02, 0.03, 0.03, 0.04, 0.05, 0.06]),
+    np.zeros(10),
+]
+
 _PLACEHOLDER_SE = [np.zeros(10)] * 4  # zero SE for placeholder panels
 
 
@@ -177,6 +189,7 @@ _SPEED_HEX_PLACEHOLDER_SERIES = [
 
 _pacman_series, _pacman_se  = _resolve_env("pacman_strategy_eval",  _PLACEHOLDER_PACMAN_SERIES)
 _tetris_series, _tetris_se  = _resolve_env("tetris_rt_strategy_eval", _PLACEHOLDER_TETRIS_SERIES)
+_snake_series, _snake_se    = _resolve_env("snake_strategy_eval", _PLACEHOLDER_SNAKE_SERIES)
 _speed_hex_early_series, _speed_hex_early_se = _resolve_env(
     SPEED_HEX_WANDB_PROJECT,
     _SPEED_HEX_PLACEHOLDER_SERIES,
@@ -200,23 +213,7 @@ _speed_go_late_series, _speed_go_late_se = _resolve_env(
     config_filters={"gate_root": SPEED_GO_GATE_ROOT},
 )
 
-ENVS = [
-    {
-        "title":       "Pac-Man",
-        "xlabel":      "Episode progress",
-        "legend":      ["K=1", "K=2", "K=3", "K=4"],
-        "show_legend": False,
-        "series":      _pacman_series,
-        "se_series":   _pacman_se,
-    },
-    {
-        "title":       "Real-Time Tetris",
-        "xlabel":      "Episode progress",
-        "legend":      ["K=1", "K=2", "K=3", "K=4"],
-        "show_legend": False,
-        "series":      _tetris_series,
-        "se_series":   _tetris_se,
-    },
+MAIN_ENVS = [
     {
         "title":       f"Speed Hex ({SPEED_HEX_EARLY_TIME})",
         "xlabel":      "Move fraction",
@@ -251,6 +248,65 @@ ENVS = [
     },
 ]
 
+APPENDIX_ENVS = [
+    {
+        "title":       "Pac-Man",
+        "xlabel":      "Episode progress",
+        "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "show_legend": False,
+        "series":      _pacman_series,
+        "se_series":   _pacman_se,
+    },
+    {
+        "title":       "Real-Time Tetris",
+        "xlabel":      "Episode progress",
+        "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "show_legend": False,
+        "series":      _tetris_series,
+        "se_series":   _tetris_se,
+    },
+    {
+        "title":       "Snake",
+        "xlabel":      "Episode progress",
+        "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "show_legend": False,
+        "series":      _snake_series,
+        "se_series":   _snake_se,
+    },
+    {
+        "title":       f"Speed Go ({SPEED_GO_EARLY_TIME})",
+        "xlabel":      "Move fraction",
+        "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "show_legend": False,
+        "series":      _speed_go_early_series,
+        "se_series":   _speed_go_early_se,
+    },
+    {
+        "title":       f"Speed Go ({SPEED_GO_LATE_TIME})",
+        "xlabel":      "Move fraction",
+        "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "show_legend": True,
+        "series":      _speed_go_late_series,
+        "se_series":   _speed_go_late_se,
+    },
+    {
+        "title":       f"Speed Hex ({SPEED_HEX_EARLY_TIME})",
+        "xlabel":      "Move fraction",
+        "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "show_legend": False,
+        "series":      _speed_hex_early_series,
+        "se_series":   _speed_hex_early_se,
+    },
+    {
+        "title":       f"Speed Hex ({SPEED_HEX_LATE_TIME})",
+        "xlabel":      "Move fraction",
+        "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "show_legend": True,
+        "series":      _speed_hex_late_series,
+        "se_series":   _speed_hex_late_se,
+    },
+]
+
 # ============================================================
 # Setup
 # ============================================================
@@ -270,11 +326,11 @@ def _apply_spine_style(ax):
 # Plot
 # ============================================================
 
-def plot_strategy():
-    fig, axes = plt.subplots(2, 3, figsize=(FIG_WIDTH, FIG_HEIGHT))
+def _plot_envs(envs, nrows, ncols, figsize, out_name):
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
     axes = axes.flatten()
 
-    for ax, env in zip(axes, ENVS):
+    for ax, env in zip(axes, envs):
         for i, (series, se, label) in enumerate(
             zip(env["series"], env["se_series"], env["legend"])
         ):
@@ -312,7 +368,7 @@ def plot_strategy():
         ax.set_xlim(0.05, 1.05)
         ax.set_ylim(bottom=0)
         ax.set_xlabel(env["xlabel"], fontsize=FONT_SIZE_LABEL)
-        ax.set_ylabel("Frequency" if ax in (axes[0], axes[3]) else "", fontsize=FONT_SIZE_LABEL)
+        ax.set_ylabel("Frequency" if ax in axes[::ncols] else "", fontsize=FONT_SIZE_LABEL)
         ax.tick_params(labelsize=FONT_SIZE_TICK)
         ax.set_title(env["title"], fontsize=FONT_SIZE_TITLE)
         _apply_spine_style(ax)
@@ -321,11 +377,19 @@ def plot_strategy():
             ax.legend(fontsize=FONT_SIZE_LEGEND, frameon=False,
                       loc="center left", bbox_to_anchor=(1.02, 0.5), handlelength=1.5)
 
+    for ax in axes[len(envs):]:
+        ax.axis("off")
+
     fig.tight_layout(pad=0.8, w_pad=1.0, h_pad=1.2)
-    out = os.path.join(FIGS, "strategy.pdf")
+    out = os.path.join(FIGS, out_name)
     fig.savefig(out, bbox_inches="tight")
     print(f"Saved: {out}")
     plt.close(fig)
+
+
+def plot_strategy():
+    _plot_envs(MAIN_ENVS, 1, 4, (13.5, 3.6), "strategy.pdf")
+    _plot_envs(APPENDIX_ENVS, 3, 3, (13.0, 9.0), "strategy_appendix.pdf")
 
 
 if __name__ == "__main__":

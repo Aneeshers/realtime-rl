@@ -493,24 +493,6 @@ confirming that \emph{when} to allocate compute matters as much as how much.
 
 In Snake the best fixed policy ($K{=}1$) scores 14.91; the gating policy reaches 16.54 ($+10.9\%$) by predominantly reacting quickly ($K{=}1$, 81.6\% of steps) while selectively invoking deeper planning as the board becomes constrained.
 
-\subsection{Learned depth distribution}
-
-In Pac-Man the policy adopts a near-binary strategy: $K{=}1$ (51.9\%) for most steps
-and $K{=}2$ (44.9\%) for demanding ones, with $K{=}4$ (3.1\%) reserved for rare
-extremes, averaging ${\approx}49$ simulations per frame, well below the 96 of the
-best fixed policy.
-In Tetris the distribution is strongly bimodal: $K{=}4$ (51.7\%), $K{=}1$ (28.1\%),
-$K{=}2$ (20.2\%), with $K{=}3$ never selected (0\%).
-The policy has effectively learned a sharp binary. It learns to react immediately on easy boards and plan maximally on critical ones, with $K{=}2$ handling moderate cases.
-In Snake, $K{=}1$ dominates throughout ($81.6\%$) with $K{=}2$ handling moderate cases ($15.2\%$) and $K{=}3$ rising as the snake elongates ($3.2\%$ overall); $K{=}4$ is never selected ($0\%$), mirroring the $K{=}3$ avoidance in Tetris.
-In both Speed Hex and Speed Go, the learned allocation shifts with clock pressure:
-under the small clock setting ($T{=}300$) the policy relies much more heavily on the
-smallest budget option, whereas under the larger clock setting ($T{=}4100$) compute
-is spread much more evenly across the available options. Because the policy is
-trained across many clock settings rather than specialized to a single budget, this
-change reflects budget-conditioned generalization rather than retuning.
-Figure~\ref{fig:strategy} shows how the allocation shifts over the course of an episode.
-
 \subsection{What triggers deeper planning?}
 
 Across the environments, the gating policy concentrates compute in high-stakes states:
@@ -549,6 +531,21 @@ otherwise open boards. Immediately after eating, when the body has just grown,
 $K{=}3$ usage jumps from $3.2\%$ to $13.5\%$, indicating that the policy treats
 body-growth events as a prospective spatial-risk signal.
 
+\paragraph{Clock environments}
+
+In the clocked PGX games, the key trigger is not a local board statistic alone but
+the interaction between board state and remaining time. Figure~\ref{fig:strategy}
+shows the resulting shift in allocation for both Speed Hex and Speed Go. Under the
+small clock budget ($T{=}300$), the policy heavily favors the cheapest option,
+reflecting the high opportunity cost of thinking. Under the larger clock budget
+($T{=}4100$), the same learned policy spreads probability mass much more evenly
+across the four options, allocating deeper search substantially more often. Because
+the policy is trained across many clock settings rather than tuned separately at
+each one, this shift is evidence of budget-conditioned generalization rather than
+retuning. Appendix~\ref{app:strategy_appendix} shows the full per-environment
+strategy plots; there we also see Pac-Man become more reactive late in the episode,
+while Tetris shifts toward deeper planning as boards become more constrained.
+
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{figures/interpretability_combined.pdf}
@@ -565,11 +562,11 @@ body-growth events as a prospective spatial-risk signal.
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=0.8\linewidth]{figures/strategy.pdf}
-  \caption{Planning depth frequency over normalized episode time (10 equal bins).
-    Lines show the fraction of steps assigned to each depth or simulation-budget
-    option. For Speed Hex and Speed Go, the panels show early-clock ($T{=}300$)
-    and late-clock ($T{=}4100$) evaluations from the same shared budget grid.}
+  \includegraphics[width=0.82\linewidth]{figures/strategy.pdf}
+  \caption{Clock pressure changes how compute is allocated. In both Speed Hex and
+    Speed Go, the learned policy is much more reactive under the small budget
+    ($T{=}300$) and distributes mass toward deeper options once more clock is
+    available ($T{=}4100$).}
   \label{fig:strategy}
 \end{figure}
 
@@ -940,6 +937,20 @@ value function), and committed actions during delay steps are drawn from the bas
 model's policy---a stronger base produces better committed actions and therefore better
 states when the MCTS action fires.
 We use the $K{=}1$ checkpoint as the frozen base for all committed-action experiments.
+
+\section{Strategy Profiles Across Environments}
+\label{app:strategy_appendix}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/strategy_appendix.pdf}
+  \caption{Different environments induce different allocation profiles. Pac-Man
+    becomes more reactive later in the episode, Tetris shifts toward deeper
+    planning as the board densifies, Snake remains mostly reactive with occasional
+    deeper planning in constrained states, and both clock games become less
+    reactive when more time is available.}
+  \label{fig:strategy_appendix}
+\end{figure}
 
 
 \section{Implementation Details}
