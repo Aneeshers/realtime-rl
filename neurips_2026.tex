@@ -94,12 +94,11 @@ to improve action selection with additional computation
 In MCTS, an agent repeatedly simulates plausible continuations from the current state,
 guided by a neural network that predicts action probabilities and state values;
 each additional simulation refines the estimate of which action is best.
-A key property is that more simulations reliably improve decision quality,
-at the direct cost of more compute and, in real-time settings, more elapsed game time.
-As an agent plans more, it performs better. But planning also takes time, and in
-real-time settings that time is paid directly in game outcomes. This dual property
-(planning quality scales up with compute, and real-time cost scales up with inference
-time) makes adaptive compute allocation the natural lever for performance.
+A key empirical property, shown in Figure~\ref{fig:scaling}, is that more
+simulations improve decision quality while also increasing inference time.
+In real-time settings that extra time is paid directly in game outcomes. This
+co-scaling of planning quality and real-time cost makes adaptive compute
+allocation the natural lever for performance.
 
 We train a lightweight \emph{gating policy} that reads the current game state and
 the planner's own value estimate and intermediate features to choose a planning depth
@@ -147,17 +146,17 @@ changes.
 % =============================================================================
 
 \paragraph{Deliberation has always had a cost.}
-The idea that thinking takes time, and that this time has value, predates deep
-RL by decades. Russell and Wefald's value-of-computation~\cite{russell1991right}
-formalised when an additional computation is worth its cost; the anytime
-planning literature~\cite{korf1990rta,dean1988analysis,zilberstein1996using,likhachev2003ara}
-built algorithms around the resulting tradeoff. Applied to MCTS, this
-perspective casts simulation selection as a meta-level decision
-problem~\cite{hay2012selecting,tolpin2012simple,sezener2020static,lin2015metareasoning},
-and the cogsci revival~\cite{lieder2017strategy,griffiths2019doing,callaway2018learning}
-casts bounded-optimal cognition itself as a metalevel MDP. The question this
-literature poses, how much should the agent deliberate, given that
-deliberation is costly?, is the question we ask in deep RL.
+The central idea behind our approach is metareasoning: the agent should reason not
+only about which action to take, but also about how much computation that decision
+deserves. This view has a long history. Early metareasoning and anytime-planning
+work studied how agents should trade computation against acting now
+~\cite{russell1991right,korf1990rta,dean1988analysis,zilberstein1996using,likhachev2003ara}.
+Applied to MCTS, the same idea turns simulation budgeting into a meta-level control
+problem~\cite{hay2012selecting,tolpin2012simple,sezener2020static,lin2015metareasoning}.
+The cognitive-science literature sharpens this further by modeling bounded
+deliberation itself as a metalevel MDP
+~\cite{lieder2017strategy,griffiths2019doing,callaway2018learning}. Our work
+brings that metareasoning perspective into deep RL with modern planners.
 
 \paragraph{Model-based RL has mostly sidestepped it.}
 AlphaZero-family planners~\cite{silver2018general,schrittwieser2020muzero}
@@ -277,7 +276,7 @@ modify the Jumanji environment so that gravity advances the piece in real time.
 In Snake, each committed step moves the snake forward, changing its body occupancy
 and therefore the spatial constraints faced by future actions. The common structure
 is that a deeper plan arrives later, after the world has already changed; environment
-details for the real-time Tetris and SnakeKT variants are given in the appendix.
+details for the real-time Tetris implementation are given in the appendix.
 
 \paragraph{Equal compute budget.}
 All depth options $K \in \Kset$ are designed to carry the same per-frame simulation
@@ -819,23 +818,34 @@ during rollout.
 \label{app:envs}
 
 \subsection{Real-time Tetris}
-Every call to \texttt{env.step(action)} advances the falling piece by one gravity row
-(gravity tick).
-The action set has six elements:
+Our real-time Tetris environment is a modification of Jumanji Tetris in which each
+environment step is one gravity tick rather than one full placement decision.
+The board is $20 \times 10$, episodes last at most 2000 gravity ticks, and the
+observation contains the locked board, the current falling tetromino, its
+$(x,y)$ position, and the gravity-tick count.
+
+Every call to \texttt{env.step(action)} first applies the chosen control and then
+applies one gravity update. The action set has six elements:
 \begin{itemize}[nosep]
   \item \textbf{Left / Right}: translate the falling piece one column in the respective
-    direction.
+    direction; invalid lateral moves are ignored.
   \item \textbf{Rotate-CW / Rotate-CCW}: rotate the piece $90°$ clockwise or
-    counter-clockwise.
+    counter-clockwise; invalid rotations are ignored.
   \item \textbf{Hard-drop}: instantly translate the piece to the lowest valid row and
     lock it; a new piece spawns immediately.
-  \item \textbf{Forward} (default): no horizontal movement; the piece descends one row
+  \item \textbf{Noop}: no horizontal or rotational change; the piece descends one row
     by gravity.
 \end{itemize}
-A piece locks when gravity would place it in an occupied cell; completed rows are then
-cleared and scored.
-The episode ends on board top-out (a newly spawned piece immediately collides) or after
-2000 gravity ticks.
+A piece also locks whenever gravity would move it into an occupied cell; completed
+rows are then cleared and scored with the standard convex Tetris reward schedule.
+The episode ends on board top-out, i.e.\ when a newly spawned piece cannot be placed
+at the spawn position, or when the 2000-tick horizon is reached.
+
+For the committed-action experiments in the main paper we use the \texttt{TetrisRTKT}
+variant. The underlying environment dynamics are identical, but during the $K{-}1$
+delay steps inside MCTS the tree rolls out policy-guided committed actions rather
+than assuming a pure gravity-only noop sequence. This makes the search-time delay
+model match the deployment-time reflex behavior more closely.
 
 \subsection{Committed-action execution}
 \label{app:committed_action}
