@@ -56,7 +56,7 @@ Crucially, in these settings, there are state-dependent trade-offs between takin
 To address this, we propose a simple two step process: 
 In the first step we train a standard MCTS policy and in the second step we train a \textit{lightweight} meta-policy that decides how many search steps to invest at a given step.
 Our meta-policy consistently outperforms every fixed-budget baseline and handcoded heuristics while using less average compute.
-Moreover, we validate the full pipeline in a true two-GPU real-time setup. We demonstrate these results across real-time versions of Pac-Man, Tetris, Snake, and two clocked two-player PGX games: Speed Hex and Speed Go.
+Moreover, we validate the full pipeline in a true two-GPU real-time setup. We demonstrate these results across real-time versions of Pac-Man, Tetris, Snake, and two clocked games: Speed Hex and Speed Go.
 
 \end{abstract}
 
@@ -131,7 +131,7 @@ Our contributions are:
     while the planner runs.
 \end{enumerate}
 
-We substantiate these contributions empirically. Across all five environments,
+We substantiate these contributions empirically. Across five environments,
 the gating policy outperforms every fixed-depth baseline while using less
 average compute, and the learned strategy concentrates deliberation in
 high-stakes situations in interpretable, state-dependent ways. We further
