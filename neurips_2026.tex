@@ -644,23 +644,18 @@ environment moving and MCTS finishes asynchronously on the second GPU.
 The main result is that simulation-trained policies transfer cleanly to asynchronous
 hardware deployment over a broad operating range.
 Latency remains well within budget on H100 in all three environments, and remains
-near-perfect on A100 except near the tightest deadline regimes.
-At 9\,FPS in Tetris, for example, where the $K{=}4$ budget is 444\,ms, mean latency
-is $123.9$\,ms on H100, $186.3$\,ms on A100, and $197.7$\,ms on A40, all with very
-low miss rates.
-The observed failures occur where slack collapses: Tetris on A40 at 12\,FPS reaches
-$50.669\%$ misses, and Pac-Man is the most timing-sensitive environment overall,
-reaching $30.369\%$ misses on A100 at 12\,FPS, while Snake remains negligible
-throughout ($\le 0.005\%$).
+reliable on A100 except near the tightest deadline regimes.
+For example, in Tetris at 9\,FPS, where the $K{=}4$ budget is 444\,ms, mean latency
+on H100 is only 124\,ms.
+The failures that do appear are concentrated near the deadline boundary:
+Tetris on A40 breaks down at 12\,FPS, Pac-Man is the most timing-sensitive
+environment overall, and Snake remains robust throughout.
 
 Return transfer is similarly strong.
-At 9\,FPS, Tetris achieves $41.4 \pm 4.2$ on H100 versus $45.6 \pm 3.7$ in
-simulation, Pac-Man achieves $2287.4 \pm 55.2$ on H100 versus $2370 \pm 59$ in
-simulation, and Snake achieves $15.0 \pm 0.6$ on H100 versus $16.54 \pm 1.26$ in
-simulation.
-The learned depth distribution also transfers: in Tetris on H100 at 9\,FPS, the
-deployed policy selects $K{=}4/1/2/3$ at $52.8/29.1/18.1/0.0\%$, closely matching
-the simulated $51.7/28.1/20.2/0.0\%$ split.
+At 9\,FPS, deployed returns remain close to their simulation counterparts across all
+three environments, and the learned depth distribution also transfers cleanly.
+In Tetris on H100, the deployed policy preserves the same strongly bimodal
+``react or plan deeply'' strategy seen in simulation.
 Appendix~\ref{app:deployment_details} gives the full per-environment, per-FPS,
 per-GPU analysis.
 
