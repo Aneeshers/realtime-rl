@@ -31,6 +31,10 @@
 
 \title{Planning in Real-Time Reinforcement Learning}
 
+Reinforcement learning for budgeting MCTS planning under real-time
+
+Reinforcement learning for budgeting computation in real-time
+
 \author{\todo{Author list}}
 
 
@@ -241,6 +245,15 @@ on the final step, a placement the reflex policy would have missed.
     Piece positions are schematic; the key point is that MCTS plans
     \emph{over} the committed-action delay, not despite it.}
   \label{fig:tetris_committed}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/realtime-rl-gating-diagram.pdf}
+  \caption{
+    Overview of the gating policy making a decision.
+  }
+  \label{fig:realtime-rl-gating-diagram}
 \end{figure}
 
 Across all the environments we study, the planning process is \emph{cost-aware} by
@@ -698,15 +711,13 @@ more resource-efficient in real-time settings.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \appendix
 
-\section{AlphaZero and MCTS: A Self-Contained Primer}
+\section{AlphaZero and MCTS}
 \label{app:az_primer}
 
 This section answers common questions about the planning infrastructure used in this
 paper. It targets readers familiar with deep RL but not with tree-search methods.
 
-\subsection*{What is a simulation?}
-
-\textbf{Q: What does ``running a simulation'' mean in MCTS?}
+\textbf{What does ``running a simulation'' mean in MCTS?}
 
 A \emph{simulation} (also called a \emph{playout}) is one traversal of the search tree
 from the root node (the current observed state) to a leaf, followed by a backup of
@@ -726,22 +737,19 @@ continuing to explore less-visited ones.
 After $n$ simulations the recommended action is the \emph{most-visited} child of
 the root.
 
-\subsection*{How is the final action selected?}
-
-\textbf{Q: How does the agent translate MCTS visit counts into an action?}
+\textbf{How is the final action selected?}
 
 At evaluation time the agent picks the most-visited root child.
 During training, the visit-count distribution
 $\hat{\pi}(a) \propto N(s_0,a)^{1/\tau}$
 (temperature $\tau > 0$) is recorded and used as a \emph{search target}:
 the network is updated to predict $\hat{\pi}$ at state $s_0$.
-This is the expert-iteration loop --- search produces a better-than-raw-policy
+This is the expert-iteration loop as search produces a better-than-raw-policy
 distribution, and the network learns to imitate it, improving its prior for
 future searches.
 
-\subsection*{AlphaZero vs.\ MuZero}
 
-\textbf{Q: What is the difference between AlphaZero and MuZero?}
+\textbf{What is the difference between AlphaZero and MuZero?}
 
 \textbf{AlphaZero}~\cite{silver2018general} requires a \emph{perfect simulator}:
 given state $s$ and action $a$, the simulator returns the exact next state $s'$.
@@ -756,9 +764,7 @@ engine, so MuZero can plan in environments without a simulator (e.g.\ Atari fram
 All environments in this paper expose a JAX-native step function, so we use the
 AlphaZero paradigm: ground-truth transitions, no learned dynamics.
 
-\subsection*{Single-agent AlphaZero: expert iteration}
-
-\textbf{Q: AlphaZero was designed for two-player zero-sum games. How does it transfer to single-agent settings?}
+\textbf{AlphaZero was designed for two-player zero-sum games. How does it transfer to single-agent settings?}
 
 The core loop is \emph{expert iteration}~\cite{anthony2017thinking},
 shown in Algorithm~\ref{alg:expert_iter}.
@@ -792,9 +798,8 @@ otherwise the algorithm is identical to two-player AlphaZero.
 \end{algorithmic}
 \end{algorithm}
 
-\subsection*{Scaling with JAX: vectorised parallel MCTS}
 
-\textbf{Q: MCTS sounds inherently sequential. How do you run it efficiently at the scale needed for RL training?}
+\textbf{MCTS sounds inherently sequential. How do you run it efficiently at the scale needed for RL training?}
 
 Naively each MCTS simulation depends on the previous one (via the updated $Q$ and $N$
 tables), which conflicts with JAX's strength: massive data-parallel operations.
