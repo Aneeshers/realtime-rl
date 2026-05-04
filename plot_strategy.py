@@ -3,18 +3,18 @@
 plot_strategy.py
 
 Planning-depth allocation frequency over normalized episode time.
-5 panels: Pac-Man | Tetris RT | Speed Hex | Sokoban | Snake
+6 panels: Pac-Man | Tetris RT | Speed Hex (early/late) | Speed Go (early/late)
 
-Real data is pulled from wandb for Pac-Man, Tetris RT, and Snake via
-_fetch_env_strategy().  Speed Hex and Sokoban remain placeholder until
-those strategy evals are run.
+Real data is pulled from wandb for Pac-Man, Tetris RT, Speed Hex, and Speed Go
+via _fetch_env_strategy().
 
 Wandb projects queried:
   pacman_strategy_eval   (entity: aneeshmuppidi19)
   tetris_rt_strategy_eval
-  snake_strategy_eval
+  gru_ent100-earlylate
+  gating_eval_go9x9
 
-Keys expected per project (logged by eval_{pacman,tetris,snake}_strategy.py):
+Keys expected per project:
   strategy/bin{00-09}_k{1-4}_mean
   strategy/bin{00-09}_k{1-4}_se
 
@@ -57,12 +57,26 @@ WANDB_ENTITY = "aneeshmuppidi19"
 SPEED_HEX_WANDB_PROJECT = os.getenv("SPEED_HEX_WANDB_PROJECT", "gru_ent100-earlylate")
 SPEED_HEX_EARLY_TIME = int(os.getenv("SPEED_HEX_EARLY_TIME", "300"))
 SPEED_HEX_LATE_TIME = int(os.getenv("SPEED_HEX_LATE_TIME", "4100"))
+SPEED_GO_WANDB_PROJECT = os.getenv("SPEED_GO_WANDB_PROJECT", "gating_eval_go9x9")
+SPEED_GO_GATE_ROOT = os.getenv(
+    "SPEED_GO_GATE_ROOT",
+    "/n/netscratch/gershman_lab/Lab/amuppidi/gru_go9x9_01",
+)
+SPEED_GO_EARLY_TIME = int(os.getenv("SPEED_GO_EARLY_TIME", "300"))
+SPEED_GO_LATE_TIME = int(os.getenv("SPEED_GO_LATE_TIME", "4100"))
 
 # ============================================================
 # Wandb fetch helper
 # ============================================================
 
-def _fetch_env_strategy(project, entity=WANDB_ENTITY, n_bins=10, n_k=4, time_budget=None):
+def _fetch_env_strategy(
+    project,
+    entity=WANDB_ENTITY,
+    n_bins=10,
+    n_k=4,
+    time_budget=None,
+    config_filters=None,
+):
     """Pull per-bin K frequencies from the latest run in a wandb project.
 
     Returns (series, se_series) where each is a list of n_k arrays of
@@ -76,6 +90,9 @@ def _fetch_env_strategy(project, entity=WANDB_ENTITY, n_bins=10, n_k=4, time_bud
         for cand in runs:
             if time_budget is not None and cand.config.get("time_budget") != time_budget:
                 continue
+            if config_filters:
+                if any(cand.config.get(k) != v for k, v in config_filters.items()):
+                    continue
             run = cand
             break
         if run is None:
@@ -136,26 +153,19 @@ _PLACEHOLDER_TETRIS_SERIES = [
     np.array([0.14, 0.21, 0.31, 0.41, 0.51, 0.61, 0.66, 0.70, 0.74, 0.77]),
 ]
 
-_PLACEHOLDER_SNAKE_SERIES = [
-    np.array([0.88, 0.87, 0.86, 0.84, 0.83, 0.82, 0.81, 0.79, 0.77, 0.75]),
-    np.array([0.10, 0.11, 0.11, 0.13, 0.14, 0.14, 0.15, 0.16, 0.17, 0.18]),
-    np.array([0.01, 0.01, 0.02, 0.02, 0.02, 0.03, 0.03, 0.04, 0.05, 0.06]),
-    np.zeros(10),
-]
-
 _PLACEHOLDER_SE = [np.zeros(10)] * 4  # zero SE for placeholder panels
 
 
-def _resolve_env(project, placeholder_series, time_budget=None):
+def _resolve_env(project, placeholder_series, time_budget=None, config_filters=None):
     """Return (series, se_series) from wandb if available, else placeholder."""
-    result = _fetch_env_strategy(project, time_budget=time_budget)
+    result = _fetch_env_strategy(project, time_budget=time_budget, config_filters=config_filters)
     if result is not None:
         return result
     return placeholder_series, _PLACEHOLDER_SE
 
 
 # ============================================================
-# Build ENVS data (fetches wandb for 3 real envs)
+# Build ENVS data
 # ============================================================
 
 _SPEED_HEX_PLACEHOLDER_SERIES = [
@@ -167,7 +177,6 @@ _SPEED_HEX_PLACEHOLDER_SERIES = [
 
 _pacman_series, _pacman_se  = _resolve_env("pacman_strategy_eval",  _PLACEHOLDER_PACMAN_SERIES)
 _tetris_series, _tetris_se  = _resolve_env("tetris_rt_strategy_eval", _PLACEHOLDER_TETRIS_SERIES)
-_snake_series,  _snake_se   = _resolve_env("snake_strategy_eval",   _PLACEHOLDER_SNAKE_SERIES)
 _speed_hex_early_series, _speed_hex_early_se = _resolve_env(
     SPEED_HEX_WANDB_PROJECT,
     _SPEED_HEX_PLACEHOLDER_SERIES,
@@ -177,6 +186,18 @@ _speed_hex_late_series, _speed_hex_late_se = _resolve_env(
     SPEED_HEX_WANDB_PROJECT,
     _SPEED_HEX_PLACEHOLDER_SERIES,
     time_budget=SPEED_HEX_LATE_TIME,
+)
+_speed_go_early_series, _speed_go_early_se = _resolve_env(
+    SPEED_GO_WANDB_PROJECT,
+    _SPEED_HEX_PLACEHOLDER_SERIES,
+    time_budget=SPEED_GO_EARLY_TIME,
+    config_filters={"gate_root": SPEED_GO_GATE_ROOT},
+)
+_speed_go_late_series, _speed_go_late_se = _resolve_env(
+    SPEED_GO_WANDB_PROJECT,
+    _SPEED_HEX_PLACEHOLDER_SERIES,
+    time_budget=SPEED_GO_LATE_TIME,
+    config_filters={"gate_root": SPEED_GO_GATE_ROOT},
 )
 
 ENVS = [
@@ -199,7 +220,7 @@ ENVS = [
     {
         "title":       f"Speed Hex ({SPEED_HEX_EARLY_TIME})",
         "xlabel":      "Move fraction",
-        "legend":      ["2 sims", "8 sims", "32 sims", "128 sims"],
+        "legend":      ["K=1", "K=2", "K=3", "K=4"],
         "show_legend": False,
         "series":      _speed_hex_early_series,
         "se_series":   _speed_hex_early_se,
@@ -207,31 +228,26 @@ ENVS = [
     {
         "title":       f"Speed Hex ({SPEED_HEX_LATE_TIME})",
         "xlabel":      "Move fraction",
-        "legend":      ["2 sims", "8 sims", "32 sims", "128 sims"],
+        "legend":      ["K=1", "K=2", "K=3", "K=4"],
         "show_legend": False,
         "series":      _speed_hex_late_series,
         "se_series":   _speed_hex_late_se,
     },
     {
-        "title":       "Sokoban",
-        "xlabel":      "Episode progress",
+        "title":       f"Speed Go ({SPEED_GO_EARLY_TIME})",
+        "xlabel":      "Move fraction",
         "legend":      ["K=1", "K=2", "K=3", "K=4"],
         "show_legend": False,
-        "series": [
-            np.array([0.40, 0.38, 0.35, 0.30, 0.25, 0.20, 0.18, 0.15, 0.12, 0.10]),
-            np.array([0.30, 0.32, 0.34, 0.36, 0.38, 0.37, 0.36, 0.35, 0.33, 0.32]),
-            np.array([0.22, 0.22, 0.24, 0.26, 0.28, 0.32, 0.35, 0.38, 0.42, 0.45]),
-            np.array([0.08, 0.08, 0.07, 0.08, 0.09, 0.11, 0.11, 0.12, 0.13, 0.13]),
-        ],
-        "se_series": _PLACEHOLDER_SE,
+        "series":      _speed_go_early_series,
+        "se_series":   _speed_go_early_se,
     },
     {
-        "title":       "Snake",
-        "xlabel":      "Episode progress",
+        "title":       f"Speed Go ({SPEED_GO_LATE_TIME})",
+        "xlabel":      "Move fraction",
         "legend":      ["K=1", "K=2", "K=3", "K=4"],
         "show_legend": True,
-        "series":      _snake_series,
-        "se_series":   _snake_se,
+        "series":      _speed_go_late_series,
+        "se_series":   _speed_go_late_se,
     },
 ]
 

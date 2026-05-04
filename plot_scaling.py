@@ -8,7 +8,7 @@ Main text:
   fig:scaling — Pac-Man, Tetris RT, and 2-player Speed Hex.
 
 Appendix:
-  full five-environment scaling figure including Sokoban and Snake.
+  full five-environment scaling figure including Speed Go and Snake.
 
   Left  y-axis (blue solid)  : planning quality  — episode return / solve rate / win rate
   Right y-axis (red dashed)  : inference latency — ms per planning step
@@ -16,8 +16,8 @@ Appendix:
 Data sources:
   Tetris RT  : tetris_rt_kt_cross_eval        (k_model=1, k_eval=1)
   Pac-Man    : pacman_kt_cross_eval_mature    (k_model=1, k_eval=1)
-  Sokoban    : sokoban_gumbel_az_eval         (all runs)
   Speed Hex  : hex_inference_tournament       (infb in {2,8,32,128}, seeds 0-2)
+  Speed Go   : go9x9_inference_tournament     (nsim_16, seeds 0)
   Snake      : snake_kt_cross_eval           (best committed-action K=1 curve)
 
 Real measured points are used where available; the remaining eight target sim
@@ -194,37 +194,6 @@ def _fetch_committed_action(project, k_model=1, k_eval=1):
     return sims_arr, ret_arr, lat_arr
 
 
-def _fetch_sokoban():
-    api  = wandb.Api()
-    runs = list(api.runs(f"{ENTITY}/sokoban_gumbel_az_eval"))
-
-    bucket = {}
-    for run in runs:
-        s      = dict(run.summary)
-        sims   = s.get("num_simulations")
-        solved = s.get("solved")
-        inf_t  = s.get("inference_time_per_episode_sec")
-        ep_len = s.get("episode_length")
-        if sims is None or solved is None:
-            continue
-        if sims not in bucket:
-            bucket[sims] = {"solved": [], "lat": []}
-        bucket[sims]["solved"].append(solved)
-        if inf_t and ep_len and ep_len > 0:
-            bucket[sims]["lat"].append(inf_t / ep_len * 1000.0)
-
-    if not bucket:
-        return np.array([]), np.array([]), np.array([])
-
-    sims_arr = np.array(sorted(bucket), float)
-    sol_arr  = np.array([np.mean(bucket[s]["solved"]) for s in sims_arr])
-    lat_arr  = np.array([
-        np.mean(bucket[s]["lat"]) if bucket[s]["lat"] else np.nan
-        for s in sims_arr
-    ])
-    return sims_arr, sol_arr, lat_arr
-
-
 def _fetch_hex(project="hex_inference_tournament", nsim_tag="nsim_32",
                infbs=(2, 8, 32, 128), seeds=(0, 1, 2)):
     """
@@ -272,6 +241,11 @@ def _fetch_hex(project="hex_inference_tournament", nsim_tag="nsim_32",
         for b in infbs
     ])
     return sims_arr, wr_arr, lat_arr
+
+
+def _fetch_go(project="go9x9_inference_tournament", nsim_tag="nsim_16",
+              infbs=(2, 4, 8, 16, 32, 64, 96, 128), seeds=(0,)):
+    return _fetch_hex(project=project, nsim_tag=nsim_tag, infbs=infbs, seeds=seeds)
 
 
 def _fetch_snake_best_k1():
@@ -325,11 +299,11 @@ def build_data():
     p_sims, p_ret, p_lat = _fetch_committed_action(
         "pacman_kt_cross_eval_mature", k_model=1, k_eval=1)
 
-    print("Fetching Sokoban...")
-    s_sims, s_sol, s_lat = _fetch_sokoban()
-
     print("Fetching Speed Hex...")
     h_sims, h_wr, h_lat = _fetch_hex()
+
+    print("Fetching Speed Go...")
+    g_sims, g_wr, g_lat = _fetch_go()
 
     print("Fetching Snake      (best k_eval=1 cross-eval curve)...")
     sn_sims, sn_ret, sn_lat = _fetch_snake_best_k1()
@@ -355,16 +329,17 @@ def build_data():
         p_sims, p_ret, TARGET_SIMS, clamp_min=0, se_frac=0.10)
     p_gpu_lats = _lat_series_gpu(p_sims, p_lat, fallback_ms_per_sim=0.028)
 
-    # ── Sokoban ──
-    s_sol_m, s_sol_se = build_series(
-        s_sims, s_sol, TARGET_SIMS, clamp_min=0, se_frac=0.12)
-    s_gpu_lats = _lat_series_gpu(s_sims, s_lat, fallback_ms_per_sim=0.08)
-
     # ── Speed Hex ──
     h_wr_m, h_wr_se = build_series(
         h_sims, h_wr, TARGET_SIMS, clamp_min=0, se_frac=0.08, extrap_se_mult=1.8)
     h_wr_m = np.clip(h_wr_m, 0.0, 1.0)
     h_gpu_lats = _lat_series_gpu(h_sims, h_lat, fallback_ms_per_sim=0.040)
+
+    # ── Speed Go ──
+    g_wr_m, g_wr_se = build_series(
+        g_sims, g_wr, TARGET_SIMS, clamp_min=0, se_frac=0.08, extrap_se_mult=1.8)
+    g_wr_m = np.clip(g_wr_m, 0.0, 1.0)
+    g_gpu_lats = _lat_series_gpu(g_sims, g_lat, fallback_ms_per_sim=0.045)
 
     # ── Snake ──
     sn_perf_m, sn_perf_se = build_series(
@@ -386,18 +361,18 @@ def build_data():
             gpu_lats=p_gpu_lats,
             placeholder=False,
         ),
-        "Sokoban": dict(
-            perf_label="Solve Rate",
-            real_sims=s_sims,
-            perf_m=s_sol_m,  perf_se=s_sol_se,
-            gpu_lats=s_gpu_lats,
-            placeholder=False,
-        ),
         "Speed Hex": dict(
             perf_label="Win Rate",
             real_sims=h_sims,
             perf_m=h_wr_m,   perf_se=h_wr_se,
             gpu_lats=h_gpu_lats,
+            placeholder=False,
+        ),
+        "Speed Go": dict(
+            perf_label="Expected Score",
+            real_sims=g_sims,
+            perf_m=g_wr_m,   perf_se=g_wr_se,
+            gpu_lats=g_gpu_lats,
             placeholder=False,
         ),
         "Snake": dict(
@@ -509,7 +484,7 @@ if __name__ == "__main__":
     )
     plot_scaling(
         envs,
-        env_order=["Pac-Man", "Tetris RT", "Speed Hex", "Sokoban", "Snake"],
+        env_order=["Pac-Man", "Tetris RT", "Speed Hex", "Speed Go", "Snake"],
         out_name="scaling_appendix.pdf",
         figsize=(17.5, 4.0),
     )

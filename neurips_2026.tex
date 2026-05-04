@@ -56,8 +56,7 @@ Crucially, in these settings, there are state-dependent trade-offs between takin
 To address this, we propose a simple two step process: 
 In the first step we train a standard MCTS policy and in the second step we train a \textit{lightweight} meta-policy that decides how many search steps to invest at a given step.
 Our meta-policy consistently outperforms every fixed-budget baseline and handcoded heuristics while using less average compute.
-Moreover, we validate the full pipeline in a true two-GPU real-time setup. We demonstrate these results across real-time versions of Pac-Man, Tetris, Snake, timed Sokoban,
-and two-player speed Hex.
+Moreover, we validate the full pipeline in a true two-GPU real-time setup. We demonstrate these results across real-time versions of Pac-Man, Tetris, Snake, and two clocked two-player PGX games: Speed Hex and Speed Go.
 
 \end{abstract}
 
@@ -304,7 +303,7 @@ much total compute is consumed.
   \end{tabular}
 \end{table}
 
-\subsection{Clock environments: 2-player Hex and timed Sokoban}
+\subsection{Clock environments: Speed Hex and Speed Go}
 
 In clock environments, the agent's remaining time is part of the observation and the
 network is trained to be budget-aware.
@@ -315,7 +314,7 @@ is worth less than the same position with ample time.
 When the agent chooses a simulation budget, the corresponding time cost is deducted
 from the clock after the move is played. Committed actions during the planning phase
 are no-ops, since the board does not evolve while a player deliberates.
-We study this setting in 2-player Hex and timed Sokoban. In both cases the key
+We study this setting in Speed Hex and Speed Go. In both cases the key
 choice is not only \emph{which} move to play but \emph{how much} of the remaining
 clock to spend before playing it.
 
@@ -347,7 +346,7 @@ We verify empirically that this relationship is approximately linear over the
 simulation ranges we study (Figure~\ref{fig:scaling}) in Pac-Man, real-time
 Tetris, and 2-player Speed Hex: each additional batch of simulations yields a
 roughly equal gain in decision quality and a roughly equal increase in real-time
-cost. The full five-environment scaling results, including Sokoban and Snake,
+cost. The full five-environment scaling results, including Speed Go and Snake,
 appear in Appendix~\ref{app:sim_calibration}.
 
 \begin{figure}[h]
@@ -442,7 +441,7 @@ We evaluate across five environments spanning both mechanisms (Table~\ref{tab:en
     Snake             & Committed-action & 32, 64, 96, 128 \\[4pt]
     \multicolumn{3}{l}{\textit{Clock}} \\[2pt]
     Speed Hex (11$\times$11) & Explicit clock & 2, 8, 32, 128 \\
-    Timed Sokoban & Explicit clock & 2, 8, 32, 64 \\
+    Speed Go (9$\times$9) & Explicit clock & 16, 32, 64, 96 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -504,12 +503,12 @@ In Tetris the distribution is strongly bimodal: $K{=}4$ (51.7\%), $K{=}1$ (28.1\
 $K{=}2$ (20.2\%), with $K{=}3$ never selected (0\%).
 The policy has effectively learned a sharp binary. It learns to react immediately on easy boards and plan maximally on critical ones, with $K{=}2$ handling moderate cases.
 In Snake, $K{=}1$ dominates throughout ($81.6\%$) with $K{=}2$ handling moderate cases ($15.2\%$) and $K{=}3$ rising as the snake elongates ($3.2\%$ overall); $K{=}4$ is never selected ($0\%$), mirroring the $K{=}3$ avoidance in Tetris.
-In Speed Hex, the learned allocation shifts with clock pressure: under the small
-clock setting ($T{=}300$) the policy relies much more heavily on the smallest
-budget, whereas under the larger clock setting ($T{=}4100$) compute is spread much
-more evenly across the available options. Because the policy is trained across many
-clock settings rather than specialized to a single budget, this change reflects
-budget-conditioned generalization rather than retuning.
+In both Speed Hex and Speed Go, the learned allocation shifts with clock pressure:
+under the small clock setting ($T{=}300$) the policy relies much more heavily on the
+smallest budget option, whereas under the larger clock setting ($T{=}4100$) compute
+is spread much more evenly across the available options. Because the policy is
+trained across many clock settings rather than specialized to a single budget, this
+change reflects budget-conditioned generalization rather than retuning.
 Figure~\ref{fig:strategy} shows how the allocation shifts over the course of an episode.
 
 \subsection{What triggers deeper planning?}
@@ -568,7 +567,9 @@ body-growth events as a prospective spatial-risk signal.
   \centering
   \includegraphics[width=0.8\linewidth]{figures/strategy.pdf}
   \caption{Planning depth frequency over normalized episode time (10 equal bins).
-    Lines show the fraction of steps assigned to each depth or simulation budget.}
+    Lines show the fraction of steps assigned to each depth or simulation-budget
+    option. For Speed Hex and Speed Go, the panels show early-clock ($T{=}300$)
+    and late-clock ($T{=}4100$) evaluations from the same shared budget grid.}
   \label{fig:strategy}
 \end{figure}
 
@@ -885,6 +886,14 @@ clock for both players.
 The gating policy is a GRU network that maintains hidden state across moves within an
 episode, allowing it to track game progression and clock pressure jointly.
 
+\subsection{Speed Go}
+Speed Go is built on the pgx Go library (9$\times$9 board).
+As in Speed Hex, each player has an explicit clock, planning consumes clock only
+after the move is played, and MCTS search itself uses board-only dynamics while the
+network observes the remaining clock for both players.
+We use the same recurrent gating architecture and evaluate the policy over the same
+shared five sampled clock budgets used in the main text.
+
 
 \section{Simulation Option Calibration for Clock Environments}
 \label{app:sim_calibration}
@@ -901,16 +910,17 @@ latency.
 Options that are close in both cost and quality give the gating policy nothing to learn;
 options that differ in cost but not quality waste planning budget.
 
-For speed Hex we found that options $\{2, 8, 32, 128\}$ satisfy this criterion across
-the relevant range of clock settings.
+For Speed Hex we found that options $\{2, 8, 32, 128\}$ satisfy this criterion across
+the relevant range of clock settings, and for Speed Go we found that
+$\{16, 32, 64, 96\}$ yield similarly distinct quality-latency tradeoffs.
 Figure~\ref{fig:scaling_appendix} shows the full co-scaling results across all five
 evaluation environments.
 
 \begin{figure}[h]
   \centering
   \includegraphics[width=\linewidth]{figures/scaling_appendix.pdf}
-  \caption{Full co-scaling results across Pac-Man, real-time Tetris, 2-player Speed
-    Hex, Timed Sokoban, and Snake. Blue denotes planning quality; dashed curves
+  \caption{Full co-scaling results across Pac-Man, real-time Tetris, Speed
+    Hex, Speed Go, and Snake. Blue denotes planning quality; dashed curves
     denote per-step latency on H100, A100, and A40; shading shows $\pm$SE.}
   \label{fig:scaling_appendix}
 \end{figure}
