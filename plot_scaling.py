@@ -505,7 +505,7 @@ if __name__ == "__main__":
         envs,
         env_order=["Pac-Man", "Tetris RT", "Speed Hex"],
         out_name="scaling.pdf",
-        figsize=(10.8, 4.0),
+        figsize=(12.8, 3.3),
     )
     plot_scaling(
         envs,
