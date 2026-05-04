@@ -430,27 +430,11 @@ number of JAX implementation tricks, which we summarize in Appendix~\ref{app:imp
 \subsection{Setup}
 
 \paragraph{Environments.}
-We evaluate across five environments spanning both mechanisms (Table~\ref{tab:envs}).
-
-\begin{table}[h]
-  \centering
-  \caption{Evaluation environments.}
-  \label{tab:envs}
-  \small
-  \begin{tabular}{lll}
-    \toprule
-    Environment & Mechanism & Sim options \\
-    \midrule
-    \multicolumn{3}{l}{\textit{Committed-action}} \\[2pt]
-    Pac-Man (Jumanji) & Committed-action & 32, 64, 96, 128 \\
-    Real-Time Tetris  & Committed-action & 32, 64, 96, 128 \\
-    Snake             & Committed-action & 32, 64, 96, 128 \\[4pt]
-    \multicolumn{3}{l}{\textit{Clock}} \\[2pt]
-    Speed Hex (11$\times$11) & Explicit clock & 2, 8, 32, 128 \\
-    Speed Go (9$\times$9) & Explicit clock & 16, 32, 64, 96 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+We evaluate across five environments spanning both mechanisms.
+The committed-action group comprises Pac-Man (Jumanji), Real-Time Tetris, and Snake,
+each evaluated at simulation budgets of 32, 64, 96, and 128 simulations per move.
+The clock group comprises Speed Hex (11$\times$11) and Speed Go (9$\times$9),
+with budgets of 2, 8, 32, 128 and 16, 32, 64, 96 respectively.
 
 \paragraph{Baselines.}
 For committed-action environments we compare against: \emph{always-$K$} policies for
