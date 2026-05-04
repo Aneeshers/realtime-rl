@@ -214,12 +214,13 @@ baselines for our clock environments.
 \label{sec:envs}
 % =============================================================================
 
-In a real-time environment the clock runs independently of the agent's decision-making.
-Every game tick, the world advances, the Tetris piece falls one row, the Pac-Man
-ghosts step, the Hex clock depletes, regardless of whether the agent has finished
-deliberating.
-Computation time is therefore a direct cost in game outcomes. A more deliberate agent
-pays in world-progression steps rather than wall-clock seconds.
+In a real-time environment the world continues to evolve while the agent thinks.
+That progression can come from adversaries, physics, or explicit clocks: ghosts
+close in, gravity pulls pieces downward, the snake body elongates and constrains
+future motion, and players' remaining time depletes. Computation is therefore not
+just a hardware cost but a meta-reasoning decision whose consequences are paid
+directly in game outcomes. Figure~\ref{fig:scaling} makes this tradeoff concrete:
+more simulations improve decision quality, but they also consume more real-time.
 
 %Figure~\ref{fig:tetris_committed} illustrates the mechanism for real-time Tetris.
 %An I-shaped piece spawns at the top of the board.
@@ -255,11 +256,11 @@ remaining time budget, making its value estimates inherently sensitive to the co
 thinking.
 We study two mechanisms through which this property arises.
 
-\subsection{Committed-action environments: Pac-Man and real-time Tetris}
+\subsection{Committed-action environments: Pac-Man, real-time Tetris, and Snake}
 
 In committed-action environments, acting and planning happen concurrently.
 When the gating policy selects a planning depth $K$, it reserves $K$ environment steps
-for the planner. The agent takes $K{-}1$ \emph{committed actions}, which are fast reflex actions
+for the planner. The agent takes $K{-}1$ \emph{committed actions}, which are fast reflex
 decisions drawn from the planner's own policy, while the full planner runs in the
 background (Figure \ref{fig:realtime-rl-gating-diagram}). On the $K$-th step, the planner's result is applied.
 The MCTS tree accounts for this explicitly: its recurrent function simulates the $K{-}1$
@@ -267,19 +268,16 @@ committed-action steps, so search is conducted over the same future the agent wi
 actually experience. The cost of deeper planning is exactly $K{-}1$ additional steps
 of world progression before the carefully chosen action lands.
 
-\textbf{Pac-Man~\cite{bonnet2024jumanji}.}
-Ghosts advance every step regardless of the agent's action.
-Committed actions keep the agent moving under a reflex policy while MCTS
-computes. A deeper plan means the agent has navigated farther before the MCTS action
-fires.
-
-\textbf{Real-time Tetris~\cite{jumanji2022}.}
-Gravity advances the falling piece one row every step.
-The same committed-action mechanism applies: the agent moves under a reflex policy
-policy for $K{-}1$ steps while the planner searches, then the planner's chosen
-placement is executed on step $K$.
-The piece has descended further when the decision lands, making placement precision
-more consequential for deeper plans.
+\textbf{Jumanji committed-action environments.}
+We study three committed-action environments derived from Jumanji~\cite{bonnet2024jumanji}:
+Pac-Man, Snake, and a real-time variant of Tetris. In all three, the environment
+progresses during deliberation, but the source of that progression differs.
+In Pac-Man, ghosts and the player continue moving while search runs. In Tetris, we
+modify the Jumanji environment so that gravity advances the piece in real time.
+In Snake, each committed step moves the snake forward, changing its body occupancy
+and therefore the spatial constraints faced by future actions. The common structure
+is that a deeper plan arrives later, after the world has already changed; environment
+details for the real-time Tetris and SnakeKT variants are given in the appendix.
 
 \paragraph{Equal compute budget.}
 All depth options $K \in \Kset$ are designed to carry the same per-frame simulation
@@ -306,7 +304,7 @@ much total compute is consumed.
   \end{tabular}
 \end{table}
 
-\subsection{Clock environments: speed Hex and timed Sokoban}
+\subsection{Clock environments: 2-player Hex and timed Sokoban}
 
 In clock environments, the agent's remaining time is part of the observation and the
 network is trained to be budget-aware.
@@ -317,25 +315,9 @@ is worth less than the same position with ample time.
 When the agent chooses a simulation budget, the corresponding time cost is deducted
 from the clock after the move is played. Committed actions during the planning phase
 are no-ops, since the board does not evolve while a player deliberates.
-
-\am{Can insert small figure here with speed clock for hex}
-
-\textbf{Speed Hex.}
-An 11$\times$11 two-player board game in which each player's clock starts at $T$ ticks.
-One natural formulation ends the game immediately when a player's clock reaches zero,
-but we found that in this setting the gating policy trivially learns to avoid timing
-out, a much easier problem that does not require genuine resource allocation
-(see Appendix~\ref{app:sim_calibration} for results under that formulation).
-We therefore study the harder setting: once the clock is exhausted, the agent continues
-playing with committed fast-reflex actions for the remainder of the game rather
-than forfeiting.
-This forces the gating policy to reason about how to distribute a finite budget across
-the full game, knowing that spending too much early degrades late-game play quality
-rather than triggering an immediate loss.
-
-
-\textbf{Timed Sokoban.}
-\todo{We might take this section out and replace with Go}
+We study this setting in 2-player Hex and timed Sokoban. In both cases the key
+choice is not only \emph{which} move to play but \emph{how much} of the remaining
+clock to spend before playing it.
 
 \paragraph{Simulation option calibration.}
 For clock environments, the equal-budget constraint does not apply.
@@ -383,7 +365,7 @@ gain is worth the additional real-time cost.
 
 \subsection{Variable-duration meta-decisions}
 
-We formalize planning-depth selection as a Semi-Markov Decision Process (SMDP).
+We formalize planning-depth selection as a discrete variable-duration control problem.
 At each meta-step the gating policy $\pigate(K \mid s_t)$ selects a depth
 $K_t \in \Kset$.
 The agent executes $K_t{-}1$ committed actions followed by the planner's chosen
@@ -403,7 +385,11 @@ discount of $\gamma^{K_t}$:
   \label{eq:smdp}
 \end{equation}
 We adapt Generalized Advantage Estimation~\cite{schulman2015high} to carry the
-per-step discount factor $\gamma^{K_t}$ through the advantage computation.
+per-step discount factor $\gamma^{K_t}$ through the advantage computation. In
+simulation this is a discrete SMDP with deterministic holding time set by the chosen
+$K$; in real deployment, MCTS execution time is slightly stochastic, so the hardware
+system is closer to a genuine SMDP. We give the formal distinction in
+Appendix~\ref{app:rtrl_smdp}.
 
 \subsection{What the gating policy observes}
 
@@ -422,11 +408,13 @@ All architecture and training details are in Appendix~\ref{app:implementation}.
 
 \subsection{Training}
 
-The gating policy is trained with PPO~\cite{schulman2017proximal} on top of the
-frozen planner.
-Rollouts are collected over full episodes; SMDP-adapted advantages are computed before
-each round of policy updates.
-Only the gating network is updated; the planner receives no gradient.
+We train in two phases. First, we train AlphaZero-style base planners for each
+environment. We then freeze the selected base planner and train the gating policy
+with PPO~\cite{schulman2017proximal} on top of it. Rollouts are collected over full
+episodes and the variable-duration advantages above are computed before each round
+of policy updates. Only the gating network is updated; the planner receives no
+gradient. Making this meta-MCTS AlphaZero stack computationally feasible requires a
+number of JAX implementation tricks, which we summarize in Appendix~\ref{app:implementation}.
 
 
 % =============================================================================
@@ -465,9 +453,7 @@ each $K \in \Kset$; and a \emph{random} policy selecting $K$ uniformly at each
 meta-step.
 For speed environments we additionally compare against \emph{greedy} (always use
 maximum simulations) and \emph{midpeak} (a bell-curve allocation that concentrates
-compute at the critical mid-game, a common heuristic in game engines \cite{baier2016time, huang2010timemanagement}).
-
-\am{need to add to appendix that bell curve is tuned per budget that we eval against}
+compute at the critical mid-game, a common heuristic in game engines \cite{baier2016time, huang2010timemanagement}). For these clock heuristics we tune the bell-curve shape separately at each evaluation budget and report the best resulting strategy; details appear in Appendix~\ref{app:hex_budget_results}.
 
 \paragraph{Base planner.}
 For committed-action environments we use an AlphaZero checkpoint trained without
@@ -517,7 +503,9 @@ In Snake, $K{=}1$ dominates throughout ($81.6\%$) with $K{=}2$ handling moderate
 In Speed Hex, the learned allocation shifts with clock pressure: under the small
 clock setting ($T{=}300$) the policy relies much more heavily on the smallest
 budget, whereas under the larger clock setting ($T{=}4100$) compute is spread much
-more evenly across the available options.
+more evenly across the available options. Because the policy is trained across many
+clock settings rather than specialized to a single budget, this change reflects
+budget-conditioned generalization rather than retuning.
 Figure~\ref{fig:strategy} shows how the allocation shifts over the course of an episode.
 
 \subsection{What triggers deeper planning?}
@@ -550,27 +538,13 @@ least, reflecting differences in placement geometry and expected outcome varianc
 
 \paragraph{Snake}
 
-Spatial constraint---not goal difficulty---is the primary trigger, and $K{=}2$
-and $K{=}3$ respond to \emph{different} aspects of it.
-$K{=}1$ dominates on open boards: mean snake length $8.76{\scriptstyle\pm0.04}$,
-flood-fill reachability $134.7$ cells (93.5\% of the $12{\times}12$ grid),
-local body density $26.9\%$ in the $3{\times}3$ neighbourhood, and $3.27$ valid moves.
-$K{=}3$ activates when space is scarce: length $20.42{\scriptstyle\pm0.25}$,
-reachability drops to $120.4$ cells (${\downarrow}10.5\%$),
-local density rises to $33.6\%$, and only $2.85$ valid moves remain---the fewest
-of any $K$.
-Crucially, $K{=}3$'s mean fruit distance ($7.81$) is \emph{similar} to $K{=}1$'s
-($8.09$), confirming that the trigger is topological crowding, not goal difficulty.
-$K{=}2$ occupies a distinct niche: it fires on the most open boards (most valid
-moves, $3.45$; lowest local density, $23.5\%$) but with the \emph{farthest} fruit
-($9.96$ cells).
-The policy has learned to reach for one extra planning step specifically when
-navigating toward a distant goal on an uncrowded board---a separate concern from
-spatial danger.
-The post-eating transition reinforces the picture: immediately after consuming
-fruit (1{,}546 events, snake just grew longer), $K{=}3$ usage spikes from
-$3.2\%$ to $13.5\%$ ($4{\times}$), showing the policy responds in real time to
-body-growth events as a prospective spatial risk signal.
+Spatial constraint, rather than simple goal distance, is the main trigger.
+$K{=}1$ dominates on open boards, while $K{=}3$ appears when reachability drops,
+local body density rises, and the snake has fewer safe continuations. $K{=}2$
+occupies a milder regime associated with navigating toward more distant fruit on
+otherwise open boards. Immediately after eating, when the body has just grown,
+$K{=}3$ usage jumps from $3.2\%$ to $13.5\%$, indicating that the policy treats
+body-growth events as a prospective spatial-risk signal.
 
 \begin{figure}[t]
   \centering
@@ -684,9 +658,11 @@ deployment, suggesting the abstraction captures the essential real-time structur
 
 \paragraph{Limitations.}
 The gating policy trains on top of a fixed base planner; joint optimization of the
-two is an open problem.
-We study a discrete depth set $K \in \Kset$; continuous compute allocation is a
-natural extension.
+two is an open problem. A related direction is to use the gating policy's preferred
+planning depth as a supervision signal for distilling or fine-tuning the underlying
+AlphaZero network.
+We study a discrete depth set $K \in \Kset$; richer compute vocabularies with more
+planning options, and eventually continuous allocation, are natural extensions.
 Our environments are either simulation-based or played at controlled speeds; extending
 to physical real-time settings with uncontrolled latency would require adaptive
 calibration of the timing model.
@@ -1068,6 +1044,8 @@ available clock settings in the WandB evaluation runs.
 The qualitative pattern is stable across the sweep.
 The gating policy remains above parity across the tested budget range against all
 opponents after filtering obvious failed runs.
+For the bell-curve baselines, we tune the peak location and tail width separately
+for each evaluation budget, and report the best-performing setting at that budget.
 Following the evaluation constraint that performance below $0.5$ is not meaningful
 for the deployed gating policy here and is attributable to GPU/evaluation failures,
 we floor any such outlier to $0.5$ before aggregation.
