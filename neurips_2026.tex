@@ -708,16 +708,6 @@ it avoids this state-augmentation problem entirely.
 \section{Discussion}
 % =============================================================================
 
-\paragraph{Learned value of computation.}
-The gating policy is learning a value-of-computation function~\cite{russell1991right}
-from experience.
-At each state it implicitly asks, is the expected improvement from deeper planning
-worth the additional real-time cost?
-The answer is state-dependent and interpretable. Higher when the board is dense, when
-threats are close, and when the piece type makes placement precision consequential.
-The fact that this function can be learned end-to-end, without explicit cost modeling
-or hand-designed metareasoning rules, is itself a finding: VoC reasoning emerges from
-standard RL training when the cost structure is embedded in the environment.
 
 \paragraph{A unified framework.}
 The committed-action and clock mechanisms are two realizations of the same underlying
