@@ -105,7 +105,7 @@ the planner's own value estimate and intermediate features to choose a planning 
 at each decision point.
 While the planner runs in the background, the agent takes \emph{committed actions}.
 In committed-action environments these are fast reflex actions sampled from the logits of our reflex policy
-that keep the agent moving without full deliberation; in
+that keep the agent moving without full deliberation (Figure \ref{fig:realtime-rl-gating-diagram}); in
 clock environments, where the board does not evolve while a player thinks, they
 are no-ops that simply consume the player's clock.
 The gating policy learns to allocate computation to the moments where it matters most
@@ -141,6 +141,14 @@ actions while MCTS searches in parallel, the trained gating policy transfers
 directly to asynchronous deployment with no retraining and no architectural
 changes.
 
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/realtime-rl-gating-diagram.pdf}
+  \caption{
+    Overview of the gating policy making a decision.
+  }
+  \label{fig:realtime-rl-gating-diagram}
+\end{figure}
 % =============================================================================
 \section{Background and Related Work}
 % =============================================================================
@@ -239,14 +247,7 @@ more simulations improve decision quality, but they also consume more real-time.
  % \label{fig:tetris_committed}
 %\end{figure}
 
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{figures/realtime-rl-gating-diagram.pdf}
-  \caption{
-    Overview of the gating policy making a decision.
-  }
-  \label{fig:realtime-rl-gating-diagram}
-\end{figure}
+
 
 Across all the environments we study, the planning process is \emph{cost-aware} by
 construction. Either the MCTS tree explicitly simulates how the world evolves during
@@ -272,11 +273,10 @@ We study three committed-action environments derived from Jumanji~\cite{bonnet20
 Pac-Man, Snake, and a real-time variant of Tetris. In all three, the environment
 progresses during deliberation, but the source of that progression differs.
 In Pac-Man, ghosts and the player continue moving while search runs. In Tetris, we
-modify the Jumanji environment so that gravity advances the piece in real time.
+modify the Jumanji environment so that gravity advances the piece in real time (Appendix \ref{app:envs_tetris}).
 In Snake, each committed step moves the snake forward, changing its body occupancy
 and therefore the spatial constraints faced by future actions. The common structure
-is that a deeper plan arrives later, after the world has already changed; environment
-details for the real-time Tetris implementation are given in the appendix.
+is that a deeper plan arrives later, after the world has already changed.
 
 \paragraph{Equal compute budget.}
 All depth options $K \in \Kset$ are designed to carry the same per-frame simulation
@@ -818,6 +818,8 @@ during rollout.
 \label{app:envs}
 
 \subsection{Real-time Tetris}
+\label{app:envs_tetris}
+
 Our real-time Tetris environment is a modification of Jumanji Tetris in which each
 environment step is one gravity tick rather than one full placement decision.
 The board is $20 \times 10$, episodes last at most 2000 gravity ticks, and the
