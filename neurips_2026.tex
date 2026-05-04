@@ -46,20 +46,17 @@
 \begin{abstract}
 % =============================================================================
 %X What are we doing
-Deliberating takes time, and especially in real-time settings that time is not free.
+Deliberating takes time, and, especially, in real-time settings that time is not free.
 Standard reinforcement learning (RL) sidesteps this, as the environment waits indefinitely
 for the agent's decision.
-Instead we here study environments that progress while waiting for the agent's action, which naturally creates a \textit{cost of deliberation}.
+Instead, here, we study environments that progress while waiting for the agent's action, which naturally creates a \textit{cost of deliberation}.
 %Y why is this hard
-Crucially, there are state-dependent trade-offs between deliberating longer and reacting quickly.
-Worse, deciding \textit{how much} to deliberate is itself a form of deliberation---naively, this risks infinite regress: a paralysis of planning about planning.
+Crucially, there are state-dependent trade-offs between deliberating longer and reacting quickly. Furthermore, deliberating how much to deliberate, in the limit, risks complete paralysis.
 % Z our genius insight
 We resolve this with a two-step process.
 First, we train a standard MCTS policy.
-Second, we train a \textit{lightweight} gating policy that decides how many search steps to invest at each state.
-The key insight is that a single gate inference is orders of magnitude cheaper than even one MCTS rollout, so the meta-decision itself imposes negligible real-time cost and sidesteps the regress entirely.
-Our gating policy consistently outperforms every fixed-budget baseline and hand-coded heuristic while using less average compute.
-We validate the full pipeline in a true two-GPU real-time setup---and confirm that gate inference is never the bottleneck---across real-time Pac-Man, Tetris, Snake, Speed Hex, and Speed Go.
+Second, we train a \textit{lightweight} gating policy that decides how many search steps to invest at each state. Our gating policy consistently outperforms every fixed-budget baseline and hand-coded heuristic while using less average compute.
+We validate the full pipeline in a true two-GPU real-time setup across real-time Pac-Man, Tetris, Snake, Speed Hex, and Speed Go.
 
 \end{abstract}
 
@@ -465,12 +462,12 @@ All results are averaged over 100 independent episode seeds; we report mean $\pm
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{figures/main_results_horizontal.pdf}
-  \caption{Learning when to spend compute beats any fixed compute budget.
+  \caption{
     Across all five environments, the gating policy outperforms fixed-budget and
     heuristic baselines, showing that adaptive allocation matters more than
     committing to a single search depth. Bars show mean $\pm$\,SE over 100
     episodes; for Speed Hex and Speed Go, expected score is averaged over the
-    shared sampled clock budgets $T \in \{300, 1200, 2300, 3500, 4800\}$.}
+    shared sampled clock budgets.}
   \label{fig:main_results}
 \end{figure}
 
@@ -596,14 +593,7 @@ environment moving and MCTS finishes asynchronously on the second GPU.
 The main result is that simulation-trained policies transfer cleanly to asynchronous
 hardware deployment over a broad operating range.
 Latency remains well within budget on H100 in all three environments, and remains
-reliable on A100 except near the tightest deadline regimes.
-For example, in Tetris at 9\,FPS, where the $K{=}4$ budget is 444\,ms, mean latency
-on H100 is only 124\,ms.
-The failures that do appear are concentrated near the deadline boundary:
-Tetris on A40 breaks down at 12\,FPS, Pac-Man is the most timing-sensitive
-environment overall, and Snake remains robust throughout.
-
-Return transfer is similarly strong.
+reliable on A100 except near the tightest deadline regimes. Return transfer is similarly strong.
 At 9\,FPS, deployed returns remain close to their simulation counterparts across all
 three environments, and the learned depth distribution also transfers cleanly.
 In Tetris on H100, the deployed policy preserves the same strongly bimodal
@@ -616,14 +606,11 @@ Because training simulates the planning delay by actually executing committed ac
 in the environment, the learned policy requires no modification for deployment.
 The separation between environment and planner is already the right abstraction.
 The Real-Time RL framework~\citep{ramstedt2019rtrl} fixes the computation budget to
-exactly one timestep via a 1-step delay RTMDP state augmentation---adequate for
-lightweight policies but insufficient for variable-depth MCTS spanning
+exactly one timestep via a 1-step delay RTMDP state augmentation, however, is insufficient for variable-depth MCTS spanning
 $K \in \{1,\ldots,4\}$ frames, where a naive extension would require carrying $K$
-stale actions in the state.
+stale actions in the state (see more on this in Appendix~\ref{app:rtrl_smdp}).
 Appendix~\ref{app:deployment_details} gives the full environment-by-FPS-by-GPU
-deployment breakdown, while Appendix~\ref{app:rtrl_smdp} gives a formal account
-of how committed-action training relates to the RTMDP and SMDP formalisms and why
-it avoids this state-augmentation problem entirely.
+deployment breakdown.
 
 \begin{figure}[h]
   \centering
