@@ -888,6 +888,17 @@ clock for both players.
 The gating policy is a GRU network that maintains hidden state across moves within an
 episode, allowing it to track game progression and clock pressure jointly.
 
+\paragraph{Training notes.}
+Early experiments fine-tuned the gating policy against fixed-budget opponents rather
+than via self-play.
+This regime exhibited plasticity loss---the network's ability to adapt to new opponents
+degraded over successive fine-tuning rounds---consistent with findings in continual RL
+settings~\citep{muppidi2024fast, boopathy2024permutation}.
+We therefore switched to self-play, which eliminated plasticity loss entirely.
+In self-play we found that increasing entropy regularization was the single most
+impactful training intervention, consistent with recent results in other self-play
+board-game domains~\citep{forkel2025entropy}.
+
 \subsection{Speed Go}
 Speed Go is built on the pgx Go library (9$\times$9 board).
 As in Speed Hex, each player has an explicit clock, planning consumes clock only
@@ -895,6 +906,9 @@ after the move is played, and MCTS search itself uses board-only dynamics while 
 network observes the remaining clock for both players.
 We use the same recurrent gating architecture and evaluate the policy over the same
 shared five sampled clock budgets used in the main text.
+The same training observations apply: self-play with elevated entropy regularization
+was decisive, and no plasticity loss was observed once fine-tuning against fixed
+opponents was abandoned.
 
 
 \section{Simulation Option Calibration for Clock Environments}
