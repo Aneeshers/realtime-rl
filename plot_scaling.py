@@ -32,6 +32,7 @@ Usage:
 Outputs:
     figures/scaling.pdf
     figures/scaling_appendix.pdf
+    figures/scaling_scatter.pdf
 """
 
 import os
@@ -40,6 +41,7 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib import colors
 from scipy.stats import linregress
 from matplotlib.lines import Line2D
 
@@ -472,6 +474,89 @@ def plot_scaling(envs, env_order, out_name, figsize):
     plt.close(fig)
 
 
+def plot_scaling_scatter(envs, env_order, out_name, figsize):
+    fig, axes = plt.subplots(1, len(env_order), figsize=figsize)
+    if len(env_order) == 1:
+        axes = [axes]
+
+    norm = colors.LogNorm(vmin=TARGET_SIMS.min(), vmax=TARGET_SIMS.max())
+    cmap = plt.get_cmap("viridis")
+    gpu_markers = {"H100": "o", "A100": "s", "a40": "^"}
+
+    for ax, name in zip(axes, env_order):
+        d = envs[name]
+        pm, pse = d["perf_m"], d["perf_se"]
+        sc = None
+        for gpu in ("H100", "A100", "a40"):
+            lm, lse = d["gpu_lats"][gpu]
+            ax.plot(lm, pm, color=GPU_COLORS[gpu], lw=LW,
+                    linestyle=GPU_STYLES[gpu], alpha=0.8, zorder=2)
+            sc = ax.scatter(
+                lm, pm,
+                c=TARGET_SIMS,
+                cmap=cmap,
+                norm=norm,
+                s=44,
+                marker=gpu_markers[gpu],
+                edgecolors="none",
+                zorder=3,
+            )
+            ax.errorbar(
+                lm, pm,
+                xerr=lse,
+                yerr=pse,
+                fmt="none",
+                ecolor=GPU_COLORS[gpu],
+                elinewidth=0.9,
+                alpha=0.25,
+                capsize=0,
+                zorder=1,
+            )
+
+        h100_lm, _ = d["gpu_lats"]["H100"]
+        for x, y, s in zip(h100_lm, pm, TARGET_SIMS):
+            if s in (2, 32, 128, 256):
+                ax.annotate(
+                    f"{int(s)}",
+                    (x, y),
+                    textcoords="offset points",
+                    xytext=(4, 4),
+                    fontsize=max(FS_TICK - 2, 6),
+                    color="#444444",
+                )
+
+        ax.set_title(name, fontsize=FS_TITLE)
+        ax.set_xlabel("Latency (ms / step)", fontsize=FS_LABEL)
+        ax.set_ylabel(d["perf_label"] if ax is axes[0] else "", fontsize=FS_LABEL)
+        ax.tick_params(labelsize=FS_TICK)
+        _clean_spines(ax)
+
+    cbar = fig.colorbar(sc, ax=axes, fraction=0.035, pad=0.02)
+    cbar.set_label("Simulations", fontsize=FS_LABEL)
+    cbar.ax.tick_params(labelsize=FS_TICK)
+
+    gpu_handles = [
+        Line2D([0], [0], color=GPU_COLORS[gpu], lw=LW,
+               linestyle=GPU_STYLES[gpu], marker=gpu_markers[gpu],
+               markersize=5, label=gpu)
+        for gpu in ("H100", "A100", "a40")
+    ]
+    fig.legend(
+        handles=gpu_handles,
+        loc="lower center",
+        ncol=3,
+        fontsize=FS_LEGEND,
+        frameon=False,
+        bbox_to_anchor=(0.5, -0.05),
+    )
+
+    fig.tight_layout(pad=1.0, rect=[0, 0.07, 1, 1])
+    out = os.path.join(FIGS, out_name)
+    fig.savefig(out, bbox_inches="tight")
+    print(f"Saved: {out}")
+    plt.close(fig)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -487,4 +572,10 @@ if __name__ == "__main__":
         env_order=["Pac-Man", "Tetris RT", "Speed Hex", "Speed Go", "Snake"],
         out_name="scaling_appendix.pdf",
         figsize=(17.5, 4.0),
+    )
+    plot_scaling_scatter(
+        envs,
+        env_order=["Pac-Man", "Tetris RT", "Speed Hex"],
+        out_name="scaling_scatter.pdf",
+        figsize=(11.5, 3.6),
     )

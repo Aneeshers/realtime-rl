@@ -145,7 +145,10 @@ changes.
   \centering
   \includegraphics[width=\linewidth]{figures/realtime-rl-gating-diagram.pdf}
   \caption{
-    Overview of the gating policy making a decision.
+    The gating policy chooses whether to react immediately or spend time planning.
+    Given the current state, it selects a planning depth $K$, which determines how
+    long MCTS runs and, in committed-action environments, how many reflex actions
+    are taken before the planned action is applied.
   }
   \label{fig:realtime-rl-gating-diagram}
 \end{figure}
@@ -352,9 +355,12 @@ appear in Appendix~\ref{app:sim_calibration}.
 \begin{figure}[h]
   \centering
   \includegraphics[width=0.9\linewidth]{figures/scaling.pdf}
-  \caption{Planning quality and real-time inference latency co-scale with simulation
-    count in Pac-Man, real-time Tetris, and 2-player Speed Hex. Blue denotes performance; dashed curves
-    denote per-step latency on H100, A100, and A40; shading shows $\pm$SE.}
+  \caption{More MCTS improves decisions, but it also costs more real time.
+    Across Pac-Man, real-time Tetris, and 2-player Speed Hex, planning quality
+    rises with simulation count while inference latency rises alongside it,
+    creating the tradeoff that the gating policy must manage. Blue denotes
+    performance; dashed curves denote per-step latency on H100, A100, and A40;
+    shading shows $\pm$SE.}
   \label{fig:scaling}
 \end{figure}
 
@@ -468,10 +474,12 @@ All results are averaged over 100 independent episode seeds; we report mean $\pm
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{figures/main_results_horizontal.pdf}
-  \caption{Main results (mean $\pm$\,SE, 100 episodes).
-    Colored bars show the gating policy and blue bars show baselines.
-    For both Speed Hex and Speed Go, we report expected score averaged over the
-    same five sampled clock budgets, $T \in \{300, 1200, 2300, 3500, 4800\}$.}
+  \caption{Learning when to spend compute beats any fixed compute budget.
+    Across all five environments, the gating policy outperforms fixed-budget and
+    heuristic baselines, showing that adaptive allocation matters more than
+    committing to a single search depth. Bars show mean $\pm$\,SE over 100
+    episodes; for Speed Hex and Speed Go, expected score is averaged over the
+    shared sampled clock budgets $T \in \{300, 1200, 2300, 3500, 4800\}$.}
   \label{fig:main_results}
 \end{figure}
 
@@ -553,10 +561,11 @@ while Tetris shifts toward deeper planning as boards become more constrained.
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{figures/interpretability_combined.pdf}
-  \caption{Interpretability: state features conditioned on chosen depth $K$
-    (mean $\pm$\,1\,SE, 100 episodes). Across Pac-Man, Tetris, and Snake, larger
-    chosen depths align with states that are more constrained, risky, or
-    strategically consequential.}
+  \caption{The policy plans deeply precisely when the state is dangerous or constrained.
+    Across Pac-Man, Tetris, and Snake, larger chosen depths are associated with
+    higher threat, denser boards, or fewer safe continuations, indicating that
+    the gate is responding to meaningful decision difficulty. Plots show state
+    features conditioned on chosen depth $K$ (mean $\pm$\,1\,SE, 100 episodes).}
   \label{fig:interpretability}
 \end{figure}
 
@@ -568,8 +577,9 @@ while Tetris shifts toward deeper planning as boards become more constrained.
   \caption{Clock pressure changes how compute is allocated. In both Speed Hex and
     Speed Go, the learned policy is much more reactive under the small budget
     ($T{=}300$) and distributes mass toward deeper options once more clock is
-    available ($T{=}4100$). Additional per-environment strategy profiles appear in
-    Appendix Figure~\ref{fig:strategy_appendix}.}
+    available ($T{=}4100$). Lines show how often each budget option is selected
+    over normalized episode time. Additional per-environment strategy profiles
+    appear in Appendix Figure~\ref{fig:strategy_appendix}.}
   \label{fig:strategy}
 \end{figure}
 
@@ -629,8 +639,10 @@ it avoids this state-augmentation problem entirely.
 \begin{figure}[h]
   \centering
   \includegraphics[width=0.8\linewidth]{figures/deployment.pdf}
-  \caption{Validation of the real-time, asynchronous 2-GPU deployment.
-    The timeline illustrates asynchronous execution, while the remaining panels
+  \caption{Policies trained in simulation transfer cleanly to real asynchronous deployment.
+    In the top-left timeline, GPU 0 keeps the environment moving with reflex
+    actions while GPU 1 runs MCTS in parallel, so a larger chosen depth buys the
+    planner more wall-clock time without pausing the game. The remaining panels
     summarize measured latency, average deadline misses, and return relative to
     simulation across H100, A100, and A40. Full per-environment, per-FPS, per-GPU
     results appear in Appendix~\ref{app:deployment_details}.}

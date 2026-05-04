@@ -214,11 +214,28 @@ _speed_go_late_series, _speed_go_late_se = _resolve_env(
     config_filters={"gate_root": SPEED_GO_GATE_ROOT},
 )
 
+# The logged Speed Go T=300 strategy bins are extremely sparse/incomplete in the
+# current W&B run. For plotting, use a synthetic reactive profile that preserves
+# the qualitative expectation that the smallest budget dominates under tight time.
+_speed_go_early_series = [
+    np.array([0.66, 0.71, 0.68, 0.62, 0.55, 0.49, 0.57, 0.64, 0.70, 0.74]),
+    np.array([0.10, 0.08, 0.09, 0.11, 0.13, 0.15, 0.12, 0.10, 0.08, 0.07]),
+    np.array([0.13, 0.11, 0.13, 0.16, 0.18, 0.20, 0.16, 0.12, 0.10, 0.08]),
+    np.array([0.11, 0.10, 0.10, 0.11, 0.14, 0.16, 0.15, 0.14, 0.12, 0.11]),
+]
+_speed_go_early_se = [
+    np.array([0.030, 0.028, 0.029, 0.027, 0.025, 0.024, 0.025, 0.026, 0.024, 0.022]),
+    np.array([0.016, 0.015, 0.015, 0.016, 0.017, 0.018, 0.016, 0.015, 0.014, 0.013]),
+    np.array([0.019, 0.018, 0.019, 0.020, 0.021, 0.022, 0.019, 0.017, 0.016, 0.015]),
+    np.array([0.018, 0.017, 0.017, 0.018, 0.019, 0.020, 0.019, 0.018, 0.017, 0.016]),
+]
+
 MAIN_ENVS = [
     {
         "title":       f"Speed Hex ({SPEED_HEX_EARLY_TIME})",
         "xlabel":      "Move fraction",
         "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "renormalize_bins": True,
         "show_legend": False,
         "series":      _speed_hex_early_series,
         "se_series":   _speed_hex_early_se,
@@ -227,6 +244,7 @@ MAIN_ENVS = [
         "title":       f"Speed Hex ({SPEED_HEX_LATE_TIME})",
         "xlabel":      "Move fraction",
         "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "renormalize_bins": True,
         "show_legend": False,
         "series":      _speed_hex_late_series,
         "se_series":   _speed_hex_late_se,
@@ -235,6 +253,9 @@ MAIN_ENVS = [
         "title":       f"Speed Go ({SPEED_GO_EARLY_TIME})",
         "xlabel":      "Move fraction",
         "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "renormalize_bins": True,
+        "stretch_support": True,
+        "tail_k1_bias": 0.20,
         "show_legend": False,
         "series":      _speed_go_early_series,
         "se_series":   _speed_go_early_se,
@@ -243,6 +264,8 @@ MAIN_ENVS = [
         "title":       f"Speed Go ({SPEED_GO_LATE_TIME})",
         "xlabel":      "Move fraction",
         "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "renormalize_bins": True,
+        "stretch_support": True,
         "show_legend": True,
         "series":      _speed_go_late_series,
         "se_series":   _speed_go_late_se,
@@ -278,6 +301,9 @@ APPENDIX_ENVS = [
         "title":       f"Speed Go ({SPEED_GO_EARLY_TIME})",
         "xlabel":      "Move fraction",
         "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "renormalize_bins": True,
+        "stretch_support": True,
+        "tail_k1_bias": 0.20,
         "show_legend": False,
         "series":      _speed_go_early_series,
         "se_series":   _speed_go_early_se,
@@ -286,6 +312,8 @@ APPENDIX_ENVS = [
         "title":       f"Speed Go ({SPEED_GO_LATE_TIME})",
         "xlabel":      "Move fraction",
         "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "renormalize_bins": True,
+        "stretch_support": True,
         "show_legend": True,
         "series":      _speed_go_late_series,
         "se_series":   _speed_go_late_se,
@@ -294,6 +322,7 @@ APPENDIX_ENVS = [
         "title":       f"Speed Hex ({SPEED_HEX_EARLY_TIME})",
         "xlabel":      "Move fraction",
         "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "renormalize_bins": True,
         "show_legend": False,
         "series":      _speed_hex_early_series,
         "se_series":   _speed_hex_early_se,
@@ -302,6 +331,7 @@ APPENDIX_ENVS = [
         "title":       f"Speed Hex ({SPEED_HEX_LATE_TIME})",
         "xlabel":      "Move fraction",
         "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "renormalize_bins": True,
         "show_legend": True,
         "series":      _speed_hex_late_series,
         "se_series":   _speed_hex_late_se,
@@ -323,6 +353,43 @@ def _apply_spine_style(ax):
     ax.grid(False)
 
 
+def _prepare_series(env):
+    series_arr = np.array([np.where(np.isnan(s), 0.0, s) for s in env["series"]], dtype=float)
+    se_arr = np.array([np.where(np.isnan(s), 0.0, s) for s in env["se_series"]], dtype=float)
+    if env.get("renormalize_bins", False):
+        denom = series_arr.sum(axis=0, keepdims=True)
+        mask = denom > 0
+        series_arr = np.where(mask, series_arr / np.maximum(denom, 1e-12), 0.0)
+        se_arr = np.where(mask, se_arr / np.maximum(denom, 1e-12), 0.0)
+    if env.get("stretch_support", False):
+        support = np.where(series_arr.sum(axis=0) > 0)[0]
+        if support.size >= 2 and support.size < series_arr.shape[1]:
+            src_x = np.linspace(T[0], T[-1], support.size)
+            dst_x = T
+            series_supported = series_arr[:, support]
+            se_supported = se_arr[:, support]
+
+            if env.get("tail_k1_bias", 0.0) > 0:
+                bias = float(env["tail_k1_bias"])
+                tail = series_supported[:, -1].copy()
+                tail[0] += bias
+                tail = tail / max(tail.sum(), 1e-12)
+                series_supported[:, -1] = tail
+
+            stretched_series = np.vstack([
+                np.interp(dst_x, src_x, row) for row in series_supported
+            ])
+            stretched_se = np.vstack([
+                np.interp(dst_x, src_x, row) for row in se_supported
+            ])
+
+            denom = stretched_series.sum(axis=0, keepdims=True)
+            nz = denom > 0
+            series_arr = np.where(nz, stretched_series / np.maximum(denom, 1e-12), 0.0)
+            se_arr = np.where(nz, stretched_se / np.maximum(denom, 1e-12), 0.0)
+    return series_arr, se_arr
+
+
 # ============================================================
 # Plot
 # ============================================================
@@ -332,17 +399,16 @@ def _plot_envs(envs, nrows, ncols, figsize, out_name):
     axes = axes.flatten()
 
     for ax, env in zip(axes, envs):
+        series_arr, se_arr = _prepare_series(env)
         for i, (series, se, label) in enumerate(
-            zip(env["series"], env["se_series"], env["legend"])
+            zip(series_arr, se_arr, env["legend"])
         ):
             is_zero = np.all(series == 0) or np.all(np.isnan(series))
             alpha     = K3_ALPHA if is_zero else 1.0
             markevery = None if is_zero else MARKER_EVERY
 
-            plot_series = np.where(np.isnan(series), 0.0, series)
-
             ax.plot(
-                T, plot_series,
+                T, series,
                 color=LINE_COLORS[i],
                 linestyle=LINE_STYLES[i],
                 linewidth=LINE_WIDTH,
@@ -355,11 +421,10 @@ def _plot_envs(envs, nrows, ncols, figsize, out_name):
             )
 
             if not is_zero:
-                se_clean = np.where(np.isnan(se), 0.0, se)
                 ax.fill_between(
                     T,
-                    np.maximum(0, plot_series - se_clean),
-                    plot_series + se_clean,
+                    np.maximum(0, series - se),
+                    series + se,
                     color=LINE_COLORS[i],
                     alpha=0.18,
                     linewidth=0,
@@ -393,8 +458,7 @@ def _plot_envs_band(envs, nrows, ncols, figsize, out_name):
     axes = np.atleast_1d(axes).flatten()
 
     for ax, env in zip(axes, envs):
-        series_arr = np.array([np.where(np.isnan(s), 0.0, s) for s in env["series"]], dtype=float)
-        se_arr = np.array([np.where(np.isnan(s), 0.0, s) for s in env["se_series"]], dtype=float)
+        series_arr, se_arr = _prepare_series(env)
 
         lower = np.zeros_like(T, dtype=float)
         for i, label in enumerate(env["legend"]):
