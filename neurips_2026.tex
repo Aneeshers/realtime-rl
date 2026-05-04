@@ -51,12 +51,15 @@ Standard reinforcement learning (RL) sidesteps this, as the environment waits in
 for the agent's decision.
 Instead we here study environments that progress while waiting for the agent's action, which naturally creates a \textit{cost of deliberation}.
 %Y why is this hard
-Crucially, in these settings, there are state-dependent trade-offs between taking more time to deliberate or being able to react quickly. Furthermore, deliberating how much to deliberate, in the limit, risks complete paralysis.  
+Crucially, there are state-dependent trade-offs between deliberating longer and reacting quickly.
+Worse, deciding \textit{how much} to deliberate is itself a form of deliberation---naively, this risks infinite regress: a paralysis of planning about planning.
 % Z our genius insight
-To address this, we propose a simple two step process: 
-In the first step we train a standard MCTS policy and in the second step we train a \textit{lightweight} meta-policy that decides how many search steps to invest at a given step.
-Our meta-policy consistently outperforms every fixed-budget baseline and handcoded heuristics while using less average compute.
-Moreover, we validate the full pipeline in a true two-GPU real-time setup. We demonstrate these results across real-time versions of Pac-Man, Tetris, Snake, and two clocked games: Speed Hex and Speed Go.
+We resolve this with a two-step process.
+First, we train a standard MCTS policy.
+Second, we train a \textit{lightweight} gating policy that decides how many search steps to invest at each state.
+The key insight is that a single gate inference is orders of magnitude cheaper than even one MCTS rollout, so the meta-decision itself imposes negligible real-time cost and sidesteps the regress entirely.
+Our gating policy consistently outperforms every fixed-budget baseline and hand-coded heuristic while using less average compute.
+We validate the full pipeline in a true two-GPU real-time setup---and confirm that gate inference is never the bottleneck---across real-time Pac-Man, Tetris, Snake, Speed Hex, and Speed Go.
 
 \end{abstract}
 
@@ -110,6 +113,9 @@ clock environments, where the board does not evolve while a player thinks, they
 are no-ops that simply consume the player's clock.
 The gating policy learns to allocate computation to the moments where it matters most
 and to act quickly everywhere else.
+This design avoids the paradox of planning-about-planning: a single gate forward pass
+is orders of magnitude cheaper than one MCTS rollout, so the meta-decision itself
+adds negligible real-time cost.
 
 Our contributions are:
 \begin{enumerate}
@@ -139,7 +145,8 @@ validate the approach in a true two-GPU real-time setup, with the environment ru
 training already simulates the planning delay by executing $K{-}1$ committed
 actions while MCTS searches in parallel, the trained gating policy transfers
 directly to asynchronous deployment with no retraining and no architectural
-changes.
+changes. Gate inference is confirmed to be negligible relative to MCTS latency,
+empirically closing the loop on the paradox of deliberation.
 
 \begin{figure}[t]
   \centering
