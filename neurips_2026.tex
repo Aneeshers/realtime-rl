@@ -46,8 +46,8 @@
 \begin{abstract}
 % =============================================================================
 %X What are we doing
-Deliberating takes time, and, especially, in real-time settings that time is not free.
-Standard reinforcement learning (RL) sidesteps this, as the environment waits indefinitely
+Deliberating takes time, and especially in real-time settings, that time is not free.
+Standard reinforcement learning (RL) sidesteps this as the environment waits indefinitely
 for the agent's decision.
 Instead, here, we study environments that progress while waiting for the agent's action, which naturally creates a \textit{cost of deliberation}.
 %Y why is this hard
@@ -55,7 +55,7 @@ Crucially, there are state-dependent trade-offs between deliberating longer and 
 % Z our genius insight
 We resolve this with a two-step process.
 First, we train a standard MCTS policy.
-Second, we train a \textit{lightweight} gating policy that decides how many search steps to invest at each state. Our gating policy consistently outperforms every fixed-budget baseline and hand-coded heuristic while using less average compute.
+Second, we train a \textit{lightweight} gating policy that decides how many search steps to invest at each state. Our gating policy consistently outperforms fixed-budget baselines and hand-coded heuristics while using less average compute.
 We validate the full pipeline in a true two-GPU real-time setup across real-time Pac-Man, Tetris, Snake, Speed Hex, and Speed Go.
 
 \end{abstract}
@@ -179,7 +179,7 @@ empirically closing the loop on the \emph{paradox} of deliberation.
   \label{fig:realtime-rl-gating-diagram}
 \end{figure}
 % =============================================================================
-\section{Background and Related Work}
+\section{Related Work}
 % =============================================================================
 
 \paragraph{Deliberation has always had a cost.}
