@@ -525,7 +525,7 @@ budget is most likely to change the decision.
 
 \paragraph{Pac-Man}
 
-The clearest signal in Pac-Man is ghost proximity: the policy prefers $K{=}1$ when the
+Ghost proximity correlates with lower chosen budgets in Pac-Man: the policy prefers $K{=}1$ when the
 nearest ghost is far away, shifts toward $K{=}2$ as the threat closes in, and reaches
 for $K{=}4$ at extreme proximity. When ghosts are frightened the threat evaporates, and
 the policy reduces planning budget accordingly.
@@ -1285,11 +1285,34 @@ qualitatively new behaviors.
 \section{Additional Results and Ablations}
 \label{app:ablations}
 
-\todo{Suggested ablations:
-(1) Gating with only raw game grid, no planner trunk features or value;
-(2) Gating with only planner features, no spatial branch;
-(3) Reward mode: raw vs.\ $\gamma^K$-discounted vs.\ per-step normalized;
-(4) Sensitivity to entropy coefficient.}
+We also ran input-ablation evaluations for the committed-action environments, in
+which the gating policy received zeroed observation features, zeroed time
+features, zeroed planner trunk features, or a zeroed planner value input while
+the environment dynamics and MCTS planner remained unchanged.
+Across environments, ablating planner trunk features was consistently
+disruptive, while zeroing the scalar value input had only minor effect; in
+Tetris, zeroing either the board observation or planner trunk substantially
+reduced return, while in Pac-Man and Snake the learned behavior was more robust
+to removing any single input channel.
+
+\begin{table}[h]
+  \centering
+  \small
+  \setlength{\tabcolsep}{6pt}
+  \begin{tabular}{lccccc}
+    \toprule
+    Environment & Baseline & Zero obs & Zero time & Zero trunk & Zero value \\
+    \midrule
+    Pac-Man   & 2245.6 & 2379.2 & 1571.2 & 1812.6 & 2189.8 \\
+    Tetris RT &   44.0 &   34.4 &   37.6 &   33.2 &   44.0 \\
+    Snake     &   15.18 &  14.92 &  15.94 &  15.66 &  16.14 \\
+    \bottomrule
+  \end{tabular}
+  \caption{
+    Input-ablation results for the committed-action gating policies.
+    Entries report mean episode return under each ablation condition while the
+    environment and MCTS planner remain unchanged.}
+\end{table}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
