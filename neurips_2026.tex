@@ -948,6 +948,30 @@ $\{16, 32, 64, 96\}$ yield similarly distinct quality-latency tradeoffs.
 Figure~\ref{fig:scaling_appendix} shows the full co-scaling results across all five
 evaluation environments.
 
+\paragraph{Go and Hex calibration.}
+To calibrate the clock-environment options more directly, we examine how average
+expected score changes as inference budget increases.
+The resulting curves are shown in Figure~\ref{fig:clock_budget_calibration}.
+For Speed Go, the selected set $\{16, 32, 64, 96\}$ spans the steep part of the
+quality curve: average expected score versus all other budgets rises from $0.314$
+at 16 simulations to $0.506$ at 32, $0.704$ at 64, and $0.782$ at 96.
+The largest gains occur at $16{\rightarrow}32$ ($+0.193$) and
+$32{\rightarrow}64$ ($+0.198$), while $64{\rightarrow}96$ still provides a clear
+additional improvement ($+0.078$).
+Pairwise tournament results among the selected Go options also remain well
+separated: 64 simulations scores $0.713$ against 32 and $0.868$ against 16,
+while 96 scores $0.595$ against 64 and $0.773$ against 32.
+
+For Speed Hex, the selected set $\{2, 8, 32, 128\}$ follows the same design
+principle: the options are spaced roughly linearly in log-simulation space,
+providing distinct low-, medium-, and high-compute operating points rather than
+redundant nearby budgets.
+The right-hand panel of Figure~\ref{fig:clock_budget_calibration} is included as
+an illustrative calibration sketch for this spacing; the full dense Hex
+inference-budget tournament is being generated separately.
+Thus, in both clocked domains, the selected options are intended to provide the
+gating policy with meaningfully separated quality-latency tradeoffs.
+
 \begin{figure}[h]
   \centering
   \includegraphics[width=\linewidth]{figures/scaling_appendix.pdf}
@@ -957,21 +981,88 @@ evaluation environments.
   \label{fig:scaling_appendix}
 \end{figure}
 
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{figures/clock_budget_calibration_go_hex_mock.pdf}
+  \caption{
+    Simulation-option calibration for the two clock environments.
+    Each point shows a budget's average expected score against all other
+    candidate budgets.
+    Red circles mark the options used in our clocked experiments:
+    16/32/64/96 simulations for Speed Go and 2/8/32/128 for Speed Hex.
+    The Speed Go panel uses the measured inference-tournament data, while the
+    Speed Hex panel is an illustrative mock-up showing the intended logarithmic
+    spacing of the selected options.}
+  \label{fig:clock_budget_calibration}
+\end{figure}
+
 
 \section{Cross-Evaluation and Base Model Selection}
 \label{app:cross_eval}
 
-We trained four AlphaZero checkpoints at budgets $K \in \Kset$ and evaluated
-all 16 (train-$K$, eval-$K$) combinations.
+For the committed-action environments, we trained four AlphaZero checkpoints at
+budgets $K \in \Kset$ and evaluated all 16 (train-$K$, eval-$K$) combinations.
+Here, train-$K$ denotes the action-delay budget used during training, while
+eval-$K$ denotes the action-delay budget used at test time.
+For each train-$K$ checkpoint we additionally swept the MCTS simulation budget at
+evaluation time and report the best raw episode return achieved for each eval-$K$.
+The evaluation sweeps were: Tetris RT with simulation counts
+$\{32, 64, 96, 128\}$, Pac-Man with $\{8, 16, 32, 64, 96, 128\}$, and Snake
+with $\{32, 64, 96, 128\}$.
 
-\todo{Table: 4$\times$4 cross-evaluation matrix.}
+\begin{table}[h]
+  \centering
+  \small
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{llcccc}
+    \toprule
+    Environment & Train-$K$ & Eval-$K{=}1$ & Eval-$K{=}2$ & Eval-$K{=}3$ & Eval-$K{=}4$ \\
+    \midrule
+    \multirow{4}{*}{Tetris RT}
+      & $K{=}1$ & 61.8 @ 128 & \textbf{85.0 @ 128} & \textbf{73.2 @ 128} & \textbf{69.0 @ 128} \\
+      & $K{=}2$ & 30.0 @ 96  & 11.4 @ 128          & 7.4 @ 96            & 3.6 @ 96 \\
+      & $K{=}3$ & \textbf{72.2 @ 128} & 22.0 @ 128 & 15.2 @ 128 & 11.8 @ 128 \\
+      & $K{=}4$ & 69.6 @ 128 & 24.0 @ 96           & 23.2 @ 128          & 18.8 @ 128 \\
+    \midrule
+    \multirow{4}{*}{Pac-Man}
+      & $K{=}1$ & \textbf{3235.4 @ 128} & 925.3 @ 128 & \textbf{2579.3 @ 128} & \textbf{1869.2 @ 96} \\
+      & $K{=}2$ & 2458.5 @ 128 & 630.7 @ 128 & 866.7 @ 128 & 574.4 @ 96 \\
+      & $K{=}3$ & 2749.7 @ 128 & 1122.3 @ 128 & 1110.6 @ 64 & 1051.2 @ 128 \\
+      & $K{=}4$ & 2904.1 @ 128 & \textbf{1161.2 @ 128} & 1117.2 @ 128 & 1132.4 @ 96 \\
+    \midrule
+    \multirow{4}{*}{Snake}
+      & $K{=}1$ & 0.77 @ 128 & 0.33 @ 128 & 0.50 @ 128 & 0.27 @ 128 \\
+      & $K{=}2$ & 2.32 @ 128 & 0.56 @ 128 & 0.84 @ 128 & 0.31 @ 96 \\
+      & $K{=}3$ & \textbf{2.42 @ 128} & \textbf{0.80 @ 64} & \textbf{1.13 @ 128} & \textbf{0.49 @ 96} \\
+      & $K{=}4$ & 0.05 @ 32  & 0.05 @ 128 & 0.06 @ 128 & 0.07 @ 128 \\
+    \bottomrule
+  \end{tabular}
+  \caption{
+    Cross-evaluation of committed-action base models.
+    Entries report the best raw episode return for each train-$K$/eval-$K$
+    combination after optimizing over the evaluation simulation-budget sweep;
+    the selected simulation count is shown after the `@' symbol. Bold marks the
+    best train-$K$ for each eval-$K$ within an environment.}
+\end{table}
 
-The $K{=}1$-trained checkpoint dominates at every evaluation budget.
-Two factors compound: $K{=}1$ training is causally clean (no delay confounds the
-value function), and committed actions during delay steps are drawn from the base
-model's policy---a stronger base produces better committed actions and therefore better
-states when the MCTS action fires.
-We use the $K{=}1$ checkpoint as the frozen base for all committed-action experiments.
+The resulting pattern is environment-dependent but clear.
+For Tetris RT, $K{=}1$ is the strongest base model overall: although the
+$K{=}3$ checkpoint is best at eval-$K{=}1$, the $K{=}1$ checkpoint wins at
+eval-$K \in \{2,3,4\}$ and has the highest mean return when averaging the
+best-per-eval-$K$ scores.
+For Pac-Man, $K{=}1$ also wins overall, dominating eval-$K \in \{1,3,4\}$ and
+achieving the highest average performance across eval budgets, while $K{=}4$
+is only slightly better at eval-$K{=}2$.
+Snake differs qualitatively: the $K{=}3$ checkpoint is the strongest across all
+four eval budgets and therefore serves as the frozen base model in that domain.
+
+These results match the intuition that low-delay training is often causally
+cleaner, since less delay-induced mismatch enters the value targets.
+In addition, committed actions during delay steps are drawn from the base
+model's policy, so a stronger base policy also produces better intermediate
+states before the final MCTS action lands.
+Accordingly, we use the $K{=}1$ checkpoint as the frozen base for Pac-Man and
+Tetris RT, and the $K{=}3$ checkpoint for Snake.
 
 \section{Strategy Profiles Across Environments}
 \label{app:strategy_appendix}

@@ -52,6 +52,7 @@ def parse_args():
     p.add_argument("--project", type=str, default=DEFAULT_PROJECT)
     p.add_argument("--nsim", type=str, default=DEFAULT_NSIM)
     p.add_argument("--budgets", type=int, nargs="+", default=DEFAULT_BUDGETS)
+    p.add_argument("--highlight-budgets", type=int, nargs="+", default=[16, 32, 64, 96])
     p.add_argument("--out", type=str, default=None)
     p.add_argument("--title", type=str, default=None)
     return p.parse_args()
@@ -261,15 +262,34 @@ def plot_heatmap(mean_mat: np.ndarray, sem_mat: np.ndarray, budgets: List[int], 
 
 
 def plot_line(budgets: List[int], mean_vec: np.ndarray, sem_vec: np.ndarray,
-              title: str, ylabel: str, out: str, color: str):
+              title: str, ylabel: str, out: str, color: str,
+              highlight_budgets: List[int] | None = None,
+              tick_labels: List[str] | None = None):
     fig, ax = plt.subplots(figsize=(7.6, 4.6))
     x = np.arange(len(budgets))
     ax.errorbar(
         x, mean_vec, yerr=sem_vec, color=color, marker="o",
         linewidth=LINE_LW, markersize=MARKER_SIZE, capsize=CAPSIZE
     )
+    if highlight_budgets:
+        idx = {b: i for i, b in enumerate(budgets)}
+        hx = []
+        hy = []
+        for b in highlight_budgets:
+            if b in idx and np.isfinite(mean_vec[idx[b]]):
+                hx.append(idx[b])
+                hy.append(mean_vec[idx[b]])
+        if hx:
+            ax.scatter(
+                hx, hy,
+                s=180,
+                facecolors="none",
+                edgecolors=C_RED,
+                linewidths=2.2,
+                zorder=5,
+            )
     ax.set_xticks(x)
-    ax.set_xticklabels([str(b) for b in budgets], fontsize=FS_TICK)
+    ax.set_xticklabels(tick_labels or [str(b) for b in budgets], fontsize=FS_TICK)
     ax.set_xlabel("Inference budget", fontsize=FS_LABEL)
     ax.set_ylabel(ylabel, fontsize=FS_LABEL)
     ax.set_title(title, fontsize=FS_LABEL)
@@ -279,6 +299,105 @@ def plot_line(budgets: List[int], mean_vec: np.ndarray, sem_vec: np.ndarray,
     fig.savefig(out, dpi=220)
     print(f"Saved: {out}")
     plt.close(fig)
+
+
+def plot_combined_calibration(go_budgets: List[int], go_mean: np.ndarray, go_sem: np.ndarray,
+                              hex_budgets: List[int], hex_mean: np.ndarray, hex_sem: np.ndarray,
+                              out: str) -> None:
+    fig, axes = plt.subplots(1, 2, figsize=(11.8, 4.6), sharey=True)
+    panels = [
+        (
+            axes[0],
+            "Speed Go",
+            go_budgets,
+            go_mean,
+            go_sem,
+            [16, 32, 64, 96],
+            [str(b) for b in go_budgets],
+        ),
+        (
+            axes[1],
+            "Speed Hex",
+            hex_budgets,
+            hex_mean,
+            hex_sem,
+            [2, 8, 32, 128],
+            ["rand" if b == -1 else str(b) for b in hex_budgets],
+        ),
+    ]
+
+    for ax, title, budgets, mean_vec, sem_vec, highlights, tick_labels in panels:
+        x = np.arange(len(budgets))
+        ax.errorbar(
+            x, mean_vec, yerr=sem_vec, color=C_BLUE, marker="o",
+            linewidth=LINE_LW, markersize=MARKER_SIZE, capsize=CAPSIZE
+        )
+        idx = {b: i for i, b in enumerate(budgets)}
+        hx = []
+        hy = []
+        for b in highlights:
+            if b in idx and np.isfinite(mean_vec[idx[b]]):
+                hx.append(idx[b])
+                hy.append(mean_vec[idx[b]])
+        if hx:
+            ax.scatter(
+                hx, hy,
+                s=180,
+                facecolors="none",
+                edgecolors=C_RED,
+                linewidths=2.2,
+                zorder=5,
+            )
+        ax.set_xticks(x)
+        ax.set_xticklabels(tick_labels, fontsize=FS_TICK)
+        ax.set_title(title, fontsize=FS_LABEL)
+        ax.set_xlabel("Inference budget", fontsize=FS_LABEL)
+        ax.grid(True, alpha=0.25)
+        ax.tick_params(labelsize=FS_TICK)
+        ax.set_ylim(0.15, 0.9)
+
+    axes[0].set_ylabel("Expected score vs all budgets", fontsize=FS_LABEL)
+    fig.tight_layout()
+    fig.savefig(out, dpi=220)
+    print(f"Saved: {out}")
+    plt.close(fig)
+
+
+def print_calibration_summary(budgets: List[int], mean_vec: np.ndarray, sem_vec: np.ndarray,
+                              score_tensor: np.ndarray, highlight_budgets: List[int]) -> None:
+    idx = {b: i for i, b in enumerate(budgets)}
+    print("Calibration summary")
+    print("Average expected score vs all other budgets:")
+    for b, m, s in zip(budgets, mean_vec, sem_vec):
+        se_str = f"{s:.4f}" if np.isfinite(s) else "nan"
+        print(f"  budget {b:>3}: {m:.4f} +/- {se_str}")
+
+    print("Adjacent-budget changes in expected score:")
+    for i in range(len(budgets) - 1):
+        b0, b1 = budgets[i], budgets[i + 1]
+        if np.isfinite(mean_vec[i]) and np.isfinite(mean_vec[i + 1]):
+            delta = mean_vec[i + 1] - mean_vec[i]
+            print(f"  {b0:>3} -> {b1:>3}: delta {delta:+.4f}")
+
+    selected = [b for b in highlight_budgets if b in idx]
+    if selected:
+        print("Pairwise expected scores among highlighted budgets (row vs column):")
+        per_seed, _, _ = aggregate_vs_all_opponents(score_tensor)
+        _ = per_seed  # keep local naming aligned with aggregate usage
+        mean_mat = np.nanmean(score_tensor, axis=0)
+        header = "       " + " ".join(f"{b:>7}" for b in selected)
+        print(header)
+        for bi in selected:
+            row = [f"{bi:>5}"]
+            for bj in selected:
+                val = mean_mat[idx[bi], idx[bj]]
+                row.append(f"{val:>7.3f}" if np.isfinite(val) else "    nan")
+            print(" ".join(row))
+
+        print("Highlighted budget scores vs all budgets:")
+        for b in selected:
+            i = idx[b]
+            print(f"  budget {b:>3}: {mean_vec[i]:.4f}")
 
 
 def main():
@@ -306,11 +425,13 @@ def main():
         args.budgets,
         exp_mean,
         exp_sem,
-        title=f"Expected score vs all budgets | {args.project} | {args.nsim}",
+        title="Expected score vs all budgets",
         ylabel="Expected score",
         out=exp_out,
         color=C_BLUE,
+        highlight_budgets=args.highlight_budgets,
     )
+    print_calibration_summary(args.budgets, exp_mean, exp_sem, score_tensor, args.highlight_budgets)
 
     anchor_budget = min(args.budgets)
     elo_seed = elo_ratings_per_seed(records, args.budgets, seeds, anchor_budget=anchor_budget)
@@ -326,6 +447,19 @@ def main():
         out=elo_out,
         color=C_RED,
     )
+
+    # Also emit the combined Go+Hex calibration figure when running the default Go plot.
+    if args.project == DEFAULT_PROJECT and args.nsim == DEFAULT_NSIM:
+        hex_budgets = [-1, 0, 2, 8, 32, 128]
+        hex_records = fetch_pair_records(args.entity, "hex_inference_tournament", "nsim_32")
+        hex_tensor, _ = build_score_tensor(hex_records, hex_budgets)
+        _, hex_mean, hex_sem = aggregate_vs_all_opponents(hex_tensor)
+        combo_out = os.path.join(FIGS, "clock_budget_calibration_go_hex.pdf")
+        plot_combined_calibration(
+            args.budgets, exp_mean, exp_sem,
+            hex_budgets, hex_mean, hex_sem,
+            combo_out,
+        )
 
 
 if __name__ == "__main__":

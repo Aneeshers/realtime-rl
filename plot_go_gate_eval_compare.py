@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Analyze Go gating-policy evaluation runs from W&B.
+Analyze Speed Go gating-policy evaluation runs from W&B.
 
 Outputs:
-  - One figure for the selected experiment group, line plots of expected score vs budget
-    for every opponent plus the average over opponents.
-  - A printed summary using a fixed 5-budget subset chosen by the user.
+  - One figure with expected score vs clock budget for each opponent plus the
+    average over opponents.
+  - A printed summary using the paper's fixed 5-budget subset.
 """
 
 from __future__ import annotations
@@ -29,17 +29,29 @@ from plot_config import (
 apply_style()
 
 ENTITY = "aneeshmuppidi19"
-PROJECT = "gating_eval_go9x9"
-GROUPS = {
-    "/n/netscratch/gershman_lab/Lab/amuppidi/gru_go9x9": "Entropy 0.095",
-    "/n/netscratch/gershman_lab/Lab/amuppidi/gru_go9x9_01": "Entropy 0.01",
-}
+PROJECT = "gating_eval_go9x902"
+GATE_ROOT = "/n/netscratch/gershman_lab/Lab/amuppidi/gru_go9x9_01"
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIGS = os.path.join(HERE, "figures")
 os.makedirs(FIGS, exist_ok=True)
-OUT = os.path.join(FIGS, "go_gate_eval_entropy01.pdf")
-TARGET_GROUP = "Entropy 0.01"
-SELECTED_BUDGETS = [300, 600, 1200, 2300, 4100]
+OUT = os.path.join(FIGS, "go_gate_eval_compare_16_32_48_64.pdf")
+TITLE = "Speed Go"
+SELECTED_BUDGETS = [300, 1200, 2300, 3500, 4800]
+
+
+def _canonical_opp(opp: str) -> str:
+    if opp in {"0", "always0"}:
+        return "policy-only"
+    if opp == "random":
+        return "random_gate"
+    return opp
+
+
+def _opp_sort_key(opp: str):
+    if opp.startswith("always") and opp[6:].isdigit():
+        return (0, int(opp[6:]), opp)
+    order = {"policy-only": 0, "proportional": 1, "midpeak": 2, "random_gate": 3}
+    return (1, order.get(opp, 99), opp)
 
 
 def _summary_dict(run):
@@ -61,37 +73,31 @@ def _mean_se(vals: List[float]) -> Tuple[float, float]:
     return mean, se
 
 
-def fetch_group_data():
+def fetch_run_data():
     api = wandb.Api()
     runs = list(api.runs(f"{ENTITY}/{PROJECT}"))
-
-    data = {
-        label: defaultdict(lambda: defaultdict(list))
-        for label in GROUPS.values()
-    }
+    data = defaultdict(lambda: defaultdict(list))
 
     for run in runs:
         cfg = dict(run.config)
-        gate_root = cfg.get("gate_root")
         time_budget = cfg.get("time_budget")
-        if gate_root not in GROUPS or time_budget is None:
+        if cfg.get("gate_root") != GATE_ROOT or time_budget is None:
             continue
-        label = GROUPS[gate_root]
         summ = _summary_dict(run)
         for key, val in summ.items():
             if not key.endswith("/expected_score"):
                 continue
-            opp = key[:-len("/expected_score")]
+            opp = _canonical_opp(key[:-len("/expected_score")])
             if opp.startswith("trend/"):
                 continue
             if val is None:
                 continue
-            data[label][opp][int(time_budget)].append(float(val))
+            data[opp][int(time_budget)].append(float(val))
     return data
 
 
 def aggregate_group(group_data):
-    opponents = sorted(group_data.keys())
+    opponents = sorted(group_data.keys(), key=_opp_sort_key)
     budgets = sorted({b for opp in opponents for b in group_data[opp].keys()})
     mean = {opp: [] for opp in opponents}
     se = {opp: [] for opp in opponents}
@@ -149,37 +155,32 @@ def plot_group(label, payload):
 
 
 def main():
-    raw = fetch_group_data()
-    group_results = {}
+    raw = fetch_run_data()
+    if not raw:
+        raise RuntimeError(f"No matching runs found in {ENTITY}/{PROJECT} for gate_root={GATE_ROOT}")
 
-    for label, group_data in raw.items():
-        if not group_data:
-            print(f"{label}: no eval runs found")
-            continue
-        budgets, opponents, mean, se, avg_mean, avg_se = aggregate_group(group_data)
-        group_results[label] = (budgets, opponents, mean, se, avg_mean, avg_se)
-        if label == TARGET_GROUP:
-            idx_map = {b: i for i, b in enumerate(budgets)}
-            missing = [b for b in SELECTED_BUDGETS if b not in idx_map]
-            if missing:
-                raise RuntimeError(f"Selected budgets missing from data: {missing}")
-            score = float(np.mean([avg_mean[idx_map[b]] for b in SELECTED_BUDGETS]))
-            score_se = float(np.sqrt(np.sum([avg_se[idx_map[b]] ** 2 for b in SELECTED_BUDGETS])) / len(SELECTED_BUDGETS))
-            print(
-                f"{label}: selected budgets = {SELECTED_BUDGETS} | "
-                f"avg expected score={score:.4f} +/- {score_se:.4f}"
-            )
-            for opp in opponents:
-                vals = [mean[opp][idx_map[b]] for b in SELECTED_BUDGETS]
-                ses = [se[opp][idx_map[b]] if np.isfinite(se[opp][idx_map[b]]) else 0.0 for b in SELECTED_BUDGETS]
-                opp_mean = float(np.mean(vals))
-                opp_se = float(np.sqrt(np.sum(np.square(ses))) / len(SELECTED_BUDGETS))
-                print(f"  {opp:<12} avg over {SELECTED_BUDGETS} = {opp_mean:.4f} +/- {opp_se:.4f}")
+    payload = aggregate_group(raw)
+    budgets, opponents, mean, se, avg_mean, avg_se = payload
 
-    if TARGET_GROUP not in group_results:
-        raise RuntimeError(f"No matching runs found in {ENTITY}/{PROJECT}")
+    idx_map = {b: i for i, b in enumerate(budgets)}
+    missing = [b for b in SELECTED_BUDGETS if b not in idx_map]
+    if missing:
+        raise RuntimeError(f"Selected budgets missing from data: {missing}")
 
-    plot_group(TARGET_GROUP, group_results[TARGET_GROUP])
+    score = float(np.mean([avg_mean[idx_map[b]] for b in SELECTED_BUDGETS]))
+    score_se = float(np.sqrt(np.sum([avg_se[idx_map[b]] ** 2 for b in SELECTED_BUDGETS])) / len(SELECTED_BUDGETS))
+    print(
+        f"{TITLE}: selected budgets = {SELECTED_BUDGETS} | "
+        f"avg expected score={score:.4f} +/- {score_se:.4f}"
+    )
+    for opp in opponents:
+        vals = [mean[opp][idx_map[b]] for b in SELECTED_BUDGETS]
+        ses = [se[opp][idx_map[b]] if np.isfinite(se[opp][idx_map[b]]) else 0.0 for b in SELECTED_BUDGETS]
+        opp_mean = float(np.mean(vals))
+        opp_se = float(np.sqrt(np.sum(np.square(ses))) / len(SELECTED_BUDGETS))
+        print(f"  {opp:<12} avg over {SELECTED_BUDGETS} = {opp_mean:.4f} +/- {opp_se:.4f}")
+
+    plot_group(TITLE, payload)
 
 
 if __name__ == "__main__":
