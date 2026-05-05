@@ -552,7 +552,11 @@ reflecting the high opportunity cost of thinking. Under the larger clock budget
 across the four options, allocating deeper search substantially more often. Because
 the policy is trained across many clock settings rather than tuned separately at
 each one, this shift is evidence of budget-conditioned generalization rather than
-retuning. Appendix~\ref{app:strategy_appendix} shows the full per-environment
+retuning. A strict-timeout Speed Hex control in Appendix~\ref{app:hex_timeout_control}
+shows why we do not treat this variant as the main clock benchmark: once running
+out of time becomes an immediate loss with no fallback behavior, the task becomes
+substantially easier and the dominant challenge is simply to avoid flag-falls.
+Appendix~\ref{app:strategy_appendix} shows the full per-environment
 strategy plots; there we also see Pac-Man become more reactive late in the episode,
 while Tetris shifts toward deeper planning as boards become more constrained.
 
@@ -984,6 +988,45 @@ We use the $K{=}1$ checkpoint as the frozen base for all committed-action experi
     profiles rather than only the clock-game comparison.}
   \label{fig:strategy_appendix}
 \end{figure}
+
+
+\section{Strict-Timeout Speed Hex Control}
+\label{app:hex_timeout_control}
+
+The main Speed Hex setup allows the game to continue after the acting side exhausts
+its remaining clock budget, so the experiment measures \emph{resource allocation}
+rather than a pure timeout-avoidance game. To verify that this distinction matters,
+we ran a strict-timeout control in which overspending the selected search budget
+causes an immediate loss and there is no fallback behavior.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/hex_timeout_appendix.pdf}
+  \caption{Strict-timeout Speed Hex is substantially easier than the main Speed Hex
+    benchmark. Using the unique-game expected-score metric, the learned gate remains
+    above parity against every opponent on average, with means of 0.952 against the
+    policy-only opponent, 0.903 against fixed 2-simulation play, 0.904 against random
+    allocation, and 0.893 even against the fixed 128-simulation opponent. At large
+    budgets, the more aggressive opponents become the weakest because they overspend
+    clock and lose on time.}
+  \label{fig:hex_timeout_appendix}
+\end{figure}
+
+Figure~\ref{fig:hex_timeout_appendix} shows the resulting per-budget head-to-head
+curves under the unique-game metric used in the main paper. The learned gate stays
+above parity against every opponent \emph{on average}, and against five of the eight
+opponents it is above parity at \emph{every} evaluated budget. Even the hardest
+fixed-budget baseline under this metric, always-32, averages only 0.690 against the
+gate, while policy-only averages 0.952 and random allocation averages 0.904. The
+only sub-parity points occur for the more clock-aggressive baselines at the largest
+budgets: fixed 128-simulation play dips to 0.490 at $T{=}5700$, midpeak dips to
+0.491 at $T{=}4800$, and greedy dips to 0.487 at $T{=}5700$. This pattern is the
+opposite of what we observe in the main benchmark. Once timeout is an immediate
+terminal event, stronger search is no longer reliably beneficial; it often just
+increases the probability of burning too much clock. In other words, the game becomes
+easier because the gating policy can win largely by learning a conservative
+time-management rule rather than by solving the underlying Hex positions more
+effectively.
 
 
 \section{Implementation Details}
