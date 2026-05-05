@@ -199,7 +199,11 @@ def plot_timeout_hex_appendix(project: str, entity: str, output_stem: str):
     ax.axhline(0.5, color=C_BLACK, linestyle="--", linewidth=1.0)
     ax.set_xlabel("Clock budget", fontsize=FS_LABEL)
     ax.set_ylabel("Unique expected score", fontsize=FS_LABEL)
-    ax.set_title("Strict-timeout Speed Hex is easy to solve by avoiding flag-falls", fontsize=FS_TITLE)
+    ax.set_title(
+        "Strict-timeout Speed Hex is easy to solve by avoiding flag-falls",
+        fontsize=FS_TITLE - 4,
+        pad=8,
+    )
     ax.tick_params(axis="both", labelsize=FS_TICK)
     ax.set_ylim(0.0, 1.0)
     ax.legend(frameon=False, fontsize=FS_LEGEND - 1, ncol=2, loc="lower right")
