@@ -47,7 +47,7 @@
     \item {\bf Experimental result reproducibility}
     \item[] Question: Does the paper fully disclose all the information needed to reproduce the main experimental results of the paper to the extent that it affects the main claims and/or conclusions of the paper (regardless of whether the code and data are provided or not)?
     \item[] Answer: \answerYes{}
-    \item[] Justification: Hyperparameters are tabulated in Appendix~\ref{app:hyperparams}, network architectures are described in Appendix~\ref{app:architecture}, environment specifications are given in Appendix~\ref{app:envs}, and the training algorithm is presented in Algorithm~1. An anonymised code submission is included with the paper.
+    \item[] Justification: Hyperparameters are tabulated in Appendix, network architectures are described in Appendix, environment specifications are given in Appendix and the training algorithm is presented in Algorithm~1. An anonymised code submission is included with the paper.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the paper does not include experiments.
@@ -84,7 +84,7 @@
 \item {\bf Experimental setting/details}
     \item[] Question: Does the paper specify all the training and test details (e.g., data splits, hyperparameters, how they were chosen, type of optimizer) necessary to understand the results?
     \item[] Answer: \answerYes{}
-    \item[] Justification: Section~5 describes the evaluation protocol (100 seeds, mean $\pm$ SE). Appendix~\ref{app:hyperparams} lists all hyperparameters including learning rates, batch sizes, PPO clip ratios, entropy coefficients, and discount factors. The optimizer (PPO with TRAC for clock environments) and architecture (residual CNN + GRU gating network) are described in Sections~4--5 and Appendix~\ref{app:architecture}.
+    \item[] Justification: Section~5 describes the evaluation protocol (100 seeds, mean $\pm$ SE). Appendix lists all hyperparameters including learning rates, batch sizes, PPO clip ratios, entropy coefficients, and discount factors. The optimizer and architecture (residual CNN + GRU gating network) are described in Sections~4--5 and Appendix.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the paper does not include experiments.
@@ -162,7 +162,7 @@
 \item {\bf Licenses for existing assets}
     \item[] Question: Are the creators or original owners of assets (e.g., code, data, models), used in the paper, properly credited and are the license and terms of use explicitly mentioned and properly respected?
     \item[] Answer: \answerYes{}
-    \item[] Justification: All external libraries are cited: Jumanji \citep{bonnet2024jumanji} (Apache 2.0), pgx \citep{koyamada2023pgx} (Apache 2.0), JAX and mctx (Apache 2.0). No proprietary or scraped assets are used.
+    \item[] Justification: All external libraries are cited: Jumanji \citep{bonnet2024jumanji} (Apache 2.0), pgx \citep{koyamada2023pgx} (Apache 2.0), JAX and mctx \citep{deepmind2020jax} (Apache 2.0). No proprietary or scraped assets are used.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the paper does not use existing assets.
