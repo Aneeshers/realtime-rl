@@ -969,13 +969,14 @@ separated: 64 simulations scores $0.713$ against 32 and $0.868$ against 16,
 while 96 scores $0.595$ against 64 and $0.773$ against 32.
 
 For Speed Hex, the selected set $\{2, 8, 32, 128\}$ follows the same design
-principle: the options are spaced roughly linearly in log-simulation space,
-providing distinct low-, medium-, and high-compute operating points rather than
-redundant nearby budgets.
-The right-hand panel of Figure~\ref{fig:clock_budget_calibration} is included as
-an illustrative calibration sketch for this spacing; the full dense Hex
-inference-budget tournament is being generated separately.
-Thus, in both clocked domains, the selected options are intended to provide the
+principle and is now supported by the completed inference-budget tournament.
+Average expected score versus all other budgets rises from $0.340$ at 2
+simulations to $0.422$ at 8, $0.495$ at 32, and $0.710$ at 128, with successive
+gains of $+0.082$, $+0.073$, and $+0.214$.
+The pairwise Hex tournament shows the same separation: 8 simulations scores
+$0.550$ against 2, 32 scores $0.564$ against 8 and $0.643$ against 2, and 128
+scores $0.693$ against 32 and $0.727$ against 8.
+Thus, in both clocked domains, the selected options provide the
 gating policy with meaningfully separated quality-latency tradeoffs.
 
 \begin{figure}[h]
@@ -989,16 +990,13 @@ gating policy with meaningfully separated quality-latency tradeoffs.
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=\linewidth]{figures/clock_budget_calibration_go_hex_mock.pdf}
+  \includegraphics[width=\linewidth]{figures/clock_budget_calibration_go_hex.pdf}
   \caption{
     Simulation-option calibration for the two clock environments.
     Each point shows a budget's average expected score against all other
     candidate budgets.
     Red circles mark the options used in our clocked experiments:
-    16/32/64/96 simulations for Speed Go and 2/8/32/128 for Speed Hex.
-    The Speed Go panel uses the measured inference-tournament data, while the
-    Speed Hex panel is an illustrative mock-up showing the intended logarithmic
-    spacing of the selected options.}
+    16/32/64/96 simulations for Speed Go and 2/8/32/128 for Speed Hex.}
   \label{fig:clock_budget_calibration}
 \end{figure}
 

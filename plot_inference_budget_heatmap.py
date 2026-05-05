@@ -93,6 +93,14 @@ def fetch_pair_records(entity: str, project: str, nsim_tag: str):
     return records
 
 
+def merge_record_sets(*record_sets):
+    merged = {}
+    for records in record_sets:
+        for key, metrics in records.items():
+            merged.setdefault(key, {}).update(metrics)
+    return merged
+
+
 def expected_score(wins: float, draws: float, games: float) -> float:
     if not np.isfinite(games) or games <= 0:
         return np.nan
@@ -450,8 +458,10 @@ def main():
 
     # Also emit the combined Go+Hex calibration figure when running the default Go plot.
     if args.project == DEFAULT_PROJECT and args.nsim == DEFAULT_NSIM:
-        hex_budgets = [-1, 0, 2, 8, 32, 128]
-        hex_records = fetch_pair_records(args.entity, "hex_inference_tournament", "nsim_32")
+        hex_budgets = [2, 4, 8, 16, 32, 64, 96, 128]
+        hex_records_sparse = fetch_pair_records(args.entity, "hex_inference_tournament", "nsim_32")
+        hex_records_full = fetch_pair_records(args.entity, "hex_inference_tournament_fullgrid", "nsim_32")
+        hex_records = merge_record_sets(hex_records_sparse, hex_records_full)
         hex_tensor, _ = build_score_tensor(hex_records, hex_budgets)
         _, hex_mean, hex_sem = aggregate_vs_all_opponents(hex_tensor)
         combo_out = os.path.join(FIGS, "clock_budget_calibration_go_hex.pdf")
