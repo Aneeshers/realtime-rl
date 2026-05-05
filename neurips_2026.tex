@@ -131,7 +131,11 @@ In our approach, however, this meta-decision is made by a single gate forward pa
 Our contributions are:
 \begin{enumerate}
     \item \textbf{Real-time RL environment design.}
-    We propose two forms of real-time environments 
+    % We propose two types of real-time environments where we can implement our gating policy: a type where the agent takes quick actio
+    We propose a set of real-time RL environments where the environment progresses and updates while the agent is planning, or where there is a timer for the agent that gets decremented according to how much the agent plans.
+    \item \textbf{Planning quality vs.\ inference time.}
+    We empirically characterize how planning quality and real-time inference cost co-scale with MCTS simulation count, establishing the joint tradeoff that motivates adaptive allocation.
+    \item \textbf{Adaptive gating policy.} We train a lightweight gating network on top of a frozen planner to predict the number of MCTS simulations needed to plan an action in these real-time environments.
 \end{enumerate}
 
 % Our contributions are:
@@ -153,6 +157,8 @@ Our contributions are:
 %     and, in committed-action environments, the number of fast reflex actions taken.
 % \end{enumerate}
 
+We substantiate these contributions empirically. Across five environments, the gating policy outperforms 
+
 We substantiate these contributions empirically. Across five environments,
 the gating policy outperforms every fixed-budget baseline, and the learned strategy concentrates deliberation in
 high-stakes situations in interpretable, state-dependent ways. We further
@@ -161,7 +167,7 @@ training already simulates the planning delay by executing $K{-}1$ committed
 actions while MCTS searches in parallel, the trained gating policy transfers
 directly to asynchronous deployment with no retraining and no architectural
 changes. Gate inference is confirmed to be negligible relative to MCTS latency,
-empirically closing the loop on the paradox of deliberation.
+empirically closing the loop on the \emph{paradox} of deliberation.
 
 \begin{figure}[t]
   \centering
