@@ -157,17 +157,25 @@ Our contributions are:
 %     and, in committed-action environments, the number of fast reflex actions taken.
 % \end{enumerate}
 
-We substantiate these contributions empirically. Across five environments, the gating policy which adaptively selects among a set of planning budgets outperforms baselines constrained to use a single fixed planning budget at every step. We qualitatively find that the agent with the gating policy learns to plan for longer when it is able to do so and acts promptly when it is under pressure and demonstrate examples across our environments of when this happens.
+We substantiate these contributions empirically.
+Across five environments, the gating policy which adaptively selects among a set of planning budgets outperforms baselines constrained to use a single fixed planning budget at every step.
+We qualitatively find that the agent with the gating policy learns to plan for longer when it needs to and acts promptly when it is under pressure; we demonstrate examples across our environments of when this happens.
 
-We substantiate these contributions empirically. Across five environments,
-the gating policy outperforms every fixed-budget baseline, and the learned strategy concentrates deliberation in
-high-stakes situations in interpretable, state-dependent ways. We further
-validate the approach in a true two-GPU real-time setup, with the environment running on one GPU and MCTS on a second. Because
-training already simulates the planning delay by executing $K{-}1$ committed
-actions while MCTS searches in parallel, the trained gating policy transfers
-directly to asynchronous deployment with no retraining and no architectural
-changes. Gate inference is confirmed to be negligible relative to MCTS latency,
-empirically closing the loop on the \emph{paradox} of deliberation.
+% To show that the environments we designed and trained on, we test if our method transfers to a real-time 
+
+% To validate our real-time environment design, we test if our method transfers to a real-time hardware setting where the environment runs on one GPU and the agent runs on a second GPU and show that the trained gating policy transfers to this real-world real-time test with no retraining and no architectural changes. 
+
+To validate the environments we designed to capture the challenges of real-time decision-making and how we trained with them, we transfer the learned gating policy to a real-time hardware setting where the environment runs on one GPU and the agent runs on a second GPU without any retraining or architectural changes to demonstrate that it performs effectively.
+
+% We substantiate these contributions empirically. Across five environments,
+% the gating policy outperforms every fixed-budget baseline, and the learned strategy concentrates deliberation in
+% high-stakes situations in interpretable, state-dependent ways. We further
+% validate the approach in a true two-GPU real-time setup, with the environment running on one GPU and MCTS on a second. Because
+% training already simulates the planning delay by executing $K{-}1$ committed
+% actions while MCTS searches in parallel, the trained gating policy transfers
+% directly to asynchronous deployment with no retraining and no architectural
+% changes. Gate inference is confirmed to be negligible relative to MCTS latency,
+% empirically closing the loop on the \emph{paradox} of deliberation.
 
 \begin{figure}[t]
   \centering
