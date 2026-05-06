@@ -78,10 +78,10 @@ def _fetch_speed_hex_env():
             "name": "Speed Hex",
             "ylabel": "Expected Score",
             "baselines": [
-                ("K=1", 0.29, 0.03),
-                ("K=2", 0.35, 0.03),
-                ("K=3", 0.40, 0.03),
-                ("K=4", 0.43, 0.03),
+                ("K=2", 0.29, 0.03),
+                ("K=8", 0.35, 0.03),
+                ("K=32", 0.40, 0.03),
+                ("K=128", 0.43, 0.03),
                 ("Greedy", 0.46, 0.03),
                 ("Midpeak", 0.45, 0.03),
                 ("Random", 0.38, 0.03),
@@ -91,10 +91,10 @@ def _fetch_speed_hex_env():
 
     selected_budgets = set(_clock_selected_budgets())
     label_map = [
-        ("K=1", "always2", runs_main),
-        ("K=2", "always8", runs_alt),
-        ("K=3", "always32", runs_main),
-        ("K=4", "always128", runs_main),
+        ("K=2", "always2", runs_main),
+        ("K=8", "always8", runs_alt),
+        ("K=32", "always32", runs_main),
+        ("K=128", "always128", runs_main),
         ("Greedy", "proportional", runs_main),
         ("Midpeak", "midpeak", runs_main),
         ("Random", "random_gate", runs_main),
@@ -145,10 +145,10 @@ def _fetch_speed_go_env():
             "name": "Speed Go",
             "ylabel": "Expected Score",
             "baselines": [
-                ("K=1", 0.27, 0.03),
-                ("K=2", 0.42, 0.03),
-                ("K=3", 0.52, 0.03),
-                ("K=4", 0.47, 0.03),
+                ("K=16", 0.27, 0.03),
+                ("K=32", 0.42, 0.03),
+                ("K=64", 0.52, 0.03),
+                ("K=96", 0.47, 0.03),
                 ("Greedy", 0.45, 0.03),
                 ("Midpeak", 0.50, 0.03),
                 ("Random", 0.46, 0.03),
@@ -158,10 +158,10 @@ def _fetch_speed_go_env():
 
     selected_budgets = set(_clock_selected_budgets())
     label_map = [
-        ("K=1", "always16"),
-        ("K=2", "always32"),
-        ("K=3", "always64"),
-        ("K=4", "always96"),
+        ("K=16", "always16"),
+        ("K=32", "always32"),
+        ("K=64", "always64"),
+        ("K=96", "always96"),
         ("Greedy", "proportional"),
         ("Midpeak", "midpeak"),
         ("Random", "random_gate"),

@@ -234,7 +234,7 @@ MAIN_ENVS = [
     {
         "title":       f"Speed Hex ({SPEED_HEX_EARLY_TIME})",
         "xlabel":      "Move fraction",
-        "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "legend":      ["K=2", "K=8", "K=32", "K=128"],
         "renormalize_bins": True,
         "show_legend": False,
         "series":      _speed_hex_early_series,
@@ -243,7 +243,7 @@ MAIN_ENVS = [
     {
         "title":       f"Speed Hex ({SPEED_HEX_LATE_TIME})",
         "xlabel":      "Move fraction",
-        "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "legend":      ["K=2", "K=8", "K=32", "K=128"],
         "renormalize_bins": True,
         "show_legend": False,
         "series":      _speed_hex_late_series,
@@ -252,7 +252,7 @@ MAIN_ENVS = [
     {
         "title":       f"Speed Go ({SPEED_GO_EARLY_TIME})",
         "xlabel":      "Move fraction",
-        "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "legend":      ["K=16", "K=32", "K=64", "K=96"],
         "renormalize_bins": True,
         "stretch_support": True,
         "tail_k1_bias": 0.20,
@@ -263,10 +263,11 @@ MAIN_ENVS = [
     {
         "title":       f"Speed Go ({SPEED_GO_LATE_TIME})",
         "xlabel":      "Move fraction",
-        "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "legend":      ["K=16", "K=32", "K=64", "K=96"],
         "renormalize_bins": True,
         "stretch_support": True,
         "show_legend": True,
+        "legend":      ["Hex 2 / Go 16", "Hex 8 / Go 32", "Hex 32 / Go 64", "Hex 128 / Go 96"],
         "series":      _speed_go_late_series,
         "se_series":   _speed_go_late_se,
     },
@@ -300,7 +301,7 @@ APPENDIX_ENVS = [
     {
         "title":       f"Speed Go ({SPEED_GO_EARLY_TIME})",
         "xlabel":      "Move fraction",
-        "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "legend":      ["K=16", "K=32", "K=64", "K=96"],
         "renormalize_bins": True,
         "stretch_support": True,
         "tail_k1_bias": 0.20,
@@ -311,17 +312,18 @@ APPENDIX_ENVS = [
     {
         "title":       f"Speed Go ({SPEED_GO_LATE_TIME})",
         "xlabel":      "Move fraction",
-        "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "legend":      ["K=16", "K=32", "K=64", "K=96"],
         "renormalize_bins": True,
         "stretch_support": True,
         "show_legend": True,
+        "legend":      ["Hex 2 / Go 16", "Hex 8 / Go 32", "Hex 32 / Go 64", "Hex 128 / Go 96"],
         "series":      _speed_go_late_series,
         "se_series":   _speed_go_late_se,
     },
     {
         "title":       f"Speed Hex ({SPEED_HEX_EARLY_TIME})",
         "xlabel":      "Move fraction",
-        "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "legend":      ["K=2", "K=8", "K=32", "K=128"],
         "renormalize_bins": True,
         "show_legend": False,
         "series":      _speed_hex_early_series,
@@ -330,9 +332,9 @@ APPENDIX_ENVS = [
     {
         "title":       f"Speed Hex ({SPEED_HEX_LATE_TIME})",
         "xlabel":      "Move fraction",
-        "legend":      ["K=1", "K=2", "K=3", "K=4"],
+        "legend":      ["K=2", "K=8", "K=32", "K=128"],
         "renormalize_bins": True,
-        "show_legend": True,
+        "show_legend": False,
         "series":      _speed_hex_late_series,
         "se_series":   _speed_hex_late_se,
     },
@@ -440,8 +442,13 @@ def _plot_envs(envs, nrows, ncols, figsize, out_name):
         _apply_spine_style(ax)
 
         if env["show_legend"]:
-            ax.legend(fontsize=FONT_SIZE_LEGEND, frameon=False,
-                      loc="center left", bbox_to_anchor=(1.02, 0.5), handlelength=1.5)
+            ax.legend(
+                fontsize=FONT_SIZE_LEGEND,
+                frameon=False,
+                loc="center left",
+                bbox_to_anchor=(1.02, 0.5),
+                handlelength=1.5,
+            )
 
     for ax in axes[len(envs):]:
         ax.axis("off")
@@ -494,8 +501,13 @@ def _plot_envs_band(envs, nrows, ncols, figsize, out_name):
         _apply_spine_style(ax)
 
         if env["show_legend"]:
-            ax.legend(fontsize=FONT_SIZE_LEGEND, frameon=False,
-                      loc="center left", bbox_to_anchor=(1.02, 0.5), handlelength=1.5)
+            ax.legend(
+                fontsize=FONT_SIZE_LEGEND,
+                frameon=False,
+                loc="center left",
+                bbox_to_anchor=(1.02, 0.5),
+                handlelength=1.5,
+            )
 
     for ax in axes[len(envs):]:
         ax.axis("off")

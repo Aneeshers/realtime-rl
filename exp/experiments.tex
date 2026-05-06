@@ -55,8 +55,7 @@ mostly reacting quickly and invoking deeper planning selectively.
 
 For Speed Hex and Speed Go, we evaluate each policy at five sampled
 clock budgets, $T \in \{300, 1200, 2300, 3500, 4800\}$, and average the
-resulting head-to-head expected scores. Here $K{=}1,\dots,4$ denotes
-the four simulation-budget options rather than committed-action lengths:
+resulting head-to-head expected scores. The fixed-budget baselines use
 2/8/32/128 simulations for Speed Hex and 16/32/64/96 for Speed Go.
 Against fixed-budget baselines and the greedy, midpeak, and random
 heuristics, the gating policy remains above parity on average and
@@ -116,7 +115,7 @@ In the clocked PGX games, the relevant signal is the interaction
 between board state and remaining time. Figure~\ref{fig:strategy} shows
 that under the small clock budget ($T{=}300$), the policy heavily
 favours the cheapest option, while under the larger budget
-($T{=}4100$), it spreads mass more evenly across the four choices and
+($T{=}4100$), it spreads mass more evenly across the four calibrated budgets and
 uses deeper search more often. Because the policy is trained across many
 clock settings rather than tuned separately at each one, this shift is
 evidence of budget-conditioned generalization. A strict-timeout Speed
