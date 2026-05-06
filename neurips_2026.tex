@@ -29,6 +29,12 @@
 \newcommand{\pigate}{\pi_{\mathrm{gate}}}
 
 
+% reduce spacing in itemize, enumerate, etc
+\usepackage{enumitem}
+\setlist{itemsep=0.4\parsep,topsep=0pt,parsep=0pt,partopsep=0pt,leftmargin=1em,wide=0pt}
+
+
+
 \title{Finding the Time to Think: \\ Adaptive MCTS in Real-Time RL}
 
 %Reinforcement learning for budgeting MCTS planning under real-time
@@ -154,10 +160,7 @@ We address these challenges by training a lightweight \emph{gating policy} on to
 planner that decides how long to plan at
 each decision point. Our design escapes the paradox in practice because a single gate
 forward pass is orders of magnitude cheaper than an MCTS rollout, and
-therefore adds negligible real-time overhead.
-
-
-We employ our policy in \emph{real-time} Pac-Man, Tetris, Snake, in which the world
+therefore adds negligible real-time overhead. We employ our \emph{gating policy} in \emph{real-time} Pac-Man, Tetris, Snake, in which the world
 progresses while the planner runs in the background (Figure~\ref{fig:realtime-rl-gating-diagram}), and \emph{clock
 environments} (Speed Hex, Speed Go), in which the board is static but
 each player has a clock that depletes with thinking time.
@@ -357,6 +360,16 @@ two-GPU deployment with no architectural change.
 Classical MCTS time management~\citep{baier2016time,huang2010timemanagement,baudis2012pachi}
 provides the conceptual baseline for our clock environments.
 % =============================================================================
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{figures/diagram.pdf}
+    \caption{Illustration of an agent's actions}
+    \label{fig:diagram}
+\end{figure}
+
+
 % =============================================================================
 \section{Variable-Delay Real-Time RL}
 \label{sec:envs}
