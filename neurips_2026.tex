@@ -600,16 +600,8 @@ additional real-time cost.
 
 \subsection{The gating policy}
 
-The gating policy $\pigate(K \mid s_t)$ is the meta-policy of the SMDP
-formalized in Section~\ref{sec:envs}: at each meta-step it samples
-$K$, and the agent then executes $K{-}1$ committed actions followed
-by the planner's chosen action.
-The same formulation covers both environment types: in
-committed-action environments the committed actions advance the world
-and contribute rewards, while in clock environments they are no-ops
-that contribute zero reward, so the meta-reward $R_t$ reduces to the
-reward of the planner's chosen action while the $\gamma^K$ factor
-still discounts the elapsed clock cost.
+We now describe the information used to choose the planning budget $K$
+at each meta-step.
 
 The gating policy takes three inputs at each meta-step: (1) the raw
 game observation, (2) the planner's intermediate spatial features extracted
@@ -672,17 +664,16 @@ compute at the critical mid-game, a common heuristic in game engines \cite{baier
 The gating policy outperforms every fixed-budget baseline across all environments:
 \begin{itemize}
     \item In Pac-Man, the best fixed policy ($K{=}3$, 96 sims/step) scores 2149; the gating policy reaches 2370 ($+10.3\%$) using only ${\approx}49$ simulations per frame on average.
-    \item In real-time Tetris, the best fixed policy ($K{=}3$) scores 27.6; the gating policy reaches 45.6 ($+65\%$) using a bimodal strategy analyse in Section~\ref{subsec:whattriggersdeeperplanning}.
+    \item In real-time Tetris, the best fixed policy ($K{=}3$) scores 27.6; the gating policy reaches 45.6 ($+65\%$) using a bimodal strategy analyzed in Section~\ref{subsec:whattriggersdeeperplanning}.
     \item In Snake, the best fixed policy ($K{=}1$) scores 14.91; the gating policy reaches 16.54 ($+10.9\%$) by predominantly reacting quickly ($K{=}1$, 81.6\% of steps) while selectively invoking deeper planning as the board becomes constrained.
+    \item In Speed Hex, averaged over the shared sampled clock budgets, the gating policy reaches an expected score of 0.58, compared with 0.43 for the best fixed-budget baseline ($K{=}128$) and 0.46 for the best heuristic baseline (greedy).
+    \item In Speed Go, averaged over the same budgets, the gating policy reaches an expected score of 0.59, compared with 0.52 for the best fixed-budget baseline ($K{=}64$) and 0.50 for the best heuristic baseline (midpeak).
 \end{itemize}
 
 For both Speed Hex and Speed Go, we evaluate across the same five sampled clock
-budgets, $T \in \{300, 1200, 2300, 3500, 4800\}$, and average the resulting
+budgets, $T \in \{300, 1200, 2300, 3500, 4100\}$, and average the resulting
 head-to-head expected scores. The fixed-budget baselines use 2/8/32/128
 simulations for Speed Hex and 16/32/64/96 simulations for Speed Go.
-Against the fixed-budget baselines and the greedy, midpeak, and random
-heuristics, the gating policy remains above parity on average and
-outperforms these opponents overall.
 
 Across environments, the learned gate does not collapse to a single option; instead it learns dynamic, state- and budget-dependent allocation strategies that outperform both fixed-budget policies and hand-designed heuristics (Figure~\ref{fig:strategy}, Appendix Figure~\ref{fig:strategy_appendix}).
 The random baseline falls well below every fixed-$K$ policy in both environments, confirming that \emph{when} to allocate compute matters as much as how much.
@@ -740,7 +731,7 @@ reflecting the high opportunity cost of thinking. Under the larger clock budget
 across the four calibrated budgets, allocating deeper search substantially more often. Because
 the policy is trained across many clock settings rather than tuned separately at
 each one, this shift is evidence of budget-conditioned generalization rather than
-retuning. A strict-timeout Speed Hex control in Appendix~\ref{app:hex_timeout_control}
+retuning. A strict-timeout Speed Hex control on a separate, wider budget sweep in Appendix~\ref{app:hex_timeout_control}
 shows why we do not treat this variant as the main clock benchmark: once running
 out of time becomes an immediate loss with no fallback behavior, the task becomes
 substantially easier and the dominant challenge is simply to avoid flag-falls.
@@ -788,7 +779,8 @@ the next environment step (Figure~\ref{fig:deployment_timeline}).
 
 Figure~\ref{fig:deployment} summarizes 45 measured deployments:
 3 environments $\times$ 3 GPU classes $\times$ 5 frame rates (8--12\,FPS).
-The asynchronous execution pattern is unchanged from training: a $K{=}4$
+The asynchronous execution pattern is unchanged from training (see
+Section~\ref{sec:committed}): a $K{=}4$
 meta-step at 9\,FPS spans four 111\,ms frames, while reflex actions keep the
 environment moving and MCTS finishes asynchronously on the second GPU.
 
@@ -807,10 +799,6 @@ This result demonstrates a key property of the committed-action training protoco
 Because training simulates the planning delay by actually executing committed actions
 in the environment, the learned policy requires no modification for deployment.
 The separation between environment and planner is already the right abstraction.
-The Real-Time RL framework~\citep{ramstedt2019rtrl} fixes the computation budget to
-exactly one timestep via a 1-step delay RTMDP state augmentation; however, it is insufficient for variable-budget MCTS spanning
-$K \in \{1,\ldots,4\}$ frames, where a naive extension would require carrying $K$
-stale actions in the state (see more on this in Appendix~\ref{app:rtrl_smdp}).
 
 \begin{figure}[h]
   \centering
@@ -879,18 +867,21 @@ stale actions in the state (see more on this in Appendix~\ref{app:rtrl_smdp}).
 \section{Conclusion}
 % =============================================================================
 
-We studied the problem of planning in real-time reinforcement learning, where the
-cost of deliberation is paid in game outcomes rather than wall-clock seconds.
-Planning quality and real-time inference cost co-scale with simulation budget, making
-adaptive budget selection the natural lever for performance.
+We generalized \citet{ramstedt2019rtrl}'s fixed-delay real-time RL framework to
+the variable-delay setting, where the agent chooses how long to deliberate before
+its planned action takes effect. We formalized this problem as an SMDP over
+budgeted options, making planning-budget selection itself the control problem.
+Planning quality and real-time inference cost co-scale with simulation budget,
+making adaptive budget selection the natural lever for performance.
 A lightweight gating policy, trained via RL on top of a frozen planner, learns to
 invest computation proportionally to situational state complexity, more for dense
 boards and high-stakes decisions, less for easy ones.
-Across five environments spanning two real-time mechanisms, the gating policy
-consistently outperforms every fixed-budget baseline while using less average compute.
-We believe that adaptive, state-conditioned compute allocation is an important and
-underexplored axis for making planning-based RL systems both more capable and
-more resource-efficient in real-time settings.
+Across five environments spanning committed-action and clock-based real-time
+mechanisms, the gating policy consistently outperforms every fixed-budget baseline
+while using less average compute.
+We believe that variable-delay control and adaptive, state-conditioned compute
+allocation are important and underexplored ingredients for making planning-based
+RL systems both more capable and more resource-efficient in real-time settings.
 
 
 \begin{ack}
@@ -1027,6 +1018,10 @@ during rollout.
 \label{app:gae}
 % =============================================================================
 
+We re-introduce the meta-step subscript $K_t$ in this appendix because the
+derivation reasons about a sequence of meta-decisions rather than a single
+budget choice.
+
 Standard GAE~\citep{schulman2015high} estimates the advantage at
 timestep $t$ as a $\lambda$-weighted sum of one-step TD residuals,
 \begin{equation}
@@ -1113,6 +1108,8 @@ In all variants these are drawn from the argmax of the base model's raw policy
 logits---a single inexpensive forward pass, with no additional MCTS compute.
 The two variants differ only in what the \emph{MCTS tree simulates} during its internal
 rollout of the delay window, not in what is executed in the environment.
+We refer to these internal simulator variants as RT\_KStep (noop) and
+RT\_KT (logit).
 
 \textbf{RT\_KStep (noop)} simulates the delay steps inside the tree using a fixed
 action (gravity/noop), which is fast but mismatches what the agent will actually do.
@@ -1335,14 +1332,15 @@ causes an immediate loss and there is no fallback behavior.
 \end{figure}
 
 Figure~\ref{fig:hex_timeout_appendix} shows the resulting per-budget head-to-head
-curves under the unique-game metric used in the main paper. The learned gate stays
+curves under the unique-game metric used in the main paper, evaluated on a wider
+clock sweep than the main benchmark. The learned gate stays
 above parity against every opponent \emph{on average}, and against five of the eight
 opponents it is above parity at \emph{every} evaluated budget. Even the hardest
 fixed-budget baseline under this metric, always-32, averages only 0.690 against the
 gate, while policy-only averages 0.952 and random allocation averages 0.904. The
 only sub-parity points occur for the more clock-aggressive baselines at the largest
 budgets: fixed 128-simulation play dips to 0.490 at $T{=}5700$, midpeak dips to
-0.491 at $T{=}4800$, and greedy dips to 0.487 at $T{=}5700$. This pattern is the
+0.491 at $T{=}4100$, and greedy dips to 0.487 at $T{=}5700$. This pattern is the
 opposite of what we observe in the main benchmark. Once timeout is an immediate
 terminal event, stronger search is no longer reliably beneficial; it often just
 increases the probability of burning too much clock. In other words, the game becomes
@@ -1538,49 +1536,30 @@ to removing any single input channel.
 \section{Real-Time RL, SMDPs, and Committed-Action Training}
 \label{app:rtrl_smdp}
 
+This appendix expands Section~\ref{sec:smdp} by focusing on the distinction
+between the discrete-time SMDP used in training and the continuous-time SMDP
+approximated in deployment.
+
 \subsection*{The RTRL framework and its single-step restriction}
 
-\citet{ramstedt2019rtrl} formalise real-time interaction via the
-\emph{Real-Time Markov Decision Process} (RTMDP), which augments the environment
-state with the action currently in execution:
-$\mathbf{x}_t = (s_t, a_t)$,
-where $a_t$ was selected one step earlier based on $s_{t-1}$.
-The transition is
-$p(\mathbf{x}_{t+1} \mid \mathbf{x}_t, \hat{a}_t) =
- p(s_{t+1} \mid s_t, a_t)\,\delta(a_{t+1} - \hat{a}_t)$,
-passing the newly selected action $\hat{a}_t$ forward as the next state component.
-This is equivalent to a \emph{constant 1-step delay MDP}~\citep{walsh2009delayed}:
-the action the agent emits is applied one timestep later, and the policy must
-learn to predict where the state will be when the action lands.
-
-The framework is well-suited for lightweight policies whose evaluation time
-fits within one frame.
-For MCTS planning, however, the computation budget spans $K \in \{1,2,3,4\}$
-frames ($111$--$444$\,ms at 9\,FPS).
-A direct extension to a $K$-step delay MDP would require augmenting the state
-with the $K$ most recent actions,
-$\mathbf{x}_t = (s_t, a_{t-K+1}, \ldots, a_t)$,
-whose size grows with planning budget.
-Worse, under \emph{variable} $K$ the augmented state space would change
-dimensionality at each meta-step, and the policy would need to predict the
-state $K$ steps ahead through a chain of arbitrary committed actions---a
-hard credit-assignment problem that does not arise in the 1-step case.
+Section~\ref{sec:smdp} already gives the RTMDP equation and explains why
+Ramstedt et al.'s fixed one-step delay formalism is not the natural
+representation for our variable-budget committed-action setting.
+The additional point needed here is that, once delay is represented as
+budgeted options, training and deployment instantiate two closely related
+SMDPs with different time models.
 
 \subsection*{Training is a discrete SMDP; deployment is a genuine SMDP}
 
 \paragraph{Simulation.}
 In training the environment is synchronous: MCTS runs in zero simulated time.
-Each meta-step proceeds by (1) gating chooses $K$, (2) $K{-}1$ committed
-argmax steps execute, (3) the MCTS result is applied.
-From the meta-policy's perspective this is a
-\emph{Semi-Markov Decision Process}~\citep{puterman1994mdp} with \emph{deterministic}
-holding time $\tau = K$ (chosen by the meta-action).
-Successive meta-decisions are spaced $K$ environment steps apart and the
-appropriate discount is $\gamma^K$, which is exactly the discount applied
-in training.
-Formally this is a discrete SMDP with options~\citep{sutton1999between}:
-each $(K, \pi_{\mathrm{reflex}})$ pair defines an option of length $K$ terminating
-with the MCTS action.
+As described in Section~\ref{sec:smdp}, each meta-step proceeds by choosing
+$K$, executing $K{-}1$ committed argmax steps, and then applying the MCTS
+result. From the meta-policy's perspective this is a
+\emph{Semi-Markov Decision Process}~\citep{puterman1994mdp} with
+\emph{deterministic} holding time $\tau = K$, so successive meta-decisions are
+spaced $K$ environment steps apart and the appropriate discount is $\gamma^K$.
+This is the discrete-time SMDP solved during training.
 
 \paragraph{Deployment.}
 In real-time deployment the holding time between meta-decisions equals
