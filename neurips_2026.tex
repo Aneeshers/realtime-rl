@@ -25,7 +25,7 @@
 \newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
 \newcommand{\am}[1]{\textcolor{blue}{{[aneesh: #1]}}}
 \newcommand{\dc}[1]{\textcolor{teal}{{[dylan: #1]}}}
-\newcommand{\Kset}{\{1,2,3,4\}}
+\newcommand{\Kset}{\mathcal{K}}
 \newcommand{\pigate}{\pi_{\mathrm{gate}}}
 
 
@@ -50,20 +50,25 @@
 
 % =============================================================================
 \begin{abstract}
-% =============================================================================
 %X What are we doing
 Deliberating takes time. In real-time settings, that time is not free.
-Standard reinforcement learning (RL) sidesteps this as the environment waits indefinitely
-for the agent's decision.
-Instead, here, we study environments that progress while waiting for the agent's action, which naturally creates a \textit{cost of deliberation}.
-%Y why is this hard
-Crucially, there are state-dependent trade-offs between deliberating longer and reacting quickly. Furthermore, deliberating how much to deliberate, in the limit, risks complete paralysis.
-% Z our genius insight
-We resolve this with a two-step process.
-First, we train a standard MCTS policy.
-Second, we train a \textit{lightweight} gating policy that decides how many search steps to invest at each state. Our gating policy consistently outperforms fixed-budget baselines and hand-coded heuristics while using less average compute.
-We validate the full pipeline in a true two-GPU real-time setup across real-time Pac-Man, Tetris, Snake, Speed Hex, and Speed Go.
-
+Standard reinforcement learning (RL) sidesteps this as the environment
+waits indefinitely for the agent's decision.
+We study planning agents in real-time environments that must confront that
+deliberation takes time in which the environment continues to evolve.
+Building on prior real-time formalizations, we introduce
+\emph{variable-delay real-time RL}, where the agent chooses how long
+to deliberate at each decision point.
+%Y Why is this hard
+The right delay is state-dependent, and naively deciding how long to
+plan can paralyze the agent indefinitely.
+%Z Our genius insight
+We approach this setting by training a lightweight gating policy on
+top of a planner to select state-dependent planning budgets.
+Across real-time Pac-Man, Tetris, Snake, Speed Hex,
+and Speed Go, the gating policy outperforms fixed-budget and
+heuristic baselines, and transfers to a true two-GPU deployment with
+no architectural change.
 \end{abstract}
 
 
@@ -149,7 +154,7 @@ Firstly, choosing the right delay is state-dependent: some states reward careful
 while others demand immediate reaction.
 Secondly, the agent must commit to \emph{something} during the intermediate
 frames, since the environment will not wait for the planner.
-Laslty, choosing how long to deliberate is fundamentally a problem of
+Lastly, choosing how long to deliberate is fundamentally a problem of
 \emph{meta-reasoning}~\citep{russell1991right,horvitz1988reasoning},
 which risks an obvious \emph{paradox of planning-about-planning}: the
 meta-decision occurs while the environment continues to evolve, so
@@ -362,14 +367,16 @@ provides the conceptual baseline for our clock environments.
 % =============================================================================
 
 
-\begin{figure}
-    \centering
-    \includegraphics[width=\linewidth]{figures/diagram.pdf}
-    \caption{Illustration of an agent's actions}
-    \label{fig:diagram}
-\end{figure}
+%\begin{figure}
+%    \centering
+    %\includegraphics[width=\linewidth]{figures/diagram.pdf}
+    %\caption{Illustration of an agent's actions over time, which are dictated by the environment's real-time requirements. Given a compute budget for planning ($K$, chosen by a meta-policy), the agent must take reflex policy actions while it calculates a plan (i.e. computes MCTS rollouts). Once a plan is ready, it takes the next optimal action. The planning time and reflex actions themselves must be taken into account into MCTS rollouts, to synchronize the planned and executed (delayed) actions.}
+    %\label{fig:diagram}
+%\end{figure}
 
 
+% =============================================================================
+% =============================================================================
 % =============================================================================
 \section{Variable-Delay Real-Time RL}
 \label{sec:envs}
@@ -381,81 +388,135 @@ In these environments, the agent selects how many timesteps to
 deliberate, and during those timesteps the environment continues to
 evolve.
 
-\subsection{From fixed to variable action delay}
+\subsection{Variable-delay control as an SMDP over options}
+\label{sec:smdp}
 
-\citet{ramstedt2019rtrl}'s RTMDP fixes the action delay at exactly one
-timestep.
-The augmented state $\mathbf{x}_t = (s_t, a_t)$ carries the action
-selected at $t{-}1$, and the transition kernel is
+Let the underlying environment be a standard MDP
+$E = (\mathcal{S}, \mathcal{A}, P, r, \gamma)$.
+The challenge of real-time settings is that deliberation takes time:
+if the agent spends multiple frames computing its next move, the
+environment continues to evolve before that move can be applied.
+We therefore equip the agent with two primitive controllers and let
+it choose, at each meta-step, how long to deliberate before its
+planned action takes effect.
+
+\paragraph{Primitive controllers.}
+The agent has access to two controllers defined on $E$: (1) a fast \emph{reflex policy}
+    $\pi_{\mathrm{reflex}}(a \mid s)$, evaluated within one frame;
+    and (2) a \emph{budget-parameterized planner}
+    $\pi_{\mathrm{plan}}^{(K)}(a \mid s)$ that runs MCTS for $K$
+    frames starting from $s$ and returns an action distribution.
+
+\paragraph{Budgeted options.}
+At each meta-step the gating policy selects a planning budget $K$
+from a finite set of options $\Kset$ specified per environment
+(Sections~\ref{sec:committed} and~\ref{sec:clock}).
+Each $K$ invokes a \emph{budgeted option} $o_K$ that terminates
+deterministically after $K$ primitive frames and whose internal
+policy executes $K-1$ \emph{committed actions} drawn from
+$\pi_{\mathrm{reflex}}$, followed by one terminal action drawn from
+$\pi_{\mathrm{plan}}^{(K)}$.
+Concretely, if $o_K$ is initiated in state $s_t$, then for the
+intermediate frames $j = 0, \dots, K-2$,
 \begin{equation}
-  p(\mathbf{x}_{t+1} \mid \mathbf{x}_t, \hat{a}_t)
-  = p(s_{t+1} \mid s_t, a_t)\,\delta(a_{t+1} - \hat{a}_t),
+  a_{t+j} \sim \pi_{\mathrm{reflex}}(\cdot \mid s_{t+j}),
+  \qquad
+  s_{t+j+1} \sim P(\cdot \mid s_{t+j}, a_{t+j}),
 \end{equation}
-where $\delta$ is a Dirac delta, which passes the newly emitted action
-$\hat{a}_t$ forward to land at frame $t{+}1$.
-In RTMDP, delay is a property of the system rather than a choice made
-by the agent.
-
-We generalize RTMDP by allowing the action delay to vary per decision.
-At each meta-step the gating policy $\pigate$ chooses $K$, the number
-of timesteps to plan over, and the selected action lands $K$ frames
-later.
-Because the environment evolves during those $K$ frames, we must also
-specify what happens during the $K{-}1$ intermediate frames; we call
-these \emph{committed actions}.
-
-Each meta-decision can be viewed as selecting an
-\emph{option}~\citep{sutton1999between,bacon2017optioncritic} of length
-$K$: $K{-}1$ committed steps drawn from a fixed reflex distribution,
-followed by one action selected by MCTS.
-The induced process is a discrete-time semi-Markov decision process
-(SMDP) with holding time $K$, meta-reward
+and on the terminal frame
 \begin{equation}
-  R_t \;=\; \sum_{k=0}^{K - 1} \gamma^k \, r_{t+k},
+  a_{t+K-1} \sim \pi_{\mathrm{plan}}^{(K)}(\cdot \mid s_t),
+  \qquad
+  s_{t+K} \sim P(\cdot \mid s_{t+K-1}, a_{t+K-1}).
 \end{equation}
-and per-meta-step discount $\gamma^{K}$, as in the standard options
-formulation.
-The meta-Bellman equation is
+The option induces a transition kernel
+$P_K(s' \mid s) = \Pr(s_{t+K} = s' \mid s_t = s, o_K)$ and an
+option-level reward
+\begin{equation}
+  R_K(s) \;=\; \mathbb{E}\!\left[
+    \sum_{j=0}^{K-1} \gamma^j \, r(s_{t+j}, a_{t+j})
+    \;\Big|\; s_t = s, o_K
+  \right].
+\end{equation}
+
+\paragraph{Meta-level SMDP.}
+The gating policy $\pigate(K \mid s_t)$ is a meta-policy over
+options.
+At each meta-decision state $s_t$ the agent samples $K$, executes
+$o_K$, and returns to the meta level in state $s_{t+K}$ after $K$
+primitive frames.
+The induced control problem is a semi-Markov decision
+process~\citep{sutton1999between,bacon2017optioncritic} with
+meta-state space $\mathcal{S}$, meta-action space $\Kset$, holding
+time $\tau(K) = K$, kernel $P_K$, and reward $R_K$.
+Its meta-Bellman equation is
 \begin{equation}
   V(s_t)
   \;=\;
-  \mathbb{E}_{K \sim \pigate}\!\left[
-    R_t + \gamma^{K}\, V(s_{t + K})
+  \mathbb{E}_{K \sim \pigate(\cdot \mid s_t)}\!\left[
+    \sum_{j=0}^{K-1} \gamma^j r_{t+j}
+    + \gamma^K V(s_{t+K})
   \right].
   \label{eq:smdp}
 \end{equation}
-In simulation this is a discrete SMDP with deterministic holding time
-set by $K$; in deployment, MCTS runtime is slightly stochastic, so the
-hardware system is closer to a continuous-time SMDP.
+The gating policy is therefore solving a discrete control problem:
+not which primitive action to take now, but which temporally
+extended computation-and-control routine to invoke.
+In simulation this SMDP has deterministic holding times set by the
+chosen $K$; in deployment, MCTS runtime is slightly stochastic, so
+the hardware system is closer to a continuous-time SMDP.
 Appendix~\ref{app:rtrl_smdp} discusses this distinction.
 
+\paragraph{Relation to RTMDP.}
+\citet{ramstedt2019rtrl}'s Real-Time MDP is the fixed-delay limit of this
+formalism in which $K = 1$ everywhere.
+The option degenerates to a single planner action with no committed
+reflex steps, and delay is handled by augmenting the state with the
+action currently in flight, $\mathbf{x}_t = (s_t, a_t)$, with
+transition kernel
+\begin{equation}
+  P_{\mathrm{RT}}(\mathbf{x}_{t+1} \mid \mathbf{x}_t, \hat{a}_t)
+  = P(s_{t+1} \mid s_t, a_t)\,\delta(a_{t+1} - \hat{a}_t),
+\end{equation}
+where $\delta$ is a Dirac delta.
+RTMDP is well-suited to its setting, in which delay is a fixed
+property of the system and the agent emits no actions during
+deliberation.
+Our setting differs in two ways: $K$ is chosen by the agent rather
+than imposed by the system, and the environment is actively
+controlled during the deliberation window through
+$\pi_{\mathrm{reflex}}$.
+State augmentation is therefore not the natural representation;
+budgeted options are.
+
 \subsection{Committed-action environments: Pac-Man, Tetris, Snake}
+\label{sec:committed}
 
 In committed-action environments, acting and planning happen
 concurrently.
-When the gating policy selects $K$, it reserves $K$ environment frames
-for the planner.
-The agent emits $K{-}1$ committed actions. These are actions
-drawn from the planner's own policy network (with no MCTS planning), computed via a single
-forward pass in roughly two milliseconds, while the full MCTS runs
-in the background.
+The $K-1$ committed actions are drawn from $\pi_{\mathrm{reflex}}$,
+which we instantiate as the planner's own policy network evaluated
+without MCTS, computed via a single forward pass in roughly two
+milliseconds, while the full MCTS runs in the background.
 On the $K$-th frame the planner's chosen action is applied.
 The MCTS tree rolls out the same $K{-}1$ committed steps that the
 agent will actually execute, so search is performed over the future
 state in which the planned action will land.
 The cost of deeper planning is therefore exactly $K{-}1$ additional
-frames of world progression before the carefully chosen action lands.
+frames of world progression before the carefully chosen action
+lands.
 
 We instantiate this setting in three environments derived from
 Jumanji~\citep{bonnet2024jumanji}: Pac-Man, Snake, and a real-time
 variant of Tetris (Appendix~\ref{app:envs_tetris}).
-The source of progression differs across environments ( ghost motion
+The source of progression differs across environments (ghost motion
 in Pac-Man, gravity in real-time Tetris, body elongation in Snake),
 but in all cases a deeper plan arrives later, after the world has
 changed.
+
 \paragraph{Equal compute per frame.}
-We calibrate 32 MCTS simulations to one environment frame, which
-corresponds to roughly 9 FPS on an H100
+We use $\Kset = \{1, 2, 3, 4\}$ and calibrate 32 MCTS simulations to
+one environment frame, which corresponds to roughly 9 FPS on an H100
 (Section~\ref{sec:deployment}).
 At budget $K$ the planner therefore runs $32K$ simulations over $K$
 frames, so each frame still receives 32 simulations on average
@@ -464,40 +525,40 @@ Differences in performance reflect \emph{when} compute is allocated,
 not the average compute spent per frame.
 
 \subsection{Clock environments: Speed Hex and Speed Go}
+\label{sec:clock}
 
-In clock environments, the clock is the only dynamic element of the
-environment.
-The agent still picks $K$ timesteps of deliberation, and the
-environment still evolves over those $K$ timesteps, but here the
-only thing that evolves is the player's clock, which decrements with
-thinking time.
-The board state itself does not change.
+Clock environments instantiate the formalism with a degenerate
+reflex policy: $\pi_{\mathrm{reflex}}$ deterministically emits the
+no-op action, so committed steps leave the board unchanged and only
+the planner's terminal action affects play.
+The clock is therefore the only dynamic element of the environment;
+it decrements with thinking time over the $K$ frames of an option,
+while the board state remains fixed until the planner's chosen
+action is applied.
 
-Committed actions are no-ops, and only the planner's chosen action
-affects the board.
-Cost-awareness is built into the value network rather than the search
-tree: both players' remaining time is part of the observation during
-self-play, so the value estimates already price in the cost of
-thinking.
-MCTS can therefore simulate only board-state dynamics while remaining
-time-aware through the priors and values it consumes.
+Cost-awareness is built into the value network rather than the
+search tree: both players' remaining time is part of the observation
+during self-play, so the value estimates already price in the cost
+of thinking.
+MCTS can therefore simulate only board-state dynamics while
+remaining time-aware through the priors and values it consumes.
 
 We instantiate this setting in Speed Hex ($11 \times 11$) and Speed
 Go ($9 \times 9$), both built on \texttt{pgx}; in both cases the
-central decision is not only \emph{which} move to play but \emph{how
-much} of the remaining clock to spend before playing it.
-We use a one-to-one mapping between MCTS simulations and clock ticks:
-each simulation increments the player's clock by one unit.
+central decision is not only \emph{which} move to play but
+\emph{how much} of the remaining clock to spend before playing it.
+We use a one-to-one mapping between MCTS simulations and clock
+ticks: each simulation increments the player's clock by one unit.
 
 \paragraph{Simulation-option calibration.}
-For clock environments the equal-compute-per-frame constraint does not
-apply, so we calibrate the simulation options separately to ensure
-each option represents a meaningfully distinct tradeoff between
-inference latency and planning quality.
+For clock environments the equal-compute-per-frame constraint does
+not apply, so we calibrate the simulation options separately to
+ensure each option represents a meaningfully distinct tradeoff
+between inference latency and planning quality.
 Calibration details and the resulting option sets
-$\{2, 8, 32, 128\}$ for Speed Hex and $\{16, 32, 64, 96\}$ for Speed
-Go are in Appendix~\ref{app:sim_calibration}.
-
+$\Kset = \{2, 8, 32, 128\}$ for Speed Hex and
+$\Kset = \{16, 32, 64, 96\}$ for Speed Go are in
+Appendix~\ref{app:sim_calibration}.
 % =============================================================================
 % =============================================================================
 \section{Adaptive Gating Policy}
@@ -589,7 +650,7 @@ each $K \in \Kset$; and a \emph{random} policy selecting $K$ uniformly at each
 meta-step.
 For speed environments we additionally compare against \emph{greedy} (always use
 maximum simulations) and \emph{midpeak} (a bell-curve allocation that concentrates
-compute at the critical mid-game, a common heuristic in game engines \cite{baier2016time, huang2010timemanagement}). For these clock heuristics we tune the bell-curve shape separately at each evaluation budget and report the best resulting strategy. All results are averaged over 100 independent episode seeds; we report mean $\pm$ standard error.
+compute at the critical mid-game, a common heuristic in game engines \cite{baier2016time, huang2010timemanagement}). For these clock heuristics we tune the bell-curve shape separately at each evaluation budget and report the best resulting strategy. All results are averaged over 100 independent episode seeds; we report mean $\pm$ standard error in Fig.~\ref{fig:main_results}.
 
 % =============================================================================
 
@@ -608,7 +669,7 @@ compute at the critical mid-game, a common heuristic in game engines \cite{baier
   \label{fig:main_results}
 \end{figure}
 
-The gating policy outperforms every fixed-budget baseline across all environments.
+The gating policy outperforms every fixed-budget baseline across all environments:
 \begin{itemize}
     \item In Pac-Man, the best fixed policy ($K{=}3$, 96 sims/step) scores 2149; the gating policy reaches 2370 ($+10.3\%$) using only ${\approx}49$ simulations per frame on average.
     \item In real-time Tetris, the best fixed policy ($K{=}3$) scores 27.6; the gating policy reaches 45.6 ($+65\%$) using a bimodal strategy analyse in Section~\ref{subsec:whattriggersdeeperplanning}.
@@ -626,7 +687,7 @@ outperforms these opponents overall.
 Across environments, the learned gate does not collapse to a single option; instead it learns dynamic, state- and budget-dependent allocation strategies that outperform both fixed-budget policies and hand-designed heuristics (Figure~\ref{fig:strategy}, Appendix Figure~\ref{fig:strategy_appendix}).
 The random baseline falls well below every fixed-$K$ policy in both environments, confirming that \emph{when} to allocate compute matters as much as how much.
 
-\section{Discussion}
+\section{Analysis}
 \label{sec:discussion}
 
 \subsection{What triggers deeper planning?}
@@ -634,16 +695,16 @@ The random baseline falls well below every fixed-$K$ policy in both environments
 
 Across the environments, the gating policy concentrates compute in high-stakes states:
 situations where the consequence of a suboptimal action is large and additional search
-budget is most likely to change the decision.
+budget is most likely to change the decision. We visualize these situations in Figure~\ref{fig:interpretability}.
 
-\paragraph{Pac-Man}
+\paragraph{Pac-Man.}
 
 Ghost proximity correlates with lower chosen budgets in Pac-Man: the policy prefers $K{=}1$ when the
 nearest ghost is far away, shifts toward $K{=}2$ as the threat closes in, and reaches
 for $K{=}4$ at extreme proximity. When ghosts are frightened the threat evaporates, and
 the policy reduces planning budget accordingly.
 
-\paragraph{Tetris}
+\paragraph{Tetris.}
 
 Board density is the dominant feature in Tetris.
 $K{=}1$ is selected almost exclusively on near-empty boards
@@ -652,13 +713,13 @@ acceptable.
 $K{=}2$ and $K{=}4$ are selected on dense boards (fill $\approx 0.25$--$0.32$,
 stacks $\approx 12$ rows) where placement precision is consequential.
 $K{=}3$ is never used ($0\%$), producing the bimodal ``react or plan deeply'' strategy
-visible in Figure~\ref{fig:strategy}.
+visible in Figure~\ref{fig:interpretability}.
 Piece type also modulates budget: the Z-piece ($\bar{K}{=}2.98{\scriptstyle\pm0.04}$)
 and O- and T-pieces ($\bar{K}{=}2.88{\scriptstyle\pm0.04}$) receive the most
 deliberation, while the J-piece ($\bar{K}{=}2.66{\scriptstyle\pm0.04}$) receives the
 least, reflecting differences in placement geometry and expected outcome variance.
 
-\paragraph{Snake}
+\paragraph{Snake.}
 
 Spatial constraint, rather than simple goal distance, is the main trigger.
 $K{=}1$ dominates on open boards, while $K{=}3$ appears when reachability drops,
@@ -668,7 +729,7 @@ otherwise open boards. Immediately after eating, when the body has just grown,
 $K{=}3$ usage jumps from $3.2\%$ to $13.5\%$, indicating that the policy treats
 body-growth events as a prospective spatial-risk signal.
 
-\paragraph{Clock environments}
+\paragraph{Clock environments.}
 
 In the clocked PGX games, the key trigger is not a local board statistic alone but
 the interaction between board state and remaining time. Figure~\ref{fig:strategy}
@@ -731,7 +792,7 @@ The asynchronous execution pattern is unchanged from training: a $K{=}4$
 meta-step at 9\,FPS spans four 111\,ms frames, while reflex actions keep the
 environment moving and MCTS finishes asynchronously on the second GPU.
 
-The main result is that simulation-trained policies transfer cleanly to asynchronous
+The main result, as seen in Fig.~\ref{fig:deployment}, is that simulation-trained policies transfer cleanly to asynchronous
 hardware deployment over a broad operating range.
 Latency remains well within budget on H100 in all three environments, and remains
 reliable on A100 except near the tightest deadline regimes. Return transfer is similarly strong.
@@ -747,11 +808,9 @@ Because training simulates the planning delay by actually executing committed ac
 in the environment, the learned policy requires no modification for deployment.
 The separation between environment and planner is already the right abstraction.
 The Real-Time RL framework~\citep{ramstedt2019rtrl} fixes the computation budget to
-exactly one timestep via a 1-step delay RTMDP state augmentation, however, is insufficient for variable-budget MCTS spanning
+exactly one timestep via a 1-step delay RTMDP state augmentation; however, it is insufficient for variable-budget MCTS spanning
 $K \in \{1,\ldots,4\}$ frames, where a naive extension would require carrying $K$
 stale actions in the state (see more on this in Appendix~\ref{app:rtrl_smdp}).
-Appendix~\ref{app:deployment_details} gives the full environment-by-FPS-by-GPU
-deployment breakdown.
 
 \begin{figure}[h]
   \centering
