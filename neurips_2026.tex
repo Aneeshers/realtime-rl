@@ -1534,11 +1534,13 @@ computed from the current state, not from a state $K$ steps ago}.
 Specifically, the committed action at frame $t$ is
 $a_t = \arg\max_a \pi_\theta(a \mid s_t)$, evaluated fresh in $\sim$2\,ms---well
 within the $111$\,ms frame budget.
-Only the MCTS result is stale: it was computed on $s_0$ (start of meta-step)
-but applied at $s_K$ (after $K{-}1$ committed steps).
-This staleness is explicitly modeled in training: the $K{-}1$ committed steps
-actually execute in the environment before the MCTS action lands, so the policy
-learns to handle the $K$-step gap without any state augmentation.
+The MCTS search is initiated at $s_0$ (start of meta-step), but the tree
+explicitly rolls forward the same $K{-}1$ committed steps that will be executed
+in the environment and selects its terminal action for the resulting future
+landing state. This delay is therefore explicitly modeled in training: the
+$K{-}1$ committed steps actually execute in the environment before the MCTS
+action lands, so the policy learns to handle the $K$-step gap without any state
+augmentation.
 
 In the RTRL vocabulary, the committed-action component operates in the
 \emph{turn-based} regime (computation time $\ll$ frame time, so the environment
