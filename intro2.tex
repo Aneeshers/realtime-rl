@@ -48,7 +48,7 @@ the delay at one leaves the most interesting decision unspecified.
 \paragraph{Variable-delay real-time RL.}
 We generalise this setting along the axis Ramstedt's framework holds fixed.
 In \emph{variable-delay real-time RL}, the agent chooses, at each decision
-point, how many timesteps $K$ to spend deliberating before its considered
+point, how many timesteps to spend deliberating before its considered
 action is applied to the environment.
 This single change introduces three challenges that the fixed-delay
 framework does not face.
@@ -81,7 +81,7 @@ It also makes ``how long to plan'' a well-posed, learnable decision
 rather than an unbounded budget question.
 
 \paragraph{Meta-reasoning as the framing.}
-The problem of choosing $K$ is fundamentally a problem of \emph{meta-reasoning}:
+The problem of choosing how many timesteps to plan is fundamentally a problem of \emph{meta-reasoning}:
 deciding not just what action to take, but how much computation to spend
 deciding it.
 This connects to a long line of work, beginning with the value-of-computation
@@ -169,7 +169,7 @@ pipelined architectures that mitigate inference cost~\citep{riemer2025staggered,
 anokhin2025handling}.
 Across this body of work the action delay is a property of the system
 imposed on the agent.
-We instead let the agent \emph{choose} its delay $K$ at each decision
+We instead let the agent \emph{choose} how many timesteps to plan at each decision
 point, generalising RTMDP from a fixed 1-step delay to a variable-delay
 setting in which the choice itself is the central learning problem; we
 formalise the resulting SMDP in Section~\ref{sec:envs} and

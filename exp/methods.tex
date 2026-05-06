@@ -1,0 +1,69 @@
+\section{Adaptive Gating Policy}
+\label{sec:method}
+% =============================================================================
+
+The gating policy is a lightweight network trained on top of a frozen
+AlphaZero planner that selects, at each meta-step, a planning budget
+$K \in \Kset$.
+We described the variable-delay setting it operates in formally in
+Section~\ref{sec:envs}; here we describe the policy itself---what it
+observes, how it is structured, and how it is trained.
+
+Figure~\ref{fig:scaling} shows the tradeoff the gating policy must
+manage: additional MCTS simulations usually improve action quality, but
+they also take longer to run.
+The planner already handles action selection; the gate only decides,
+state by state, how long to run it.
+We therefore train the gate on top of a frozen planner rather than
+jointly optimizing both components.
+
+\subsection{Observations and architecture}
+
+At each meta-step the gating policy takes three inputs: (1) the raw
+game grid, (2) the planner's intermediate spatial features, extracted
+from its frozen trunk and used as a compact summary of what the planner
+currently infers about the position, and (3) the planner's scalar value
+estimate $V(s_t)$.
+In clock environments the observation additionally includes the
+remaining time budget for both players.
+Together these inputs expose the raw state, the planner's internal
+representation, and, where applicable, the current time pressure.
+We do not feed the planner's policy logits to the gate, so the budget
+decision depends on state and planner features rather than directly on
+the planner's preferred action.
+
+A lightweight network processes these inputs and produces a categorical
+distribution over $K$ together with a scalar baseline value used during
+training.
+Architecture details, including the recurrent variant used for Speed
+Hex, are in Appendix~\ref{app:implementation}.
+
+\subsection{Training}
+
+Training proceeds in two phases.
+We first train AlphaZero-style base planners for each environment using
+standard expert iteration (Appendix~\ref{app:az_primer}) and select
+frozen base checkpoints by cross-evaluation across delay budgets
+$K \in \Kset$ (Appendix~\ref{app:cross_eval}).
+We then freeze the selected planner and train the gating policy with
+PPO~\citep{schulman2017proximal} on top of it.
+
+Rollouts are collected over full episodes. At each meta-step the gate
+samples $K_t \sim \pigate(\cdot \mid s_t)$,
+the agent executes the resulting option---$K_t{-}1$ filler actions
+followed by the planner's chosen action---and the meta-reward $R_t$
+defined in Section~\ref{sec:envs} is accumulated.
+Variable-duration advantages with per-meta-step discount $\gamma^{K_t}$
+are computed before each round of PPO updates, adapting Generalized
+Advantage Estimation~\citep{schulman2015high} to the SMDP introduced in
+equation~(\ref{eq:smdp}).
+Only the gating network is updated; no gradient flows to the planner.
+
+To keep training efficient, we evaluate all $|\Kset|$ option
+transitions in parallel at each meta-step.
+This preserves static shapes and keeps the training loop easy to
+compile.
+The full JAX implementation---including the use of \texttt{lax.scan}
+for both MCTS inner loops and PPO rollouts, \texttt{vmap} for
+environment parallelism, and \texttt{pmap} for device parallelism---is
+described in Appendix~\ref{app:implementation}.

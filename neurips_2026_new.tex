@@ -1,0 +1,73 @@
+\documentclass{article}
+
+\usepackage{neurips_2026}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{enumitem}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\newcommand{\am}[1]{\textcolor{blue}{{[aneesh: #1]}}}
+\newcommand{\dc}[1]{\textcolor{teal}{{[dylan: #1]}}}
+\newcommand{\Kset}{\{1,2,3,4\}}
+\newcommand{\pigate}{\pi_{\mathrm{gate}}}
+
+
+\title{Finding the Time to Think: \\ Adaptive MCTS in Real-Time RL}
+
+%Reinforcement learning for budgeting MCTS planning under real-time
+
+%Reinforcement learning for budgeting computation in real-time
+
+\author{\todo{Author list}}
+
+
+\begin{document}
+
+\maketitle
+
+% =============================================================================
+\begin{abstract}
+% =============================================================================
+%X What are we doing
+Deliberating takes time. In real-time settings, that time is not free.
+Standard reinforcement learning (RL) sidesteps this as the environment waits indefinitely
+for the agent's decision.
+Instead, here, we study environments that progress while waiting for the agent's action, which naturally creates a \textit{cost of deliberation}.
+%Y why is this hard
+Crucially, there are state-dependent trade-offs between deliberating longer and reacting quickly. Furthermore, deliberating how much to deliberate, in the limit, risks complete paralysis.
+% Z our genius insight
+We resolve this with a two-step process.
+First, we train a standard MCTS policy.
+Second, we train a \textit{lightweight} gating policy that decides how many search steps to invest at each state. Our gating policy consistently outperforms fixed-budget baselines and hand-coded heuristics while using less average compute.
+We validate the full pipeline in a true two-GPU real-time setup across real-time Pac-Man, Tetris, Snake, Speed Hex, and Speed Go.
+
+\end{abstract}
+
+
+% =============================================================================
+\include{exp/intro_contributions}
+\include{exp/related_works}
+\include{exp/variable_RL}
+\include{exp/methods}
+
+\include{exp/experiments}
+\include{exp/deployment}
+\include{exp/discussion}
+\include{exp/appendix}
