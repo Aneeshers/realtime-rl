@@ -1,6 +1,0 @@
-Traceback (most recent call last):
-  File "/n/home04/amuppidi/realtime-thinking-rl/eval/base_model/tournament_single_inference.py", line 917, in <module>
-    main()
-  File "/n/home04/amuppidi/realtime-thinking-rl/eval/base_model/tournament_single_inference.py", line 533, in main
-    raise RuntimeError(f"No checkpoints found for {NSIM_TAG} under {CKPT_ROOT} for seeds {SEEDS}")
-RuntimeError: No checkpoints found for nsim_32 under /n/netscratch/gershman_lab/Lab/amuppidi/hex_base for seeds [0, 1, 2]
