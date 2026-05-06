@@ -65,20 +65,39 @@ We validate the full pipeline in a true two-GPU real-time setup across real-time
 \section{Introduction}
 % =============================================================================
 
-Expert decision-makers do not think equally hard about every choice. 
-They must recognize which decisions require more time or effort to think through and which decisions can be made quickly, as they are constrained in the cognitive resources they can devote to decision-making.
-For example, a skilled chess player managing the clock in speed chess will play most moves quickly and reserve their time for critical board positions when they need to think for longer.
-This adaptive allocation of cognitive effort in the face of time constraints is common in neuroscience, yet is completely absent from the standard reinforcement learning (RL) framework \citep{travnik2018reactive, ramstedt2019rtrl}.
+Expert decision-makers do not think equally hard about every choice.
+They must recognize which decisions require more time or effort to
+think through and which decisions can be made quickly, as they are
+constrained in the cognitive resources they can devote to
+decision-making \citep{otto2019opportunity}.
+For example, a skilled chess player managing the clock in speed chess
+will play most moves quickly and reserve their time for critical board
+positions when they need to think for longer.
+In standard RL, and Markov Decision Processes (MDPs), the environment
+waits as the agent may deliberate indefinitely before committing to an
+action, and computation does not carry any cost.
 
-In standard RL, the environment waits. The agent may deliberate indefinitely before committing to an action, and computation does not carry any cost.
-Real-time settings break this assumption: the world keeps progressing, even if the agent takes longer to act. %plan
-The cost of deliberation is not wall-clock latency, but steps taken by the environment while the agent is still deciding.
-A perfect action executed one moment too late may be far worse than a timely, good-enough action.
+Real-time settings break this assumption: the world keeps progressing
+even if the agent takes longer to act.
+The cost of deliberation is not wall-clock latency, but steps taken by
+the environment while the agent is still deciding.
+A perfect action executed one moment too late may be far worse than a
+timely, good-enough action.
 
-These real-time settings create a spectrum of decision-making regimes for an agent.
-At one extreme, the agent takes an immediate action to every frame with no time to deliberate in order to keep up with the ever-progressing environment.
-On the other hand, the agent deliberates and thinks extensively on each of their actions but falls behind as the environment progresses while they think.
-In this work, we explore the largely uncharted regime between these two extremes, in which an agent dynamically determines how long to think on each action as it interacts with the environment, choosing to deliberate for longer when feasible and acting instantaneously when necessary.
+\citet{ramstedt2019rtrl} formalized this concern by fixing the action
+delay at exactly one timestep.
+%For agents whose computation can usefully span many frames, and for
+%which the right amount of computation is highly state-dependent, fixing
+%the delay at one leaves the most interesting decision unspecified.
+We generalize \citet{ramstedt2019rtrl}'s framework and introduce
+\emph{variable-delay real-time RL}, a regime where the agent chooses,
+at each decision point, how long to deliberate before its action takes
+effect.
+
+% These real-time settings create a spectrum of decision-making regimes for an agent.
+% At one extreme, the agent takes an immediate action to every frame with no time to deliberate in order to keep up with the ever-progressing environment.
+% On the other hand, the agent deliberates and thinks extensively on each of their actions but falls behind as the environment progresses while they think.
+% In this work, we explore the largely uncharted regime between these two extremes, in which an agent dynamically determines how long to think on each action as it interacts with the environment, choosing to deliberate for longer when feasible and acting instantaneously when necessary.
 
 % This creates a spectrum of decision-making regimes.
 % At one extreme, every frame demands an immediate reaction with no time to deliberate.
@@ -92,14 +111,16 @@ In this work, we explore the largely uncharted regime between these two extremes
 
 % In this work, we explore the largely uncharted regime between these two extremes, where planning improves decision-making at a cost that grows with the planning budget.
 
-We study this intermediate regime using planning-based agents because, in real-time settings, planning takes time while the environment continues to evolve.
-As a result, there is a trade-off between spending more time planning to refine action selection and simply acting promptly.
-Therefore, planning-based agents in these settings must adaptively decide how long to plan before taking an action.
+% We study this intermediate regime using planning-based agents because, in real-time settings, planning takes time while the environment continues to evolve.
 
-Specifically, we look at AlphaZero-style models~\citep{silver2018general} that use Monte Carlo Tree Search (MCTS) to improve action selection with an additional time cost (see Appendix~\ref{app:az_primer} for a complete description).
-In MCTS, an agent repeatedly simulates plausible continuations from the current state, guided by a neural network that predicts action probabilities and state values; each additional simulation refines the estimate of which action is best and improves decision quality but extends the time it takes before you can take the action.
-We empirically demonstrate this property in Figure~\ref{fig:scaling}.
-As a result, the number of simulations in MCTS provides a natural planning budget that can be adaptively allocated in real-time settings to balance decision quality against thinking time.
+%In this paper, we study agents that use anytime planning algorithms to improve the quality of their actions, but must confront that doing so takes time in which the environment continues to evolve. There is a trade-off between spending more time planning to refine action selection and simply acting promptly; agents in these settings must adaptively decide how long to plan before acting. We refer to this setting as \emph{variable-delay real-time RL}. Specifically, we use AlphaZero-style models~\citep{silver2018general} that run Monte Carlo Tree Search (MCTS) at decision time to improve action selection (see Appendix~\ref{app:az_primer}). The number of MCTS simulations is a natural planning-budget knob: more simulations improve the action estimate but take longer to run, and we verify empirically that planning quality and inference latency co-scale (Figure~\ref{fig:scaling}).
+
+
+
+% (see Appendix~\ref{app:az_primer} for a complete description).
+% In MCTS, an agent repeatedly simulates plausible continuations from the current state, guided by a neural network that predicts action probabilities and state values; each additional simulation refines the estimate of which action is best and improves decision quality but extends the time it takes before you can take the action.
+% We empirically demonstrate this property in Figure~\ref{fig:scaling}.
+% As a result, the number of simulations in MCTS provides a natural planning budget that can be adaptively allocated in real-time settings to balance decision quality against thinking time.
 
 % We study this intermediate regime using planning-based agents. Specifically,
 % AlphaZero-style models~\citep{silver2018general} using Monte Carlo Tree Search (MCTS)
@@ -115,27 +136,71 @@ As a result, the number of simulations in MCTS provides a natural planning budge
 % co-scaling of planning quality and real-time cost makes adaptive compute
 % allocation the natural lever for performance.
 
+We explore this setting with agents that use anytime planning algorithms to improve the quality of their actions, but must confront that doing so takes time in which the environment continues to evolve. Specifically, we use AlphaZero-style models \citep{silver2018general} that run Monte Carlo Tree Search (MCTS) at decision time to improve action quality. A property of these agents is that more search produces better actions but takes longer to run, and we verify empirically (Figure~\ref{fig:scaling}) that planning quality and inference latency scale together.
+
+Our generalization introduces three challenges.
+Firstly, choosing the right delay is state-dependent: some states reward careful planning
+while others demand immediate reaction.
+Secondly, the agent must commit to \emph{something} during the intermediate
+frames, since the environment will not wait for the planner.
+Laslty, choosing how long to deliberate is fundamentally a problem of
+\emph{meta-reasoning}~\citep{russell1991right,horvitz1988reasoning},
+which risks an obvious \emph{paradox of planning-about-planning}: the
+meta-decision occurs while the environment continues to evolve, so
+deciding how long to think incurs the same per-frame cost as thinking
+itself..
+
+We address these challenges by training a lightweight \emph{gating policy} on top of a \emph{frozen}
+planner that decides how long to plan at
+each decision point. Our design escapes the paradox in practice because a single gate
+forward pass is orders of magnitude cheaper than an MCTS rollout, and
+therefore adds negligible real-time overhead.
 
 
-We train a lightweight \emph{gating policy} that reads the current game state and the planner's own value estimate and intermediate features to choose a planning budget at each decision point.
-The agent takes \emph{committed actions} as the planner runs in the background.
-In such \emph{committed-action environments} these are fast reflex actions sampled from the logits of our reflex policy
-that keep the agent moving without full deliberation (Figure \ref{fig:realtime-rl-gating-diagram}); in \emph{clock environments}, where the board does not evolve while a player thinks, they are no-ops that simply consume the player's clock.
-The gating policy learns to allocate computation to the moments where it matters most and to act quickly everywhere else.
+We employ our policy in \emph{real-time} Pac-Man, Tetris, Snake, in which the world
+progresses while the planner runs in the background (Figure~\ref{fig:realtime-rl-gating-diagram}), and \emph{clock
+environments} (Speed Hex, Speed Go), in which the board is static but
+each player has a clock that depletes with thinking time.
+Section~\ref{sec:envs} formalizes both.
 
-This design avoids the \emph{paradox of planning-about-planning}, where deciding how long to think incurs the same time cost as thinking itself as it also occurs while the environment continues to evolve.
-In our approach, however, this meta-decision is made by a single gate forward pass, which is orders of magnitude cheaper than an MCTS rollout and therefore adds negligible real-time overhead.
+
+
+%The agent takes \emph{committed actions} as the planner runs in the background.
+%In such \emph{committed-action environments} these are fast reflex actions sampled from the logits of our reflex policy
+%that keep the agent moving without full deliberation (Figure \ref{fig:realtime-rl-gating-diagram}).
+%At the point of deciding to plan, the agent simulates the trajectory over the planning period to find the future state to plan from.
+%In \emph{clock environments}, where the board does not evolve while a player thinks, they are no-ops that simply consume the player's clock.
+%The gating policy learns to allocate computation to the moments where it matters most and to act quickly everywhere else.
+
+%Our method avoids the \emph{paradox of planning-about-planning}, where deciding how long to think incurs the same time cost as thinking itself as it also occurs while the environment continues to evolve.
+%In our approach, however, this meta-decision is made by a single gate forward pass, which is orders of magnitude cheaper than an MCTS rollout and therefore adds negligible real-time overhead.
 
 % This design avoids the \emph{paradox of planning-about-planning}: a single gate forward pass is orders of magnitude cheaper than one MCTS rollout, so the meta-decision itself adds negligible real-time cost.
 
+%Our contributions are:
+%\begin{enumerate}
+%    \item \textbf{Real-time RL environment design.}
+    % We propose two types of real-time environments where we can implement our gating policy: a type where the agent takes quick actio
+%    We propose a set of real-time RL environments where the environment progresses and updates while the agent is planning, or where there is a timer for the agent that gets decremented according to how much the agent plans.
+%    \item \textbf{Planning quality vs.\ inference time.}
+ %   We empirically characterize how planning quality and real-time inference cost co-scale with MCTS simulation count, establishing the joint tradeoff that motivates adaptive allocation.
+ %   \item \textbf{Adaptive gating policy.} We train a lightweight gating network on top of a frozen planner to predict the number of MCTS simulations needed to plan an action in these real-time environments.
+%\end{enumerate}
+
 Our contributions are:
 \begin{enumerate}
-    \item \textbf{Real-time RL environment design.}
-    % We propose two types of real-time environments where we can implement our gating policy: a type where the agent takes quick actio
-    We propose a set of real-time RL environments where the environment progresses and updates while the agent is planning, or where there is a timer for the agent that gets decremented according to how much the agent plans.
+  \item \textbf{Variable-delay real-time RL.}
+    A generalization of \citet{ramstedt2019rtrl}'s fixed-delay
+    framework in which the agent chooses how long to deliberate at
+    each decision point. We also introduce a set of real-time RL environments where the environment progresses and updates while the agent is planning.
     \item \textbf{Planning quality vs.\ inference time.}
+    
     We empirically characterize how planning quality and real-time inference cost co-scale with MCTS simulation count, establishing the joint tradeoff that motivates adaptive allocation.
-    \item \textbf{Adaptive gating policy.} We train a lightweight gating network on top of a frozen planner to predict the number of MCTS simulations needed to plan an action in these real-time environments.
+
+  \item \textbf{Adaptive gating on a frozen planner.}
+    A lightweight gating policy, trained with PPO on top of a frozen
+    AlphaZero planner, that selects a state-dependent planning budget
+    at each decision.
 \end{enumerate}
 
 % Our contributions are:
@@ -157,15 +222,15 @@ Our contributions are:
 %     and, in committed-action environments, the number of fast reflex actions taken.
 % \end{enumerate}
 
-We substantiate these contributions empirically.
 Across five environments, the gating policy which adaptively selects among a set of planning budgets outperforms baselines constrained to use a single fixed planning budget at every step.
-We qualitatively find that the agent with the gating policy learns to plan for longer when it needs to and acts promptly when it is under pressure; we demonstrate examples across our environments of when this happens.
+
+To validate that the environments and method we designed capture the challenges of real-time decision-making, we transfer the learned gating policy to a real-time hardware setting where the environment runs on one GPU and the agent runs on a second GPU without any retraining or architectural changes to demonstrate that it performs effectively.
+
 
 % To show that the environments we designed and trained on, we test if our method transfers to a real-time 
 
 % To validate our real-time environment design, we test if our method transfers to a real-time hardware setting where the environment runs on one GPU and the agent runs on a second GPU and show that the trained gating policy transfers to this real-world real-time test with no retraining and no architectural changes. 
 
-To validate that the environments and method we designed capture the challenges of real-time decision-making, we transfer the learned gating policy to a real-time hardware setting where the environment runs on one GPU and the agent runs on a second GPU without any retraining or architectural changes to demonstrate that it performs effectively.
 
 % We substantiate these contributions empirically. Across five environments,
 % the gating policy outperforms every fixed-budget baseline, and the learned strategy concentrates deliberation in
@@ -179,7 +244,7 @@ To validate that the environments and method we designed capture the challenges 
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\linewidth]{figures/realtime-rl-gating-diagram.pdf}
+  \includegraphics[width=\linewidth]{figures/realtime-rl-gating-diagram-compact.pdf}
   \caption{
     The gating policy chooses whether to react immediately or spend time planning.
     Given the current state, a planning budget $K$ is selected, which determines how long MCTS runs and, in committed-action environments, how many reflex actions are taken.
@@ -187,303 +252,338 @@ To validate that the environments and method we designed capture the challenges 
   \label{fig:realtime-rl-gating-diagram}
 \end{figure}
 % =============================================================================
+% =============================================================================
 \section{Related Work}
 % =============================================================================
 
-\paragraph{Deliberation has always had a cost.}
-The central idea behind our approach is metareasoning: the agent should reason not only about which action to take, but also about how much computation that decision deserves.
-This view has a long history.
-Early metareasoning and anytime-planning work studied how agents should trade computation against acting now
-~\citep{russell1991right,korf1990rta,dean1988analysis,zilberstein1996using,likhachev2003ara}.
-Applied to MCTS, the same idea turns simulation budgeting into a meta-level control
-problem~\citep{hay2012selecting,tolpin2012simple,sezener2020static,lin2015metareasoning}.
-The cognitive-science literature sharpens this further by modeling bounded
-deliberation itself as a metalevel MDP~\citep{lieder2017strategy,griffiths2019doing,callaway2018learning}. 
-Previous applications of RL to metareasoning has also focused on choosing computations~\citep{cope_learning_2023,callaway2018learning}.
+\paragraph{Real-time RL and delayed MDPs.}
+The standard MDP assumes the environment waits during action selection.
+\citet{travnik2018reactive} flagged this as a fundamental mismatch with
+real-time interaction, and \citet{ramstedt2019rtrl} formalized an
+alternative in which the agent has exactly one timestep to compute its
+next action, mathematically equivalent to a 1-step constant-delay
+MDP~\citep{walsh2009delayed}.
+Subsequent work extends this to fixed action and observation delays of
+larger length~\citep{derman2021delayed,bouteiller2021random,katsikopoulos2003markov},
+to concurrent control~\citep{xiao2020thinking}, and to asynchronous and
+pipelined architectures that mitigate inference
+cost~\citep{riemer2025staggered,anokhin2025handling}.
+Across this literature, delay is imposed by the system.
+We instead let the agent choose its delay at each decision point,
+turning delay selection itself into the learning problem.
 
-\paragraph{Typically, model-based RL agents do not deliberate about deliberation.}
-AlphaZero-family planners~\citep{silver2018general,schrittwieser2020muzero}
-treat MCTS budget as a fixed hyperparameter at deployment, with Gumbel
-MuZero~\citep{danihelka2022policy} the notable advance toward small budgets.
-Real-time RL~\citep{ramstedt2019rtrl,travnik2018reactive} reintroduces the
-cost of deliberation by formalising environments that progress during action
-selection, with extensions for action and observation
-delays~\citep{walsh2009delayed,derman2021delayed,bouteiller2021random,katsikopoulos2003markov}
-and concurrent control~\citep{xiao2020thinking}. Recent work mitigates inference
-cost through asynchronous and pipelined
-architectures~\citep{riemer2025staggered,anokhin2025handling}. However, across all
-of this work, inference cost is something the architecture imposes, not
-something the agent reasons about.
+\paragraph{Value of computation and meta-reasoning.}
+The view that rational agents must reason not only about what to do but
+about how much to think traces to bounded
+rationality~\citep{simon1955behavioral} and Good's \emph{Type II
+rationality}~\citep{good1971twentyseven}.
+\citet{russell1991right} made this operational by defining the
+\emph{value of computation} (VOC) as the expected improvement in
+decision quality minus its cost, and bounded
+optimality~\citep{russell1995provably} reframed rational agency as the
+optimal use of fixed computational resources.
+Anytime
+algorithms~\citep{dean1988analysis,zilberstein1996using,likhachev2003ara,korf1990rta}
+produce monotonically improving answers given more time, and Bayesian
+flexible-computation methods~\citep{horvitz1988reasoning} formalize
+when to stop.
+Applied to MCTS, value-of-computation ideas yield Bayesian formulations
+of which simulation to run
+next~\citep{hay2012selecting,tolpin2012simple,sezener2020static,lin2015metareasoning},
+while classical chess- and Go-engine time management allocates clock
+per move via hand-designed
+heuristics~\citep{baier2016time,huang2010timemanagement,baudis2012pachi}.
+The cognitive-science literature models bounded deliberation itself as
+a meta-MDP whose actions are
+computations~\citep{lieder2017strategy,griffiths2019doing,callaway2018learning,cope_learning_2023}
+and shows empirically that humans allocate planning effort to
+high-stakes decisions in ways predicted by this model.
+Our gating policy fits this lineage: it is a learned estimator
+that chooses total budget per decision rather than which simulation to
+run next, formalized as a meta-MDP over a frozen planner.
 
-\paragraph{Adapting compute per state.}
-The closest neighbours to our work \emph{learn} to allocate planning compute. Metacontrol~\citep{hamrick2017metacontrol}
-trains a meta-controller to choose how many imagination steps to run; Thinker
-and Dynamic Thinker~\citep{chung2023thinker,wang2024dynamic} let the agent
-itself decide when to imagine alternative trajectories on top of a learned
-world model; Adaptive Lookahead~\citep{dalal2022adaptive} learns a
-state-dependent tree-search horizon. \citet{hamrick2021role}'s ablation
-study provides the strongest empirical motivation: shallow MuZero trees often suffice, and the marginal value of additional
-simulations varies sharply by state. In parallel, the LLM community has
-independently advanced the same idea: PonderNet and adaptive computation
-time~\citep{graves2016act,banino2021pondernet,schuster2022calm} learn per-input
-halting; test-time compute scaling~\citep{snell2024scaling,deepseek2025r1,muennighoff2025s1}
-and RL-trained reasoning-length
+\paragraph{Adaptive compute in model-based RL.}
+The closest neighbors to our work learn to allocate planning compute on
+top of a model-based RL agent.
+Metacontrol~\citep{hamrick2017metacontrol} chooses how many imagination
+steps to run; Thinker and Dynamic
+Thinker~\citep{chung2023thinker,wang2024dynamic} let the agent decide
+when to imagine alternative trajectories on top of a learned world
+model; Adaptive Lookahead~\citep{dalal2022adaptive} learns a
+state-dependent tree-search horizon.
+\citet{hamrick2021role} provides the key empirical motivation: shallow
+MuZero trees often suffice, and the marginal value of additional
+simulations varies sharply by state.
+AlphaZero-family
+planners~\citep{silver2018general,schrittwieser2020muzero,danihelka2022policy}
+treat MCTS budget as a fixed deployment hyperparameter.
+Other axes of ``learning to
+search''~\citep{guez2018mctsnets,farquhar2018treeqn,hamrick2020save,racaniere2017i2a}
+modify the planner's internal behavior rather than its budget; we hold
+the planner fixed and control only how long it runs.
+
+\paragraph{Adaptive compute in language models.}
+The same thesis has been independently developed for sequence models.
+PonderNet and adaptive computation
+time~\citep{graves2016act,banino2021pondernet,schuster2022calm} learn
+per-input halting; test-time compute
+scaling~\citep{snell2024scaling,deepseek2025r1,muennighoff2025s1} and
+RL-trained reasoning-length
 controllers~\citep{aggarwal2025l1,muppidi2025predictive,fang2025thinkless,shen2025dast}
-explicitly learn per-query thinking budgets; cascaded
-routing~\citep{kim2023bigl,chen2023frugalgpt,ong2025routellm} defers easy
-queries to cheap models. The shared thesis is that a small learned policy can
-profitably decide how much computation to spend per decision.
+learn per-query thinking budgets; cascaded
+routing~\citep{kim2023bigl,chen2023frugalgpt,ong2025routellm} defers
+easy queries to cheap models.
+The shared thesis is that a small learned policy can profitably decide
+how much computation to spend per decision.
+Our setting differs structurally: the cost of thinking is endogenous
+to the environment dynamics, so thinking longer changes the state the
+agent eventually acts in rather than incurring an external penalty.
 
 \paragraph{Our setting.}
-We share this thesis but address a setting none of these works does. We gate
-a \emph{frozen} AlphaZero-style planner, requiring no joint training between
-meta-policy and planner. The cost of deliberation is paid in
-\emph{environmental progress} (ghosts close in, pieces fall, clocks
-deplete) not in artificial reward shaping, so the gating policy learns a value-of-computation function from outcomes alone. Moreover, the
-committed-action protocol that makes this real-time cost legible during
-training also describes the dynamics of true asynchronous execution, so the
-trained policy transfers directly to a two-GPU deployment with no
-architectural change. Other axes of ``learning to
-search''~\citep{guez2018mctsnets,farquhar2018treeqn,hamrick2020save,racaniere2017i2a}
-modify the planner's internal behaviour rather than its budget, and the
-options framework~\citep{sutton1999between,bradtke1994reinforcement,bacon2017optioncritic,harb2018deliberation}
-together with classical MCTS time-management~\citep{baier2016time,huang2010timemanagement,baudis2012pachi}
-provide the formal scaffolding for variable-duration meta-decisions and the
-baselines for our clock environments.
-
-
-\section{Real-Time RL Environments}
+We share the thesis of the works above but address a setting none of
+them does.
+We generalize \citet{ramstedt2019rtrl}'s fixed-delay framework to
+variable delay, where the cost of deliberation is paid in
+\emph{environmental progression} rather than artificial reward
+shaping, so the gating policy learns the value of simulation budgets
+from outcomes alone.
+We gate a \emph{frozen} AlphaZero-style planner with no joint
+training, formalized as a meta-MDP over options~\citep{sutton1999between,bacon2017optioncritic}
+whose holding times are the chosen budgets.
+And the committed-action protocol that makes this real-time cost
+legible during training also describes the dynamics of true
+asynchronous execution, so the trained policy transfers directly to a
+two-GPU deployment with no architectural change.
+Classical MCTS time management~\citep{baier2016time,huang2010timemanagement,baudis2012pachi}
+provides the conceptual baseline for our clock environments.
+% =============================================================================
+% =============================================================================
+\section{Variable-Delay Real-Time RL}
 \label{sec:envs}
 % =============================================================================
 
-In a real-time environment the world continues to evolve while the agent thinks.
-That progression can come from adversaries, physics, or explicit clocks: ghosts
-close in, gravity pulls pieces downward, the snake body elongates and constrains
-future motion, and players' remaining time depletes. Computation is therefore not
-just a hardware cost but a meta-reasoning decision whose consequences are directly reflected in game outcomes. Figure~\ref{fig:scaling} shows this concretely with
-more simulations improve decision quality, but they also consume more real-time.
+This section formalizes the variable-delay setting and describes the
+environments in which we instantiate it.
+In these environments, the agent selects how many timesteps to
+deliberate, and during those timesteps the environment continues to
+evolve.
 
-%Figure~\ref{fig:tetris_committed} illustrates the mechanism for real-time Tetris.
-%An I-shaped piece spawns at the top of the board.
-%The gating policy selects $K{=}4$, reserving four game ticks for the planner.
-%During ticks $t{+}1$ through $t{+}3$, a fast reflex policy ($\pi_{reflex}$)
-%takes committed actions, here, moving the piece left each tick as gravity pulls it down.
-% MCTS runs 128 simulations in the background over those same ticks, simulating the committed-action trajectory to find the best action for tick $t{+}4$.
-%It identifies a four-cell gap on the right side of the board and places the piece there on the final step, a placement the reflex policy would have missed.
+\subsection{From fixed to variable action delay}
 
-%\begin{figure}[t]
-%  \centering
-%  %\includegraphics[width=\linewidth]{figures/tetris_committed.pdf}
- % \caption{Committed-action execution in real-time Tetris with $K{=}4$.
-  %  The first $K{-}1$ steps are committed reflex actions while MCTS plans in the
-   % background; on the $K$-th step the planner output is applied. The key point is
-   % that MCTS plans %\emph{over} the committed-action delay, not despite it.}
- % \label{fig:tetris_committed}
-%\end{figure}
+\citet{ramstedt2019rtrl}'s RTMDP fixes the action delay at exactly one
+timestep.
+The augmented state $\mathbf{x}_t = (s_t, a_t)$ carries the action
+selected at $t{-}1$, and the transition kernel is
+\begin{equation}
+  p(\mathbf{x}_{t+1} \mid \mathbf{x}_t, \hat{a}_t)
+  = p(s_{t+1} \mid s_t, a_t)\,\delta(a_{t+1} - \hat{a}_t),
+\end{equation}
+where $\delta$ is a Dirac delta, which passes the newly emitted action
+$\hat{a}_t$ forward to land at frame $t{+}1$.
+In RTMDP, delay is a property of the system rather than a choice made
+by the agent.
 
+We generalize RTMDP by allowing the action delay to vary per decision.
+At each meta-step the gating policy $\pigate$ chooses $K$, the number
+of timesteps to plan over, and the selected action lands $K$ frames
+later.
+Because the environment evolves during those $K$ frames, we must also
+specify what happens during the $K{-}1$ intermediate frames; we call
+these \emph{committed actions}.
 
-Across all the environments we study, the planning process is \emph{cost-aware} by
-construction. Either the MCTS tree explicitly simulates how the world evolves during
-the planning delay, or the network is trained on observations that include the
-remaining time budget, making its value estimates inherently sensitive to the cost of
-thinking.
-We study two mechanisms through which this property arises.
+Each meta-decision can be viewed as selecting an
+\emph{option}~\citep{sutton1999between,bacon2017optioncritic} of length
+$K$: $K{-}1$ committed steps drawn from a fixed reflex distribution,
+followed by one action selected by MCTS.
+The induced process is a discrete-time semi-Markov decision process
+(SMDP) with holding time $K$, meta-reward
+\begin{equation}
+  R_t \;=\; \sum_{k=0}^{K - 1} \gamma^k \, r_{t+k},
+\end{equation}
+and per-meta-step discount $\gamma^{K}$, as in the standard options
+formulation.
+The meta-Bellman equation is
+\begin{equation}
+  V(s_t)
+  \;=\;
+  \mathbb{E}_{K \sim \pigate}\!\left[
+    R_t + \gamma^{K}\, V(s_{t + K})
+  \right].
+  \label{eq:smdp}
+\end{equation}
+In simulation this is a discrete SMDP with deterministic holding time
+set by $K$; in deployment, MCTS runtime is slightly stochastic, so the
+hardware system is closer to a continuous-time SMDP.
+Appendix~\ref{app:rtrl_smdp} discusses this distinction.
 
-\subsection{Committed-action environments: Pac-Man, real-time Tetris, and Snake}
+\subsection{Committed-action environments: Pac-Man, Tetris, Snake}
 
-In committed-action environments, acting and planning happen concurrently.
-When the gating policy selects a planning budget $K$, it reserves $K$ environment steps
-for the planner. The agent takes $K{-}1$ \emph{committed actions}, which are fast reflex
-decisions drawn from the planner's own policy, while the full planner runs in the
-background (Figure \ref{fig:realtime-rl-gating-diagram}). On the $K$-th step, the planner's result is applied.
-The MCTS tree accounts for this explicitly: its recurrent function simulates the $K{-}1$
-committed-action steps, so search is conducted over the same future the agent will
-actually experience. The cost of deeper planning is exactly $K{-}1$ additional steps
-of world progression before the carefully chosen action lands.
+In committed-action environments, acting and planning happen
+concurrently.
+When the gating policy selects $K$, it reserves $K$ environment frames
+for the planner.
+The agent emits $K{-}1$ committed actions. These are actions
+drawn from the planner's own policy network (with no MCTS planning), computed via a single
+forward pass in roughly two milliseconds, while the full MCTS runs
+in the background.
+On the $K$-th frame the planner's chosen action is applied.
+The MCTS tree rolls out the same $K{-}1$ committed steps that the
+agent will actually execute, so search is performed over the future
+state in which the planned action will land.
+The cost of deeper planning is therefore exactly $K{-}1$ additional
+frames of world progression before the carefully chosen action lands.
 
-\textbf{Jumanji committed-action environments.}
-We study three committed-action environments derived from Jumanji~\cite{bonnet2024jumanji}:
-Pac-Man, Snake, and a real-time variant of Tetris. In all three, the environment
-progresses during deliberation, but the source of that progression differs.
-In Pac-Man, ghosts and the player continue moving while search runs. In Tetris, we
-modify the Jumanji environment so that gravity advances the piece in real time (Appendix \ref{app:envs_tetris}).
-In Snake, each committed step moves the snake forward, changing its body occupancy
-and therefore the spatial constraints faced by future actions. The common structure
-is that a deeper plan arrives later, after the world has already changed.
-
-\paragraph{Equal compute budget.}
-All budget options $K \in \Kset$ are designed to carry the same number of per-frame simulations: at budget $K$, the planner runs $K \times 32$ simulations over $K$ environment
-steps, so each game frame receives exactly 32 simulations on average (Table~\ref{tab:budget}).
-Differences in performance therefore reflect \emph{when} compute is used, not how
-much total compute is consumed.
-
-
-\begin{table}[h]
-  \centering
-  \caption{Committed-action environments: all $K$ options share 32 MCTS simulations
-    per game frame.}
-  \label{tab:budget}
-  \small
-  \begin{tabular}{lcccc}
-    \toprule
-    & $K{=}1$ & $K{=}2$ & $K{=}3$ & $K{=}4$ \\
-    \midrule
-    MCTS simulations       & 32 & 64 & 96 & 128 \\
-    Committed actions      & 0  & 1  & 2  & 3   \\
-    Simulations per frame  & 32 & 32 & 32 & 32  \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+We instantiate this setting in three environments derived from
+Jumanji~\citep{bonnet2024jumanji}: Pac-Man, Snake, and a real-time
+variant of Tetris (Appendix~\ref{app:envs_tetris}).
+The source of progression differs across environments ( ghost motion
+in Pac-Man, gravity in real-time Tetris, body elongation in Snake),
+but in all cases a deeper plan arrives later, after the world has
+changed.
+\paragraph{Equal compute per frame.}
+We calibrate 32 MCTS simulations to one environment frame, which
+corresponds to roughly 9 FPS on an H100
+(Section~\ref{sec:deployment}).
+At budget $K$ the planner therefore runs $32K$ simulations over $K$
+frames, so each frame still receives 32 simulations on average
+regardless of $K$.
+Differences in performance reflect \emph{when} compute is allocated,
+not the average compute spent per frame.
 
 \subsection{Clock environments: Speed Hex and Speed Go}
 
-In clock environments, the agent's remaining time is part of the observation and the
-network is trained to be budget-aware.
-MCTS simulations operate on board-only dynamics (no clock deduction during search),
-but because the network has always observed the clock state, its value estimates
-already price in the cost of thinking. A position evaluated with little time remaining
-is worth less than the same position with ample time.
-When the agent chooses a simulation budget, the corresponding time cost is deducted
-from the clock after the move is played. Committed actions during the planning phase
-are no-ops, since the board does not evolve while a player deliberates.
-We study this setting in Speed Hex and Speed Go. In both cases the key
-choice is not only \emph{which} move to play but \emph{how much} of the remaining
-clock to spend before playing it.
+In clock environments, the clock is the only dynamic element of the
+environment.
+The agent still picks $K$ timesteps of deliberation, and the
+environment still evolves over those $K$ timesteps, but here the
+only thing that evolves is the player's clock, which decrements with
+thinking time.
+The board state itself does not change.
 
-\paragraph{Simulation option calibration.}
-For clock environments, the equal-budget constraint does not apply.
-Instead, simulation options are calibrated so that each option represents a
-meaningfully distinct tradeoff between inference latency and planning quality;
-options that are too close in cost or performance do not give the gating policy useful
-choices.
-See Appendix~\ref{app:sim_calibration} for calibration details.
+Committed actions are no-ops, and only the planner's chosen action
+affects the board.
+Cost-awareness is built into the value network rather than the search
+tree: both players' remaining time is part of the observation during
+self-play, so the value estimates already price in the cost of
+thinking.
+MCTS can therefore simulate only board-state dynamics while remaining
+time-aware through the priors and values it consumes.
 
+We instantiate this setting in Speed Hex ($11 \times 11$) and Speed
+Go ($9 \times 9$), both built on \texttt{pgx}; in both cases the
+central decision is not only \emph{which} move to play but \emph{how
+much} of the remaining clock to spend before playing it.
+We use a one-to-one mapping between MCTS simulations and clock ticks:
+each simulation increments the player's clock by one unit.
 
+\paragraph{Simulation-option calibration.}
+For clock environments the equal-compute-per-frame constraint does not
+apply, so we calibrate the simulation options separately to ensure
+each option represents a meaningfully distinct tradeoff between
+inference latency and planning quality.
+Calibration details and the resulting option sets
+$\{2, 8, 32, 128\}$ for Speed Hex and $\{16, 32, 64, 96\}$ for Speed
+Go are in Appendix~\ref{app:sim_calibration}.
+
+% =============================================================================
 % =============================================================================
 \section{Adaptive Gating Policy}
 \label{sec:method}
 % =============================================================================
 
-
-
 \subsection{The planning tradeoff}
 
-The core observation motivating our approach is that planning quality and inference
-cost scale together.
-As an agent runs more MCTS simulations, its action quality improves; but more
-simulations also take longer to run, and in real-time settings that longer inference
-is exactly what advances the environment, or depletes the clock, before the agent
-acts.
-We verify empirically that this relationship is approximately linear over the
-simulation ranges we study (Figure~\ref{fig:scaling}) in Pac-Man, real-time
-Tetris, and 2-player Speed Hex: each additional batch of simulations yields a
-roughly equal gain in decision quality and a roughly equal increase in real-time
-cost. The full five-environment scaling results, including Speed Go and Snake,
-appear in Appendix~\ref{app:sim_calibration}.
+The core observation motivating our approach is that planning quality
+and inference cost scale together.
+As an agent runs more MCTS simulations, its action quality improves;
+but more simulations also take longer to run, and in real-time
+settings that longer inference is exactly what advances the
+environment, or depletes the clock, before the agent acts.
+We verify empirically that this relationship is approximately linear
+over the simulation ranges we study (Figure~\ref{fig:scaling}): each additional
+batch of simulations yields a roughly equal gain in decision quality
+and a roughly equal increase in real-time cost.
+The full five-environment scaling results appear in Appendix~\ref{app:sim_calibration}.
 
 \begin{figure}[h]
   \centering
   \includegraphics[width=0.9\linewidth]{figures/scaling.pdf}
-  \caption{More MCTS improves decisions, but it also costs more real time.
-    Across Pac-Man, real-time Tetris, and 2-player Speed Hex, planning quality
-    rises with simulation count while inference latency rises alongside it,
-    creating the tradeoff that the gating policy must manage. Blue denotes
-    performance; dashed curves denote per-step latency on H100, A100, and A40;
-    shading shows $\pm$SE.}
+  \caption{More MCTS improves decisions, but it also costs more real
+    time.
+    Across Pac-Man, real-time Tetris, and 2-player Speed Hex, planning
+    quality rises with simulation count while inference latency rises
+    alongside it, creating the tradeoff that the gating policy must
+    manage.
+    Blue denotes performance; dashed curves denote per-step latency on
+    H100, A100, and A40; shading shows $\pm$SE.}
   \label{fig:scaling}
 \end{figure}
 
-This joint scaling makes the allocation problem tractable. We do not need to learn
-\emph{how} to plan, the planner handles that, only \emph{when} the additional quality
-gain is worth the additional real-time cost.
+This joint scaling makes the allocation problem tractable.
+We do not need to learn \emph{how} to plan as the planner handles
+that, only \emph{when} the additional quality gain is worth the
+additional real-time cost.
 
-\subsection{Variable-duration meta-decisions}
+\subsection{The gating policy}
 
-We formalize planning-budget selection as a discrete variable-duration control problem.
-At each meta-step the gating policy $\pigate(K \mid s_t)$ selects a budget
-$K_t \in \Kset$.
-The agent executes $K_t{-}1$ committed actions followed by the planner's chosen
-action, accumulating $\gamma$-discounted rewards over all $K_t$ steps:
-\begin{equation}
-  R_t = \sum_{k=0}^{K_t - 1} \gamma^k\, r_{t+k}.
-  \label{eq:meta_reward}
-\end{equation}
-The same formulation covers clock environments: the $K_t{-}1$ committed actions
-are no-ops that contribute zero reward, so $R_t$ reduces to the reward of the
-planner's chosen action while $\gamma^{K_t}$ in equation~\eqref{eq:smdp} still
-discounts the elapsed clock cost.
-The next meta-state is $s_{t + K_t}$, and the Bellman target uses a per-meta-step
-discount of $\gamma^{K_t}$:
-\begin{equation}
-  V(s_t) = \mathbb{E}_{K_t \sim \pigate}\!\left[R_t + \gamma^{K_t} V(s_{t+K_t})\right].
-  \label{eq:smdp}
-\end{equation}
-We adapt Generalized Advantage Estimation~\cite{schulman2015high} to carry the
-per-step discount factor $\gamma^{K_t}$ through the advantage computation. In
-simulation this is a discrete SMDP with deterministic holding time set by the chosen
-$K$; in real deployment, MCTS execution time is slightly stochastic, so the hardware
-system is closer to a genuine SMDP. We give the formal distinction in
-Appendix~\ref{app:rtrl_smdp}.
+The gating policy $\pigate(K \mid s_t)$ is the meta-policy of the SMDP
+formalized in Section~\ref{sec:envs}: at each meta-step it samples
+$K$, and the agent then executes $K{-}1$ committed actions followed
+by the planner's chosen action.
+The same formulation covers both environment types: in
+committed-action environments the committed actions advance the world
+and contribute rewards, while in clock environments they are no-ops
+that contribute zero reward, so the meta-reward $R_t$ reduces to the
+reward of the planner's chosen action while the $\gamma^K$ factor
+still discounts the elapsed clock cost.
 
-\subsection{What the gating policy observes}
-
-The gating policy takes three inputs at each meta-step:
-(1) the raw game grid,
-(2) the planner's intermediate spatial features extracted from its frozen trunk
-(a global summary of what the planner infers about the current position), and
-(3) the planner's scalar value estimate $V(s_t)$.
-In clock environments the observation also includes the remaining time budget.
-Together these give the gating policy both a direct view of the board and a compressed
-summary of the planner's own confidence, without requiring any access to the planner's
-internals beyond a single forward pass.
-A lightweight network processes these inputs and produces a distribution over $K$ and
-a baseline value for training.
-All architecture and training details are in Appendix~\ref{app:implementation}.
+The gating policy takes three inputs at each meta-step: (1) the raw
+game observation, (2) the planner's intermediate spatial features extracted
+from its frozen trunk and (3) the planner's scalar value
+estimate $V(s_t)$.
+In clock environments the observation also includes the remaining
+time budget.
+Together these give the gating policy both a direct view of the board
+and a compressed summary of the planner's own confidence, without
+requiring any access to the planner's internals beyond a single
+forward pass.
+A lightweight network processes these inputs and produces a
+distribution over $K$ and a baseline value for training.
+All architecture details are in Appendix~\ref{app:implementation}.
 
 \subsection{Training}
 
-We train in two phases. First, we train AlphaZero-style base planners for each
-environment. We then freeze the selected base planner and train the gating policy
-with PPO~\cite{schulman2017proximal} on top of it. Rollouts are collected over full
-episodes and the variable-duration advantages above are computed before each round
-of policy updates. Only the gating network is updated; the planner receives no
-gradient. Making this meta-MCTS AlphaZero stack computationally feasible requires careful attention to several JAX implementation details, which we summarize in Appendix~\ref{app:implementation}.
-
+We train in two phases.
+First, we train AlphaZero-style base planners for each environment.
+We then freeze the selected base planner and train the gating policy
+with PPO~\citep{schulman2017proximal} on top of it.
+Because each meta-step has variable duration $K$, we adapt
+Generalized Advantage Estimation~\citep{schulman2015high} to carry
+the per-meta-step discount $\gamma^K$ through the advantage
+computation; the derivation is in Appendix~\ref{app:gae}.
+Making this meta-MCTS AlphaZero stack computationally feasible
+requires careful attention to several JAX implementation details,
+which we summarize in Appendix~\ref{app:implementation}.
 
 % =============================================================================
 \section{Experiments}
 \label{sec:experiments}
 % =============================================================================
 
-\subsection{Setup}
-
-\paragraph{Environments.}
-We evaluate across five environments spanning both mechanisms.
-The committed-action group comprises Pac-Man (Jumanji), Real-Time Tetris, and Snake,
-each evaluated at simulation budgets of 32, 64, 96, and 128 simulations per move.
-The clock group comprises Speed Hex (11$\times$11) and Speed Go (9$\times$9),
-with budgets of 2, 8, 32, 128 and 16, 32, 64, 96 respectively.
-
 \paragraph{Baselines.}
-For committed-action environments we compare against: \emph{always-$K$} policies for
+For Pacman, Tetris, and Snake we compare against: \emph{always-$K$} policies for
 each $K \in \Kset$; and a \emph{random} policy selecting $K$ uniformly at each
 meta-step.
 For speed environments we additionally compare against \emph{greedy} (always use
 maximum simulations) and \emph{midpeak} (a bell-curve allocation that concentrates
-compute at the critical mid-game, a common heuristic in game engines \cite{baier2016time, huang2010timemanagement}). For these clock heuristics we tune the bell-curve shape separately at each evaluation budget and report the best resulting strategy.
+compute at the critical mid-game, a common heuristic in game engines \cite{baier2016time, huang2010timemanagement}). For these clock heuristics we tune the bell-curve shape separately at each evaluation budget and report the best resulting strategy. All results are averaged over 100 independent episode seeds; we report mean $\pm$ standard error.
 
-\paragraph{Base planner.}
-For committed-action environments we use an AlphaZero checkpoint trained without
-action delay ($K{=}1$) as the frozen base.
-Cross-evaluation across checkpoints trained at each $K$ shows this checkpoint
-dominates at all evaluation budgets (Appendix~\ref{app:cross_eval}).
+% =============================================================================
 
-\paragraph{Evaluation protocol.}
-All results are averaged over 100 independent episode seeds; we report mean $\pm$ standard error.
+% =============================================================================
 
-\subsection{Main results}
 
-\begin{figure}[t]
+\begin{figure}[b]
   \centering
   \includegraphics[width=\linewidth]{figures/main_results_horizontal.pdf}
   \caption{
@@ -496,28 +596,26 @@ All results are averaged over 100 independent episode seeds; we report mean $\pm
 \end{figure}
 
 The gating policy outperforms every fixed-budget baseline across all environments.
-In Pac-Man the best fixed policy ($K{=}3$, 96 sims/step) scores 2149; the gating policy
-reaches 2370 ($+10.3\%$) using only ${\approx}49$ simulations per frame on average.
-In real-time Tetris the best fixed policy ($K{=}3$) scores 27.6; the gating policy
-reaches 45.6 ($+65\%$) using a bimodal strategy described below.
+\begin{itemize}
+    \item In Pac-Man, the best fixed policy ($K{=}3$, 96 sims/step) scores 2149; the gating policy reaches 2370 ($+10.3\%$) using only ${\approx}49$ simulations per frame on average.
+    \item In real-time Tetris, the best fixed policy ($K{=}3$) scores 27.6; the gating policy reaches 45.6 ($+65\%$) using a bimodal strategy analyse in Section~\ref{subsec:whattriggersdeeperplanning}.
+    \item In Snake, the best fixed policy ($K{=}1$) scores 14.91; the gating policy reaches 16.54 ($+10.9\%$) by predominantly reacting quickly ($K{=}1$, 81.6\% of steps) while selectively invoking deeper planning as the board becomes constrained.
+\end{itemize}
+
 For both Speed Hex and Speed Go, we evaluate across the same five sampled clock
 budgets, $T \in \{300, 1200, 2300, 3500, 4800\}$, and average the resulting
-head-to-head expected scores. In these clocked settings, $K{=}1,\dots,4$ denotes
-the four available simulation-budget options rather than a number of committed-actions:
-for Speed Hex these correspond to 2/8/32/128 simulations, while for Speed Go they
-correspond to 16/32/64/96 simulations. Against the fixed-budget baselines and the
-greedy, midpeak, and random heuristics, the gating policy remains above parity on
-average and outperforms these opponents overall.
-Across environments, the learned gate does not collapse to a single option; instead
-it learns dynamic, state- and budget-dependent allocation strategies that outperform
-both fixed-budget policies and hand-designed heuristics (Figure~\ref{fig:strategy},
-Appendix Figure~\ref{fig:strategy_appendix}).
-The random baseline falls well below every fixed-$K$ policy in both environments,
-confirming that \emph{when} to allocate compute matters as much as how much.
+head-to-head expected scores.
+In these clocked settings, $K{=}1,\dots,4$ denotes
+the four available simulation-budget options rather than a number of committed-actions: for Speed Hex these correspond to 2/8/32/128 simulations, while for Speed Go they correspond to 16/32/64/96 simulations. Against the fixed-budget baselines and the greedy, midpeak, and random heuristics, the gating policy remains above parity on average and outperforms these opponents overall.
 
-In Snake the best fixed policy ($K{=}1$) scores 14.91; the gating policy reaches 16.54 ($+10.9\%$) by predominantly reacting quickly ($K{=}1$, 81.6\% of steps) while selectively invoking deeper planning as the board becomes constrained.
+Across environments, the learned gate does not collapse to a single option; instead it learns dynamic, state- and budget-dependent allocation strategies that outperform both fixed-budget policies and hand-designed heuristics (Figure~\ref{fig:strategy}, Appendix Figure~\ref{fig:strategy_appendix}).
+The random baseline falls well below every fixed-$K$ policy in both environments, confirming that \emph{when} to allocate compute matters as much as how much.
+
+\section{Discussion}
+\label{sec:discussion}
 
 \subsection{What triggers deeper planning?}
+\label{subsec:whattriggersdeeperplanning}
 
 Across the environments, the gating policy concentrates compute in high-stakes states:
 situations where the consequence of a suboptimal action is large and additional search
@@ -667,40 +765,40 @@ deployment breakdown.
   \label{fig:deployment}
 \end{figure}
 
-% =============================================================================
-\section{Discussion}
-% =============================================================================
+% % =============================================================================
+% \section{Discussion}
+% % =============================================================================
 
 
-\paragraph{A unified framework.}
-The committed-action and clock mechanisms are two realizations of the same underlying
-principle that planning is cost-aware by construction.
-In committed-action environments, cost-awareness is baked into the MCTS tree itself,
-which simulates committed-action steps and therefore searches over the exact future
-the agent will experience.
-In clock environments, cost-awareness is baked into the network's value estimates,
-which are trained on clock-augmented observations and therefore price in remaining
-budget.
-The gating policy can exploit both signals using the same learning algorithm.
+% \paragraph{A unified framework.}
+% The committed-action and clock mechanisms are two realizations of the same underlying
+% principle that planning is cost-aware by construction.
+% In committed-action environments, cost-awareness is baked into the MCTS tree itself,
+% which simulates committed-action steps and therefore searches over the exact future
+% the agent will experience.
+% In clock environments, cost-awareness is baked into the network's value estimates,
+% which are trained on clock-augmented observations and therefore price in remaining
+% budget.
+% The gating policy can exploit both signals using the same learning algorithm.
 
-\paragraph{Deployment as a test of training fidelity.}
-The two-GPU deployment result is not merely an engineering demonstration.
-It shows that the committed-action abstraction, where K-1 reflex actions fill
-the planning delay in simulation, accurately models the dynamics of true asynchronous
-execution.
-An agent trained under this abstraction generalizes immediately to hardware-separated
-deployment, suggesting the abstraction captures the essential real-time structure.
+% \paragraph{Deployment as a test of training fidelity.}
+% The two-GPU deployment result is not merely an engineering demonstration.
+% It shows that the committed-action abstraction, where K-1 reflex actions fill
+% the planning delay in simulation, accurately models the dynamics of true asynchronous
+% execution.
+% An agent trained under this abstraction generalizes immediately to hardware-separated
+% deployment, suggesting the abstraction captures the essential real-time structure.
 
-\paragraph{Limitations.}
-The gating policy trains on top of a fixed base planner; joint optimization of the
-two is an open problem. A related direction is to use the gating policy's preferred
-planning budget as a supervision signal for distilling or fine-tuning the underlying
-AlphaZero network.
-We study a discrete budget set $K \in \Kset$; richer compute vocabularies with more
-planning options, and eventually continuous allocation, are natural extensions.
-Our environments are either simulation-based or played at controlled speeds; extending
-to physical real-time settings with uncontrolled latency would require adaptive
-calibration of the timing model.
+% \paragraph{Limitations.}
+% The gating policy trains on top of a fixed base planner; joint optimization of the
+% two is an open problem. A related direction is to use the gating policy's preferred
+% planning budget as a supervision signal for distilling or fine-tuning the underlying
+% AlphaZero network.
+% We study a discrete budget set $K \in \Kset$; richer compute vocabularies with more
+% planning options, and eventually continuous allocation, are natural extensions.
+% Our environments are either simulation-based or played at controlled speeds; extending
+% to physical real-time settings with uncontrolled latency would require adaptive
+% calibration of the timing model.
 
 
 % =============================================================================
@@ -849,6 +947,53 @@ into a single \texttt{jit}-ted function that runs entirely on the accelerator,
 with one network forward pass per simulation step and no host-device transfers
 during rollout.
 
+
+% =============================================================================
+\section{Variable-duration GAE}
+\label{app:gae}
+% =============================================================================
+
+Standard GAE~\citep{schulman2015high} estimates the advantage at
+timestep $t$ as a $\lambda$-weighted sum of one-step TD residuals,
+\begin{equation}
+  \hat{A}_t \;=\; \sum_{l=0}^{\infty} (\gamma \lambda)^l\, \delta_{t+l},
+  \qquad
+  \delta_t \;=\; r_t + \gamma\, V(s_{t+1}) - V(s_t),
+\end{equation}
+which assumes a unit time gap between consecutive states.
+In our SMDP, consecutive meta-states $s_t$ and $s_{t + K_t}$ are
+separated by a variable number of environment frames $K_t$, so the
+per-step discount in the TD residual becomes $\gamma^{K_t}$:
+\begin{equation}
+  \delta_t \;=\; R_t + \gamma^{K_t}\, V(s_{t + K_t}) - V(s_t),
+  \qquad
+  R_t \;=\; \sum_{k=0}^{K_t - 1} \gamma^k\, r_{t+k}.
+\end{equation}
+The discount accumulated between meta-steps $t$ and $t+l$ is
+$\gamma^{\sum_{j=0}^{l-1} K_{t+j}}$ rather than $\gamma^l$, giving the
+meta-step advantage
+\begin{equation}
+  \hat{A}_t
+  \;=\;
+  \sum_{l=0}^{\infty} \lambda^l
+  \left(\prod_{j=0}^{l-1} \gamma^{K_{t+j}}\right) \delta_{t+l},
+\end{equation}
+or, recursively,
+\begin{equation}
+  \hat{A}_t \;=\; \delta_t + \gamma^{K_t} \lambda\, \hat{A}_{t+1}.
+  \label{eq:gae_recursive}
+\end{equation}
+The structure is identical to standard GAE; the only change is that
+the per-step discount is $\gamma^{K_t}$ rather than $\gamma$.
+We compute these advantages in a single backward pass over each
+rollout using equation~\eqref{eq:gae_recursive}.
+
+Without this correction, treating each meta-step as a unit time gap
+would systematically understate the discount on long-budget
+meta-steps, biasing the value function in favor of many short budgets
+over fewer long ones.
+The $\gamma^{K_t}$ correction makes the value function comparable
+across budget choices.
 
 \section{Environment Details}
 \label{app:envs}
