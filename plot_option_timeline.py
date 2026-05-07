@@ -48,17 +48,18 @@ OUT_PNG = os.path.join(FIGS, "option_timeline.png")
 
 FIG_W = 13.0
 FIG_H = 2.28
+PLUS_FONT = 5
 
 STATE_W = 1.15
 STATE_H = 0.62
 Y_STATE = 0.0
 X_STATES = [0.0, 2.0, 4.0, 6.0, 8.6]
 
-FONT_STATE = FS_ANNOT + 1
-FONT_LABEL = FS_ANNOT + 1
-FONT_SMALL = FS_ANNOT - 1
-FONT_GATE = FS_BADGE - 3
-FONT_ACTION = FS_ANNOT + 2
+FONT_STATE = FS_ANNOT + 1 + PLUS_FONT
+FONT_LABEL = FS_ANNOT + 1 + PLUS_FONT
+FONT_SMALL = FS_ANNOT - 1 + PLUS_FONT
+FONT_GATE = FS_BADGE - 3 + PLUS_FONT
+FONT_ACTION = FS_ANNOT + 2 + PLUS_FONT
 
 FINAL_STATE_COLOR = sns.color_palette("crest", 7)[4]
 OPTION_COLOR = sns.color_palette("crest", 7)[5]
@@ -167,7 +168,17 @@ def draw():
     _arrow(ax, X_STATES[0], X_STATES[1], Y_STATE, r"$\pi_{\mathrm{reflex}}$", C_MID_GRAY, fsize=FONT_ACTION)
     _arrow(ax, X_STATES[1], X_STATES[2], Y_STATE, r"$\pi_{\mathrm{reflex}}$", C_MID_GRAY, fsize=FONT_ACTION)
     _arrow(ax, X_STATES[2], X_STATES[3], Y_STATE, r"$\pi_{\mathrm{reflex}}$", C_MID_GRAY, fsize=FONT_ACTION)
-    _arrow(ax, X_STATES[3], X_STATES[4], Y_STATE, r"$\pi_{\mathrm{plan}}^{(K)}$", C_RED, lw=2.4, fsize=FONT_ACTION)
+    _arrow(
+        ax,
+        X_STATES[3],
+        X_STATES[4],
+        Y_STATE,
+        r"$\pi_{\mathrm{plan}}^{(K)}$",
+        C_RED,
+        dy=0.22,
+        lw=2.4,
+        fsize=FONT_ACTION,
+    )
 
     _mcts_bar(
         ax,
