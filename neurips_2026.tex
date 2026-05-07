@@ -868,6 +868,19 @@ We believe that variable-delay control and adaptive, state-conditioned compute
 allocation are important and underexplored ingredients for making planning-based
 RL systems both more capable and more resource-efficient in real-time settings.
 
+\paragraph{Limitations.}
+Our committed-action protocol relies on the MCTS tree faithfully
+simulating the $K{-}1$ committed steps, which assumes a perfect
+environment simulator; extending to learned-dynamics planners
+(e.g., MuZero) is natural future work.
+The gating policy is trained on top of a \emph{frozen} base planner,
+and Appendix~\ref{app:cross_eval} shows that the choice of base
+checkpoint substantially affects downstream performance; joint
+optimization of planner and gate remains open.
+We hand-calibrate a small discrete budget set per environment;
+continuous or richer compute vocabularies are natural extensions but
+require recalibrating the cost-quality tradeoff.
+
 
 \begin{ack}
 \todo{Acknowledgments, funding disclosure, and competing interests.}
