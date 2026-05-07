@@ -155,7 +155,7 @@ while others demand immediate reaction.
 Secondly, the agent must commit to \emph{something} during the intermediate
 frames, since the environment will not wait for the planner.
 Lastly, choosing how long to deliberate is fundamentally a problem of
-\emph{meta-reasoning}~\citep{russell1991right,horvitz1988reasoning},
+\emph{meta-reasoning}~\citep{russell1991right,horvitz2013reasoning},
 which risks an obvious \emph{paradox of planning-about-planning}: the
 meta-decision occurs while the environment continues to evolve, so
 deciding how long to think incurs the same per-frame cost as thinking
@@ -165,7 +165,7 @@ We address these challenges by training a lightweight \emph{gating policy} on to
 planner that decides how long to plan at
 each decision point. Our design escapes the paradox in practice because a single gate
 forward pass is orders of magnitude cheaper than an MCTS rollout, and
-therefore adds negligible real-time overhead. We employ our \emph{gating policy} in \emph{real-time} Pac-Man, real-time Tetris, Snake, in which the world
+therefore adds negligible real-time overhead. We employ our \emph{gating policy} in \emph{real-time} Pac-Man, Tetris, Snake, in which the world
 progresses while the planner runs in the background (Figure~\ref{fig:realtime-rl-gating-diagram}), and \emph{clock
 environments} (Speed Hex, Speed Go), in which the board is static but
 each player has a clock that depletes with thinking time.
@@ -589,6 +589,8 @@ batch of simulations yields a roughly equal gain in decision quality
 and a roughly equal increase in real-time cost.
 The full five-environment scaling results appear in Appendix~\ref{app:sim_calibration}.
 
+\begingroup
+\setlength{\textfloatsep}{2pt}
 \begin{figure}[h]
   \centering
   \includegraphics[width=0.9\linewidth]{figures/scaling.pdf}
@@ -602,8 +604,7 @@ The full five-environment scaling results appear in Appendix~\ref{app:sim_calibr
     H100, A100, and A40; shading shows $\pm$SE.}
   \label{fig:scaling}
 \end{figure}
-\vspace{-8pt}
-
+\endgroup
 This joint scaling makes the allocation problem tractable.
 We do not need to learn \emph{how} to plan as the planner handles
 that, only \emph{when} the additional quality gain is worth the
