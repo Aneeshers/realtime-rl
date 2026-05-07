@@ -36,7 +36,7 @@
 
 
 
-\title{Learning to Allocate Planning Budgets in Real-time Reinforcement Learning}
+\title{Learning Planning Budgets in Real-Time RL}
 
 %Reinforcement learning for budgeting MCTS planning under real-time
 
@@ -256,7 +256,7 @@ Across five environments, the gating policy which adaptively selects among a set
   \includegraphics[width=\linewidth]{figures/realtime-rl-gating-diagram-compact.pdf}
   \caption{
     Given the current state, the gating policy chooses whether to react immediately or spend time planning, selecting
-    the number of $K$ timesteps over which to plan. The agent then
+    the number of timesteps $K$ over which to plan. The agent then
     takes $K{-}1$ committed actions using $\pi_{\mathrm{reflex}}$ ($\pi_{\mathrm{0}}$) while MCTS plans,
     and finally executes the planned action.
   }
@@ -365,9 +365,7 @@ from outcomes alone.
 We gate a \emph{frozen} AlphaZero-style planner with no joint
 training, formalized as a meta-MDP over options~\citep{sutton1999between,bacon2017optioncritic}
 whose holding times are the chosen budgets.
-And introduce a protocol that makes this real-time cost
-legible during training also describes the dynamics of true
-asynchronous execution, so the trained policy transfers directly to a
+We also introduce a protocol that makes this real-time cost legible during training and that describes the dynamics of true asynchronous execution, so the trained policy transfers to a
 two-GPU deployment with no architectural change.
 
 % =============================================================================
@@ -561,7 +559,7 @@ without MCTS, computed via a single forward pass in roughly two
 milliseconds, while the full MCTS runs in the background.
 We choose this instantiation rather than a separately trained reflex
 policy because it requires no additional training and keeps the
-committed-action policy aligned with the MCTS tree's internal rollouts.
+$\pi_{\mathrm{reflex}}$ aligned with the MCTS tree's internal rollouts.
 On the $K$-th frame the planner's chosen action is applied. MCTS rolls out the same $K{-}1$ committed steps that the
 agent will actually execute, so search is performed over the future
 state in which the planned action will land.
@@ -1521,7 +1519,7 @@ this by pushing nearly all control flow into JAX primitives.
 \textbf{Base planner training.}
 The frozen planners are trained with our own Gumbel-AlphaZero stack built on top of
 the Jumanji environments, using
-\texttt{mctx.gumbel\_muzero\_policy}\citep{deepmind2020jax} for search. Within each planner step, the MCTS
+\texttt{mctx.gumbel\_muzero\_policy} \citep{deepmind2020jax} for search. Within each planner step, the MCTS
 simulations are executed inside a compiled \texttt{lax.scan}; leaf expansion and
 backup are batched across parallel environments with \texttt{vmap}; and the full
 self-play/training pipeline is wrapped in \texttt{jit}. In the multi-device setting,
@@ -1548,7 +1546,7 @@ control flow. In practice this systems tradeoff is what makes the meta-MCTS stac
 fast enough to train routinely rather than as a one-off systems effort.
 
 \textbf{Practical effect.}
-These engineering choices --- \texttt{mctx}\citep{deepmind2020jax} for search, \texttt{vmap} for environment
+These engineering choices --- \texttt{mctx} \citep{deepmind2020jax} for search, \texttt{vmap} for environment
 parallelism, \texttt{jit} for whole-program compilation, \texttt{pmap} for device
 parallelism, and \texttt{lax.scan} for both MCTS inner loops and PPO rollout loops ---
 reduce wall-clock training time dramatically. In our internal runs, the end-to-end
@@ -1682,7 +1680,7 @@ regardless of MCTS latency, provided search completes within the deadline.
 The holding time is stochastic only because $K$ is chosen stochastically
 by $\pigate$; this is a true SMDP in the continuous-time
 sense~\citep{puterman1994mdp}.
-Our measurements confirm that MCTS latency stays well within the frame budget\footnote{Note the distinction between \emph{frame budget} and \emph{planning budget} $K$. The frame budget is the time between frames}
+Our measurements confirm that MCTS latency stays well within the frame budget\footnote{Note the distinction between \emph{frame budget} and \emph{planning budget} $K$. The frame budget is the time between frames at the chosen FPS (e.g., 111,ms at 9,FPS)}
 (H100: mean $122$\,ms, p95 $205$\,ms; A40: mean $197$\,ms, p95 $338$\,ms
 vs.\ a $K{=}4$ frame budget of $444$\,ms at 9\,FPS), so the deterministic
 simulation discount $\gamma^K$ matches the deployment discount closely,
