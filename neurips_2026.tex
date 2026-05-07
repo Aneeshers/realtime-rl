@@ -669,7 +669,8 @@ In the current evaluation set, larger chosen budgets are associated with greater
 nearest-ghost distance in Pac-Man: when the nearest ghost is close, the policy
 defaults to the more reactive $K{=}1$ option; at intermediate distances it shifts
 toward $K{=}2$; and when the threat is farthest away it can afford the deeper
-$K{=}4$ plan. 
+$K{=}4$ plan. We also see in Appendix~\ref{app:strategy_appendix} that the
+gating policy becomes more reactive late in the episode.
 
 \paragraph{Real-time Tetris.}
 
@@ -712,8 +713,7 @@ shows why we do not treat this variant as the main clock benchmark: once running
 out of time becomes an immediate loss with no fallback behavior, the task becomes
 substantially easier and the dominant challenge is simply to avoid flag-falls.
 Appendix~\ref{app:strategy_appendix} shows the full per-environment
-strategy plots; there we also see Pac-Man become more reactive late in the episode,
-while real-time Tetris shifts toward deeper planning as boards become more constrained.
+strategy plots.
 
 \begin{figure}[t]
   \centering
