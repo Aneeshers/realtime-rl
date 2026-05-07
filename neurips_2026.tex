@@ -149,7 +149,7 @@ effect.
 
 We explore this setting with agents that use anytime planning algorithms to improve the quality of their actions, but must confront that doing so takes time in which the environment continues to evolve. Specifically, we use AlphaZero-style models \citep{silver2018general} that run Monte Carlo Tree Search (MCTS) at decision time to improve action quality (see Appendix~\ref{app:az_primer} for a primer). A property of these agents is that more search produces better actions but takes longer to run, and we verify empirically (Figure~\ref{fig:scaling}) that planning quality and inference latency scale together.
 
-Our generalization introduces three challenges.
+Our setting introduces three challenges.
 Firstly, choosing the right delay is state-dependent: some states reward careful planning
 while others demand immediate reaction.
 Secondly, the agent must commit to \emph{something} during the intermediate
@@ -1301,7 +1301,7 @@ real-time Tetris, and the $K{=}3$ checkpoint for Snake.
 \section{Strategy Profiles Across Environments}
 \label{app:strategy_appendix}
 
-This section expands the main-text analysis by showing the full learned budget-allocation profiles for each environment.
+This section expands the main-text analysis by showing the full learned budget-allocation profiles for each environment (Figure \ref{fig:strategy_appendix}).
 
 \begin{figure}[t]
   \centering
