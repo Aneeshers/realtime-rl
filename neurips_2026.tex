@@ -195,20 +195,22 @@ Section~\ref{sec:envs} formalizes both.
  %   \item \textbf{Adaptive gating policy.} We train a lightweight gating network on top of a frozen planner to predict the number of MCTS simulations needed to plan an action in these real-time environments.
 %\end{enumerate}
 
-Our contributions are:
-\begin{enumerate}
+Our contributions are the following:
+\begin{enumerate}[leftmargin=2em]
   \item \textbf{Variable-delay real-time RL.}
     A generalization of \citet{ramstedt2019rtrl}'s fixed-delay
     framework in which the agent chooses how long to deliberate at
-    each decision point. We also introduce a set of real-time RL environments where the environment progresses and updates while the agent is planning.
-    \item \textbf{Planning quality vs.\ inference time.}
-    
-    We empirically characterize how planning quality and real-time inference cost co-scale with MCTS simulation count, establishing the joint tradeoff that motivates adaptive allocation.
-
+    each decision point. We also introduce a set of real-time RL
+    environments where the environment progresses while the agent
+    is planning.
+  \item \textbf{Planning quality vs.\ inference time.}
+    We empirically characterize how planning quality and real-time
+    inference cost co-scale with MCTS simulation count, establishing
+    the joint tradeoff that motivates adaptive allocation.
   \item \textbf{Adaptive gating on a frozen planner.}
     A lightweight gating policy, trained with PPO on top of a frozen
-    AlphaZero planner, that selects a state-dependent planning budget
-    at each decision.
+    AlphaZero planner, that selects a state-dependent planning
+    budget at each decision.
 \end{enumerate}
 
 % Our contributions are:
@@ -250,6 +252,8 @@ To validate that the environments and method we designed capture the challenges 
 % changes. Gate inference is confirmed to be negligible relative to MCTS latency,
 % empirically closing the loop on the \emph{paradox} of deliberation.
 
+\begingroup
+\setlength{\textfloatsep}{4pt}
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{figures/realtime-rl-gating-diagram-compact.pdf}
@@ -259,6 +263,9 @@ To validate that the environments and method we designed capture the challenges 
   }
   \label{fig:realtime-rl-gating-diagram}
 \end{figure}
+\endgroup
+
+
 % =============================================================================
 % =============================================================================
 \section{Related Work}
@@ -747,7 +754,7 @@ while real-time Tetris shifts toward deeper planning as boards become more const
     higher threat, denser boards, or fewer safe continuations, indicating that
     the gate is responding to meaningful decision difficulty. Plots show state
     features conditioned on chosen budget $K$ (mean $\pm$\,1\,SE, 100 episodes).}
-  \label{fig:interpretability}
+\label{fig:interpretability}
 \end{figure}
 
 
