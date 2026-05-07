@@ -269,7 +269,7 @@ Across five environments, the gating policy which adaptively selects among a set
 \section{Related Work}
 % =============================================================================
 
-\paragraph{Real-time RL and delayed MDPs.}
+\noindent\textbf{Real-time RL and delayed MDPs.}
 The standard MDP assumes the environment waits during action selection.
 \citet{travnik2018reactive} flagged this as a fundamental mismatch with
 real-time interaction, and \citet{ramstedt2019rtrl} formalized an
@@ -286,7 +286,7 @@ Across this literature, delay is imposed by the system.
 We instead let the agent choose its delay at each decision point,
 turning delay selection itself into the learning problem.
 
-\paragraph{Value of computation and meta-reasoning.}
+\noindent\textbf{Value of computation and meta-reasoning.}
 The view that rational agents must reason not only about what to do but
 about how much to think traces to bounded
 rationality~\citep{simon1972theories} and Good's \emph{Type II
@@ -316,7 +316,7 @@ Our gating policy fits this lineage: it is a learned estimator
 that chooses total budget per decision rather than which simulation to
 run next, formalized as a meta-MDP over a frozen planner.
 
-\paragraph{Adaptive compute in model-based RL.}
+\noindent\textbf{Adaptive compute in model-based RL.}
 The closest neighbors to our work learn to allocate planning compute on
 top of a model-based RL agent.
 Metacontrol~\citep{hamrick2017metacontrol} chooses how many imagination
@@ -335,7 +335,7 @@ search''~\citep{guez2018mctsnets,farquhar2018treeqn,hamrick2020save,racaniere201
 modify the planner's internal behavior rather than its budget; we hold
 the planner fixed and control only how long it runs.
 
-\paragraph{Adaptive compute in language models.}
+\noindent\textbf{Adaptive compute in language models.}
 The same thesis has been independently developed for sequence models.
 PonderNet and adaptive computation
 time~\citep{graves2016act,banino2021pondernet,schuster2022calm} learn
@@ -352,7 +352,7 @@ Our setting differs structurally: the cost of thinking is endogenous
 to the environment dynamics, so thinking longer changes the state the
 agent eventually acts in rather than incurring an external penalty.
 
-\paragraph{Our setting.}
+\noindent\textbf{Our setting.}
 We share the thesis of the works above but address a setting none of
 them does.
 We generalize \citet{ramstedt2019rtrl}'s fixed-delay framework to
