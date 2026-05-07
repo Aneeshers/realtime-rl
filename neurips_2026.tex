@@ -666,9 +666,10 @@ budget is likely to change the decision (Figure~\ref{fig:interpretability}).
 \paragraph{Pac-Man.}
 
 In the current evaluation set, larger chosen budgets are associated with greater
-nearest-ghost distance in Pac-Man: the policy most often selects $K{=}1$ when the
-nearest ghost is relatively close, shifts toward $K{=}2$ at intermediate distances,
-and reaches for $K{=}4$ when the nearest ghost is farthest away. When ghosts are frightened the threat evaporates, and
+nearest-ghost distance in Pac-Man: when the nearest ghost is close, the policy
+defaults to the more reactive $K{=}1$ option; at intermediate distances it shifts
+toward $K{=}2$; and when the threat is farthest away it can afford the deeper
+$K{=}4$ plan. When ghosts are frightened the threat evaporates, and
 the policy reduces planning budget accordingly.
 
 \paragraph{Real-time Tetris.}
