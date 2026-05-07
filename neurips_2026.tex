@@ -647,6 +647,10 @@ For both Speed Hex and Speed Go, we evaluate across the same five sampled clock
 budgets, $T \in \{300, 1200, 2300, 3500, 4100\}$, and average the resulting
 head-to-head expected scores. The fixed-budget baselines use 2/8/32/128
 simulations for Speed Hex and 16/32/64/96 simulations for Speed Go.
+In these main clock benchmarks, exhausting the clock does not immediately end the
+game: control falls back to $\pi_{\mathrm{reflex}}$, making the task one of resource
+allocation rather than mere timeout avoidance. Appendix~\ref{app:hex_timeout_control}
+reports the easier strict-timeout Speed Hex control.
 
 \paragraph{The gating policy outperforms every fixed-budget baseline across all environments.} In Pac-Man, the best fixed policy ($K{=}3$, 96 sims/step) scores 2149; the gating policy reaches 2370 ($+10.3\%$). In real-time Tetris, the best fixed policy ($K{=}3$) scores 27.6; the gating policy reaches 45.6 ($+65\%$).  In Snake, the best fixed policy ($K{=}1$) scores 14.91; the gating policy reaches 16.54 ($+10.9\%$). In Speed Hex, averaged over the shared sampled clock budgets, the gating policy reaches an expected score of 0.58, compared with 0.43 for the best fixed-budget baseline ($K{=}128$) and 0.46 for the best heuristic baseline (greedy). In Speed Go, averaged over the same budgets, the gating policy reaches an expected score of 0.59, compared with 0.51 for the best fixed-budget baseline ($K{=}64$) and 0.50 for the best heuristic baseline (midpeak).
 
@@ -708,10 +712,7 @@ reflecting the high opportunity cost of thinking. Under the larger clock budget
 across the four calibrated budgets, allocating deeper search substantially more often. Because
 the policy is trained across many clock settings rather than tuned separately at
 each one, this shift is evidence of budget-conditioned generalization rather than
-retuning. A strict-timeout Speed Hex control on a separate, wider budget sweep in Appendix~\ref{app:hex_timeout_control}
-shows why we do not treat this variant as the main clock benchmark: once running
-out of time becomes an immediate loss with no fallback behavior, the task becomes
-substantially easier and the dominant challenge is simply to avoid flag-falls.
+retuning.
 Appendix~\ref{app:strategy_appendix} shows the full per-environment
 strategy plots.
 
