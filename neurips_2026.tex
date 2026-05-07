@@ -259,7 +259,9 @@ To validate that the environments and method we designed capture the challenges 
   \includegraphics[width=\linewidth]{figures/realtime-rl-gating-diagram-compact.pdf}
   \caption{
     The gating policy chooses whether to react immediately or spend time planning.
-    Given the current state, a planning budget $K$ is selected, which determines how long MCTS runs and, in committed-action environments, how many committed actions are taken from the reflex policy.
+    Given the current state, a planning budget $K$ is selected. The agent then
+    takes $K{-}1$ committed actions from a fast reflex policy while MCTS plans,
+    and finally executes the planned action.
   }
   \label{fig:realtime-rl-gating-diagram}
 \end{figure}
