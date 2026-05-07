@@ -562,32 +562,12 @@ As an agent runs more MCTS simulations, its action quality improves;
 but more simulations also take longer to run, and in real-time
 settings that longer inference is exactly what advances the
 environment, or depletes the clock, before the agent acts.
-We verify empirically that this relationship is approximately linear
-over the simulation ranges we study (Figure~\ref{fig:scaling}): each additional
-batch of simulations yields a roughly equal gain in decision quality
-and a roughly equal increase in real-time cost.
-The full five-environment scaling results appear in Appendix~\ref{app:sim_calibration}.
-
-\begingroup
-\setlength{\textfloatsep}{2pt}
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=0.9\linewidth]{figures/scaling.pdf}
-  \caption{More MCTS improves decisions, but it also costs more real
-    time.
-    Across Pac-Man, real-time Tetris, and 2-player Speed Hex, planning
-    quality rises with simulation count while inference latency rises
-    alongside it, creating the tradeoff that the gating policy must
-    manage.
-    Blue denotes performance; dashed curves denote per-step latency on
-    H100, A100, and A40; shading shows $\pm$SE.}
-  \label{fig:scaling}
-\end{figure}
-\endgroup
-This joint scaling makes the allocation problem tractable.
-We do not need to learn \emph{how} to plan as the planner handles
+We verify empirically this relationship (Figure~\ref{fig:scaling}).
+The full five-environment scaling results appear in Appendix~\ref{app:sim_calibration}. This joint scaling means
+we do not need to learn \emph{how} to plan as the planner handles
 that, only \emph{when} the additional quality gain is worth the
 additional real-time cost.
+
 
 \subsection{The gating policy}
 
@@ -604,7 +584,18 @@ forward pass.
 A lightweight network processes these inputs and produces a
 distribution over $K$ and a baseline value for training.
 All architecture details are in Appendix~\ref{app:implementation}.
-
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{figures/scaling.pdf}
+  \caption{
+    Across Pac-Man, Tetris, and 2-player Speed Hex, planning
+    quality rises with simulation count while inference latency rises
+    alongside it.
+    Blue denotes performance; dashed curves denote per-step latency on
+    H100, A100, and A40; shading shows $\pm$SE.}
+  \label{fig:scaling}
+\end{figure}
+\vspace{-9pt}
 \subsection{Training}
 
 We train in two phases.
@@ -612,9 +603,7 @@ First, we train AlphaZero-style base planners for each environment.
 We then freeze the selected base planner and train the gating policy
 with PPO~\citep{schulman2017proximal} on top of it.
 For the clock environments, these base planners are trained by
-self-play before we freeze them and train a recurrent gating policy
-on top; Appendix~\ref{app:implementation} gives the concrete
-training details.
+self-play (Appendix~\ref{app:implementation}).
 Because each meta-step has variable duration $K$, we adapt
 Generalized Advantage Estimation~\citep{schulman2015high} to carry
 the per-meta-step discount $\gamma^K$ through the advantage
@@ -659,16 +648,9 @@ budgets, $T \in \{300, 1200, 2300, 3500, 4100\}$, and average the resulting
 head-to-head expected scores. The fixed-budget baselines use 2/8/32/128
 simulations for Speed Hex and 16/32/64/96 simulations for Speed Go.
 
-The gating policy outperforms every fixed-budget baseline across all environments:
-\begin{itemize}
-    \item In Pac-Man, the best fixed policy ($K{=}3$, 96 sims/step) scores 2149; the gating policy reaches 2370 ($+10.3\%$) using only ${\approx}49$ simulations per frame on average.
-    \item In real-time Tetris, the best fixed policy ($K{=}3$) scores 27.6; the gating policy reaches 45.6 ($+65\%$) using a bimodal strategy analyzed in Section~\ref{subsec:whattriggersdeeperplanning}.
-    \item In Snake, the best fixed policy ($K{=}1$) scores 14.91; the gating policy reaches 16.54 ($+10.9\%$) by predominantly reacting quickly ($K{=}1$, 81.6\% of steps) while selectively invoking deeper planning as the board becomes constrained.
-    \item In Speed Hex, averaged over the shared sampled clock budgets, the gating policy reaches an expected score of 0.58, compared with 0.43 for the best fixed-budget baseline ($K{=}128$) and 0.46 for the best heuristic baseline (greedy).
-    \item In Speed Go, averaged over the same budgets, the gating policy reaches an expected score of 0.59, compared with 0.52 for the best fixed-budget baseline ($K{=}64$) and 0.50 for the best heuristic baseline (midpeak).
-\end{itemize}
+\paragraph{The gating policy outperforms every fixed-budget baseline across all environments.} In Pac-Man, the best fixed policy ($K{=}3$, 96 sims/step) scores 2149; the gating policy reaches 2370 ($+10.3\%$). In real-time Tetris, the best fixed policy ($K{=}3$) scores 27.6; the gating policy reaches 45.6 ($+65\%$).  In Snake, the best fixed policy ($K{=}1$) scores 14.91; the gating policy reaches 16.54 ($+10.9\%$). In Speed Hex, averaged over the shared sampled clock budgets, the gating policy reaches an expected score of 0.58, compared with 0.43 for the best fixed-budget baseline ($K{=}128$) and 0.46 for the best heuristic baseline (greedy). In Speed Go, averaged over the same budgets, the gating policy reaches an expected score of 0.59, compared with 0.51 for the best fixed-budget baseline ($K{=}64$) and 0.50 for the best heuristic baseline (midpeak).
 
-Across environments, the learned gate does not collapse to a single option; instead it learns dynamic, state- and budget-dependent allocation strategies that outperform both fixed-budget policies and hand-designed heuristics (Figure~\ref{fig:strategy}, Appendix Figure~\ref{fig:strategy_appendix}).
+Across environments, the gate learns dynamic, state and budget-dependent allocation strategies that outperform both fixed-budget policies and hand-designed heuristics (Figure~\ref{fig:strategy}, Appendix Figure~\ref{fig:strategy_appendix}).
 The random baseline falls well below every fixed-$K$ policy in both environments, confirming that \emph{when} to allocate compute matters as much as how much.
 
 \section{Analysis}
