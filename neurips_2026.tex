@@ -35,7 +35,7 @@
 
 
 
-\title{Finding the Time to Think: \\ Adaptive MCTS in Real-Time RL}
+\title{Learned Planning Budgets for Real-Time RL}
 
 %Reinforcement learning for budgeting MCTS planning under real-time
 
@@ -54,11 +54,13 @@
 Deliberating takes time. In real-time settings, that time is not free.
 Standard reinforcement learning (RL) sidesteps this as the environment
 waits indefinitely for the agent's decision.
-We study planning agents in real-time environments that must confront that
-deliberation takes time in which the environment continues to evolve.
+Instead, we study real-time RL environments where the environment
+progresses while waiting for the agent's action.
 Building on prior real-time formalizations, we introduce
 \emph{variable-delay real-time RL}, where the agent chooses how long
-to deliberate at each decision point.
+to deliberate at each decision point, and instantiate it with planning
+agents that must confront that deliberation takes time in which the
+environment continues to evolve.
 %Y Why is this hard
 The right delay is state-dependent, and naively deciding how long to
 plan can paralyze the agent indefinitely.
