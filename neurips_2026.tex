@@ -436,51 +436,67 @@ option-level reward
   \right].
 \end{equation}
 
+% \begingroup
+% \setlength{\textfloatsep}{4pt}
+% \begin{figure}[b]
+% \centering
+% \begin{tikzpicture}[
+%   every node/.style={font=\small},
+%   state/.style={circle, draw=blue!50!black, fill=blue!8, minimum size=6mm, inner sep=0pt},
+%   finalstate/.style={circle, draw=green!50!black, fill=green!10, minimum size=6mm, inner sep=0pt},
+%   committed/.style={->, thick, draw=gray!70},
+%   planned/.style={->, thick, draw=orange!80!black},
+%   bracket/.style={decorate, decoration={brace, amplitude=4pt, raise=2pt}, thick, draw=teal!70!black}
+% ]
+%
+% \node[state] (s0) at (0, 0) {\footnotesize $s_t$};
+% \node[state] (s1) at (2.2, 0) {\footnotesize $s_{t{+}1}$};
+% \node[state] (s2) at (4.4, 0) {\footnotesize $\cdots$};
+% \node[state] (s3) at (6.6, 0) {\footnotesize $s_{t{+}K{-}1}$};
+% \node[finalstate] (s4) at (9.4, 0) {\footnotesize $s_{t{+}K}$};
+%
+% \draw[committed] (s0) -- node[above, font=\scriptsize] {$\pi_{\mathrm{reflex}}$} (s1);
+% \draw[committed] (s1) -- node[above, font=\scriptsize] {$\pi_{\mathrm{reflex}}$} (s2);
+% \draw[committed] (s2) -- node[above, font=\scriptsize] {$\pi_{\mathrm{reflex}}$} (s3);
+% \draw[planned] (s3) -- node[above, font=\scriptsize] {$\pi_{\mathrm{plan}}^{(K)}$} (s4);
+%
+% \coordinate (m0) at (0,-0.95);
+% \coordinate (m3) at (6.6,-0.95);
+% \draw[thick, draw=blue!60, line width=2pt]
+%   (m0) -- (m3)
+%   node[midway, below, font=\scriptsize, blue!60] {MCTS runs ($K$ frames)};
+%
+% \draw[bracket] ($(s0.north) + (0,0.2)$) -- ($(s4.north) + (0,0.2)$)
+%   node[midway, above=8pt, font=\scriptsize] {option $o_K$ (holding time $K$)};
+%
+% \node[font=\scriptsize, align=center] at (-1.4, 0) {gate\\ picks $K$};
+% \draw[->, thick] (-0.7, 0) -- (s0);
+%
+% \end{tikzpicture}
+% \vspace{-4pt}
+% \caption{Timeline of a budgeted option $o_K$. The agent emits $K{-}1$
+% committed actions from $\pi_{\mathrm{reflex}}$ while MCTS runs, then
+% applies the planner's terminal action and returns to the meta level at
+% $s_{t+K}$. In clock environments, the committed steps are no-ops that
+% only consume clock.}
+% \vspace{-6pt}
+% \label{fig:option-timeline}
+% \end{figure}
+% \endgroup
+
 \begingroup
 \setlength{\textfloatsep}{4pt}
 \begin{figure}[b]
-\centering
-\begin{tikzpicture}[
-  every node/.style={font=\small},
-  state/.style={circle, draw=blue!50!black, fill=blue!8, minimum size=6mm, inner sep=0pt},
-  finalstate/.style={circle, draw=green!50!black, fill=green!10, minimum size=6mm, inner sep=0pt},
-  committed/.style={->, thick, draw=gray!70},
-  planned/.style={->, thick, draw=orange!80!black},
-  bracket/.style={decorate, decoration={brace, amplitude=4pt, raise=2pt}, thick, draw=teal!70!black}
-]
-
-\node[state] (s0) at (0, 0) {\footnotesize $s_t$};
-\node[state] (s1) at (2.2, 0) {\footnotesize $s_{t{+}1}$};
-\node[state] (s2) at (4.4, 0) {\footnotesize $\cdots$};
-\node[state] (s3) at (6.6, 0) {\footnotesize $s_{t{+}K{-}1}$};
-\node[finalstate] (s4) at (9.4, 0) {\footnotesize $s_{t{+}K}$};
-
-\draw[committed] (s0) -- node[above, font=\small] {$\pi_{\mathrm{reflex}}$} (s1);
-\draw[committed] (s1) -- node[above, font=\small] {$\pi_{\mathrm{reflex}}$} (s2);
-\draw[committed] (s2) -- node[above, font=\small] {$\pi_{\mathrm{reflex}}$} (s3);
-\draw[planned] (s3) -- node[above, font=\scriptsize] {$\pi_{\mathrm{plan}}^{(K)}$} (s4);
-
-\coordinate (m0) at (0,-0.95);
-\coordinate (m3) at (6.6,-0.95);
-\draw[thick, draw=blue!60, line width=2pt]
-  (m0) -- (m3)
-  node[midway, below, font=\small, blue!60] {MCTS runs ($K$ frames)};
-
-\draw[bracket] ($(s0.north) + (0,0.2)$) -- ($(s4.north) + (0,0.2)$)
-  node[midway, above=8pt, font=\small] {option $o_K$ (holding time $K$)};
-
-\node[font=\small, align=center] at (-1.4, 0) {gate\\ picks $K$};
-\draw[->, thick] (-0.7, 0) -- (s0);
-
-\end{tikzpicture}
-\vspace{-4pt}
-\caption{Timeline of a budgeted option $o_K$. The agent emits $K{-}1$
-committed actions from $\pi_{\mathrm{reflex}}$ while MCTS runs, then
-applies the planner's terminal action and returns to the meta level at
-$s_{t+K}$. In clock environments, the committed steps are no-ops that
-only consume clock.}
-\vspace{-6pt}
-\label{fig:option-timeline}
+  \centering
+  \includegraphics[width=\linewidth]{figures/option_timeline.pdf}
+  \vspace{-4pt}
+  \caption{Timeline of a budgeted option $o_K$. The agent emits $K{-}1$
+    committed actions from $\pi_{\mathrm{reflex}}$ while MCTS runs, then
+    applies the planner's terminal action and returns to the meta level at
+    $s_{t+K}$. In clock environments, the committed steps are no-ops that
+    only consume clock.}
+  \vspace{-6pt}
+  \label{fig:option-timeline}
 \end{figure}
 \endgroup
 
