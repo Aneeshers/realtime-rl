@@ -47,7 +47,7 @@ OUT_PDF = os.path.join(FIGS, "option_timeline.pdf")
 OUT_PNG = os.path.join(FIGS, "option_timeline.png")
 
 FIG_W = 13.0
-FIG_H = 2.65
+FIG_H = 2.28
 
 STATE_W = 1.15
 STATE_H = 0.62
@@ -58,7 +58,7 @@ FONT_STATE = FS_ANNOT + 1
 FONT_LABEL = FS_ANNOT + 1
 FONT_SMALL = FS_ANNOT - 1
 FONT_GATE = FS_BADGE - 3
-FONT_REFLEX = FS_ANNOT + 1
+FONT_ACTION = FS_ANNOT + 2
 
 FINAL_STATE_COLOR = sns.color_palette("crest", 7)[4]
 OPTION_COLOR = sns.color_palette("crest", 7)[5]
@@ -118,11 +118,11 @@ def _arrow(ax, x0, x1, y, label, color, dy=0.28, lw=2.1, fsize=None):
 
 def _top_bracket(ax, x0, x1, y, text):
     ax.plot([x0, x1], [y, y], color=OPTION_COLOR, lw=1.8, zorder=1)
-    ax.plot([x0, x0], [y, y - 0.12], color=OPTION_COLOR, lw=1.8, zorder=1)
-    ax.plot([x1, x1], [y, y - 0.12], color=OPTION_COLOR, lw=1.8, zorder=1)
+    ax.plot([x0, x0], [y, y - 0.09], color=OPTION_COLOR, lw=1.8, zorder=1)
+    ax.plot([x1, x1], [y, y - 0.09], color=OPTION_COLOR, lw=1.8, zorder=1)
     ax.text(
         0.5 * (x0 + x1),
-        y + 0.12,
+        y + 0.08,
         text,
         ha="center",
         va="bottom",
@@ -135,7 +135,7 @@ def _mcts_bar(ax, x0, x1, y, text):
     ax.plot([x0, x1], [y, y], color=C_RED, lw=3.0, solid_capstyle="round", zorder=1)
     ax.text(
         0.5 * (x0 + x1),
-        y - 0.18,
+        y - 0.13,
         text,
         ha="center",
         va="top",
@@ -147,7 +147,7 @@ def _mcts_bar(ax, x0, x1, y, text):
 def draw():
     fig, ax = plt.subplots(figsize=(FIG_W, FIG_H))
     ax.set_xlim(-2.1, 10.2)
-    ax.set_ylim(-1.18, 1.25)
+    ax.set_ylim(-0.88, 1.10)
     ax.axis("off")
 
     state_labels = [
@@ -164,23 +164,23 @@ def draw():
         else:
             _state_box(ax, x, Y_STATE, label, facecolor=C_STATE, edgecolor=C_BLUE)
 
-    _arrow(ax, X_STATES[0], X_STATES[1], Y_STATE, r"$\pi_{\mathrm{reflex}}$", C_MID_GRAY, fsize=FONT_REFLEX)
-    _arrow(ax, X_STATES[1], X_STATES[2], Y_STATE, r"$\pi_{\mathrm{reflex}}$", C_MID_GRAY, fsize=FONT_REFLEX)
-    _arrow(ax, X_STATES[2], X_STATES[3], Y_STATE, r"$\pi_{\mathrm{reflex}}$", C_MID_GRAY, fsize=FONT_REFLEX)
-    _arrow(ax, X_STATES[3], X_STATES[4], Y_STATE, r"$\pi_{\mathrm{plan}}^{(K)}$", C_RED, lw=2.4)
+    _arrow(ax, X_STATES[0], X_STATES[1], Y_STATE, r"$\pi_{\mathrm{reflex}}$", C_MID_GRAY, fsize=FONT_ACTION)
+    _arrow(ax, X_STATES[1], X_STATES[2], Y_STATE, r"$\pi_{\mathrm{reflex}}$", C_MID_GRAY, fsize=FONT_ACTION)
+    _arrow(ax, X_STATES[2], X_STATES[3], Y_STATE, r"$\pi_{\mathrm{reflex}}$", C_MID_GRAY, fsize=FONT_ACTION)
+    _arrow(ax, X_STATES[3], X_STATES[4], Y_STATE, r"$\pi_{\mathrm{plan}}^{(K)}$", C_RED, lw=2.4, fsize=FONT_ACTION)
 
     _mcts_bar(
         ax,
         X_STATES[0],
         X_STATES[3],
-        -0.85,
+        -0.58,
         r"MCTS runs ($K$ frames)",
     )
     _top_bracket(
         ax,
         X_STATES[0],
         X_STATES[4],
-        0.8,
+        0.68,
         r"option $o_K$ (holding time $K$)",
     )
 
@@ -203,8 +203,8 @@ def draw():
 
     ax.text(
         X_STATES[4],
-        -0.97,
-        r"return to meta-level at $s_{t+K}$",
+        -0.69,
+        r"meta level at $s_{t+K}$",
         ha="center",
         va="top",
         fontsize=FONT_SMALL,
