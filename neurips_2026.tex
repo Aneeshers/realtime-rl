@@ -65,7 +65,7 @@ plan can paralyze the agent indefinitely.
 %Z Our genius insight
 We approach this setting by training a lightweight gating policy on
 top of a planner to select state-dependent planning budgets.
-Across real-time Pac-Man, Tetris, Snake, Speed Hex,
+Across real-time Pac-Man, real-time Tetris, Snake, Speed Hex,
 and Speed Go, the gating policy outperforms fixed-budget and
 heuristic baselines, and transfers to a true two-GPU deployment with
 no architectural change.
@@ -165,7 +165,7 @@ We address these challenges by training a lightweight \emph{gating policy} on to
 planner that decides how long to plan at
 each decision point. Our design escapes the paradox in practice because a single gate
 forward pass is orders of magnitude cheaper than an MCTS rollout, and
-therefore adds negligible real-time overhead. We employ our \emph{gating policy} in \emph{real-time} Pac-Man, Tetris, Snake, in which the world
+therefore adds negligible real-time overhead. We employ our \emph{gating policy} in \emph{real-time} Pac-Man, real-time Tetris, Snake, in which the world
 progresses while the planner runs in the background (Figure~\ref{fig:realtime-rl-gating-diagram}), and \emph{clock
 environments} (Speed Hex, Speed Go), in which the board is static but
 each player has a clock that depletes with thinking time.
@@ -255,7 +255,7 @@ To validate that the environments and method we designed capture the challenges 
   \includegraphics[width=\linewidth]{figures/realtime-rl-gating-diagram-compact.pdf}
   \caption{
     The gating policy chooses whether to react immediately or spend time planning.
-    Given the current state, a planning budget $K$ is selected, which determines how long MCTS runs and, in committed-action environments, how many reflex actions are taken.
+    Given the current state, a planning budget $K$ is selected, which determines how long MCTS runs and, in committed-action environments, how many committed actions are taken from the reflex policy.
   }
   \label{fig:realtime-rl-gating-diagram}
 \end{figure}
@@ -489,7 +489,7 @@ $\pi_{\mathrm{reflex}}$.
 State augmentation is therefore not the natural representation;
 budgeted options are.
 
-\subsection{Committed-action environments: Pac-Man, Tetris, Snake}
+\subsection{Committed-action environments: Pac-Man, real-time Tetris, Snake}
 \label{sec:committed}
 
 In committed-action environments, acting and planning happen
@@ -508,7 +508,7 @@ lands.
 
 We instantiate this setting in three environments derived from
 Jumanji~\citep{bonnet2024jumanji}: Pac-Man, Snake, and a real-time
-variant of Tetris (Appendix~\ref{app:envs_tetris}).
+variant of Jumanji Tetris (Appendix~\ref{app:envs_tetris}).
 The source of progression differs across environments (ghost motion
 in Pac-Man, gravity in real-time Tetris, body elongation in Snake),
 but in all cases a deeper plan arrives later, after the world has
@@ -600,9 +600,6 @@ additional real-time cost.
 
 \subsection{The gating policy}
 
-We now describe the information used to choose the planning budget $K$
-at each meta-step.
-
 The gating policy takes three inputs at each meta-step: (1) the raw
 game observation, (2) the planner's intermediate spatial features extracted
 from its frozen trunk and (3) the planner's scalar value
@@ -637,7 +634,7 @@ which we summarize in Appendix~\ref{app:implementation}.
 % =============================================================================
 
 \paragraph{Baselines.}
-For Pacman, Tetris, and Snake we compare against: \emph{always-$K$} policies for
+For Pacman, real-time Tetris, and Snake we compare against: \emph{always-$K$} policies for
 each $K \in \Kset$; and a \emph{random} policy selecting $K$ uniformly at each
 meta-step.
 For speed environments we additionally compare against \emph{greedy} (always use
@@ -661,6 +658,11 @@ compute at the critical mid-game, a common heuristic in game engines \cite{baier
   \label{fig:main_results}
 \end{figure}
 
+For both Speed Hex and Speed Go, we evaluate across the same five sampled clock
+budgets, $T \in \{300, 1200, 2300, 3500, 4100\}$, and average the resulting
+head-to-head expected scores. The fixed-budget baselines use 2/8/32/128
+simulations for Speed Hex and 16/32/64/96 simulations for Speed Go.
+
 The gating policy outperforms every fixed-budget baseline across all environments:
 \begin{itemize}
     \item In Pac-Man, the best fixed policy ($K{=}3$, 96 sims/step) scores 2149; the gating policy reaches 2370 ($+10.3\%$) using only ${\approx}49$ simulations per frame on average.
@@ -669,11 +671,6 @@ The gating policy outperforms every fixed-budget baseline across all environment
     \item In Speed Hex, averaged over the shared sampled clock budgets, the gating policy reaches an expected score of 0.58, compared with 0.43 for the best fixed-budget baseline ($K{=}128$) and 0.46 for the best heuristic baseline (greedy).
     \item In Speed Go, averaged over the same budgets, the gating policy reaches an expected score of 0.59, compared with 0.52 for the best fixed-budget baseline ($K{=}64$) and 0.50 for the best heuristic baseline (midpeak).
 \end{itemize}
-
-For both Speed Hex and Speed Go, we evaluate across the same five sampled clock
-budgets, $T \in \{300, 1200, 2300, 3500, 4100\}$, and average the resulting
-head-to-head expected scores. The fixed-budget baselines use 2/8/32/128
-simulations for Speed Hex and 16/32/64/96 simulations for Speed Go.
 
 Across environments, the learned gate does not collapse to a single option; instead it learns dynamic, state- and budget-dependent allocation strategies that outperform both fixed-budget policies and hand-designed heuristics (Figure~\ref{fig:strategy}, Appendix Figure~\ref{fig:strategy_appendix}).
 The random baseline falls well below every fixed-$K$ policy in both environments, confirming that \emph{when} to allocate compute matters as much as how much.
@@ -695,9 +692,9 @@ nearest ghost is far away, shifts toward $K{=}2$ as the threat closes in, and re
 for $K{=}4$ at extreme proximity. When ghosts are frightened the threat evaporates, and
 the policy reduces planning budget accordingly.
 
-\paragraph{Tetris.}
+\paragraph{Real-time Tetris.}
 
-Board density is the dominant feature in Tetris.
+Board density is the dominant feature in real-time Tetris.
 $K{=}1$ is selected almost exclusively on near-empty boards
 (fill $\approx 0.05$, stack $\approx 3.5$ rows) where any reasonable placement is
 acceptable.
@@ -737,13 +734,13 @@ out of time becomes an immediate loss with no fallback behavior, the task become
 substantially easier and the dominant challenge is simply to avoid flag-falls.
 Appendix~\ref{app:strategy_appendix} shows the full per-environment
 strategy plots; there we also see Pac-Man become more reactive late in the episode,
-while Tetris shifts toward deeper planning as boards become more constrained.
+while real-time Tetris shifts toward deeper planning as boards become more constrained.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{figures/interpretability_combined_alt.pdf}
   \caption{The policy plans deeply precisely when the state is dangerous or constrained.
-    Across Pac-Man, Tetris, and Snake, larger chosen budgets are associated with
+    Across Pac-Man, real-time Tetris, and Snake, larger chosen budgets are associated with
     higher threat, denser boards, or fewer safe continuations, indicating that
     the gate is responding to meaningful decision difficulty. Plots show state
     features conditioned on chosen budget $K$ (mean $\pm$\,1\,SE, 100 episodes).}
@@ -781,7 +778,7 @@ Figure~\ref{fig:deployment} summarizes 45 measured deployments:
 3 environments $\times$ 3 GPU classes $\times$ 5 frame rates (8--12\,FPS).
 The asynchronous execution pattern is unchanged from training (see
 Section~\ref{sec:committed}): a $K{=}4$
-meta-step at 9\,FPS spans four 111\,ms frames, while reflex actions keep the
+meta-step at 9\,FPS spans four 111\,ms frames, while committed actions from the reflex policy keep the
 environment moving and MCTS finishes asynchronously on the second GPU.
 
 The main result, as seen in Fig.~\ref{fig:deployment}, is that simulation-trained policies transfer cleanly to asynchronous
@@ -790,7 +787,7 @@ Latency remains well within budget on H100 in all three environments, and remain
 reliable on A100 except near the tightest deadline regimes. Return transfer is similarly strong.
 At 9\,FPS, deployed returns remain close to their simulation counterparts across all
 three environments, and the learned budget distribution also transfers cleanly.
-In Tetris on H100, the deployed policy preserves the same strongly bimodal
+In real-time Tetris on H100, the deployed policy preserves the same strongly bimodal
 ``react or plan deeply'' strategy seen in simulation.
 Appendix~\ref{app:deployment_details} gives the full per-environment, per-FPS,
 per-GPU analysis.
@@ -1118,7 +1115,7 @@ action (gravity/noop), which is fast but mismatches what the agent will actually
 $\mathrm{argmax}(\pi_{\mathrm{logits}})$, matching the committed actions the agent
 executes at deployment and making the search model more accurate at no extra
 environment cost.
-All Tetris results reported in the main paper use the RT\_KT variant.
+All real-time Tetris results reported in the main paper use the RT\_KT variant.
 
 Crucially, neither variant uses MCTS for the committed actions executed in the
 environment, so there is no compute-parity violation: every option $K \in \Kset$
@@ -1234,7 +1231,7 @@ Here, train-$K$ denotes the action-delay budget used during training, while
 eval-$K$ denotes the action-delay budget used at test time.
 For each train-$K$ checkpoint we additionally swept the MCTS simulation budget at
 evaluation time and report the best raw episode return achieved for each eval-$K$.
-The evaluation sweeps were: Tetris RT with simulation counts
+The evaluation sweeps were: real-time Tetris with simulation counts
 $\{32, 64, 96, 128\}$, Pac-Man with $\{8, 16, 32, 64, 96, 128\}$, and Snake
 with $\{32, 64, 96, 128\}$.
 
@@ -1246,7 +1243,7 @@ with $\{32, 64, 96, 128\}$.
     \toprule
     Environment & Train-$K$ & Eval-$K{=}1$ & Eval-$K{=}2$ & Eval-$K{=}3$ & Eval-$K{=}4$ \\
     \midrule
-    \multirow{4}{*}{Tetris RT}
+    \multirow{4}{*}{real-time Tetris}
       & $K{=}1$ & 61.8 @ 128 & \textbf{85.0 @ 128} & \textbf{73.2 @ 128} & \textbf{69.0 @ 128} \\
       & $K{=}2$ & 30.0 @ 96  & 11.4 @ 128          & 7.4 @ 96            & 3.6 @ 96 \\
       & $K{=}3$ & \textbf{72.2 @ 128} & 22.0 @ 128 & 15.2 @ 128 & 11.8 @ 128 \\
@@ -1274,7 +1271,7 @@ with $\{32, 64, 96, 128\}$.
 \end{table}
 
 The resulting pattern is environment-dependent but clear.
-For Tetris RT, $K{=}1$ is the strongest base model overall: although the
+For real-time Tetris, $K{=}1$ is the strongest base model overall: although the
 $K{=}3$ checkpoint is best at eval-$K{=}1$, the $K{=}1$ checkpoint wins at
 eval-$K \in \{2,3,4\}$ and has the highest mean return when averaging the
 best-per-eval-$K$ scores.
@@ -1290,7 +1287,7 @@ In addition, committed actions during delay steps are drawn from the base
 model's policy, so a stronger base policy also produces better intermediate
 states before the final MCTS action lands.
 Accordingly, we use the $K{=}1$ checkpoint as the frozen base for Pac-Man and
-Tetris RT, and the $K{=}3$ checkpoint for Snake.
+real-time Tetris, and the $K{=}3$ checkpoint for Snake.
 
 \section{Strategy Profiles Across Environments}
 \label{app:strategy_appendix}
@@ -1299,7 +1296,7 @@ Tetris RT, and the $K{=}3$ checkpoint for Snake.
   \centering
   \includegraphics[width=\linewidth]{figures/strategy_appendix.pdf}
   \caption{Different environments induce different allocation profiles. Pac-Man
-    becomes more reactive later in the episode, Tetris shifts toward deeper
+    becomes more reactive later in the episode, real-time Tetris shifts toward deeper
     planning as the board densifies, Snake remains mostly reactive with occasional
     deeper planning in constrained states, and both clock games become less
     reactive when more time is available. This figure complements
@@ -1383,7 +1380,7 @@ state across moves within each game to track temporal context.
   \label{tab:hparams}
   \begin{tabular}{lcc}
     \toprule
-    Hyperparameter & Pac-Man & Tetris RT \\
+    Hyperparameter & Pac-Man & real-time Tetris \\
     \midrule
     Num.\ parallel envs     & 32   & 32   \\
     Meta-steps per rollout  & 384  & 384  \\
@@ -1450,23 +1447,23 @@ included in our anonymous code submission.
 \label{app:deployment_details}
 
 We ran the full asynchronous deployment grid for all 45 settings:
-3 environments (Tetris, Pac-Man, Snake) $\times$ 3 GPUs (H100, A100, A40)
+3 environments (real-time Tetris, Pac-Man, Snake) $\times$ 3 GPUs (H100, A100, A40)
 $\times$ 5 frame rates (8--12\,FPS).
 Figure~\ref{fig:deployment_appendix} gives the complete breakdown by environment,
 GPU, and FPS for return, deadline miss rate, and p95 slack to deadline.
 
 Several patterns are clear.
 First, H100 is consistently reliable across the entire tested range.
-In Tetris its miss rate stays at $0.014\%$ for all FPS values, with p95 slack
+In real-time Tetris its miss rate stays at $0.014\%$ for all FPS values, with p95 slack
 remaining positive from $+291.0$\,ms at 8\,FPS to $+123.6$\,ms at 12\,FPS.
 Snake is even easier: H100 and A100 stay at $0.001\%$ miss rate throughout, and
 A40 stays at or below $0.005\%$.
 
 Second, the deployment boundary appears where slack collapses.
-Tetris on A40 is the clearest example: p95 slack decreases monotonically from
+Real-time Tetris on A40 is the clearest example: p95 slack decreases monotonically from
 $+162.2$\,ms (8\,FPS) to $-4.1$\,ms (12\,FPS), and the miss rate jumps from
 $0.046\%$ to $50.669\%$.
-By contrast, Tetris on A100 remains usable even at 12\,FPS, with p95 slack still
+By contrast, real-time Tetris on A100 remains usable even at 12\,FPS, with p95 slack still
 positive at $+24.5$\,ms and miss rate only $0.188\%$.
 
 Third, Pac-Man is the most timing-sensitive environment.
@@ -1479,7 +1476,7 @@ matters operationally even when the central mass remains in-budget.
 
 Finally, return remains comparatively stable over a broad deployment range despite
 these timing differences.
-Tetris returns remain in the $41$--$50$ range on H100/A100 and in the high-30s to
+Real-time Tetris returns remain in the $41$--$50$ range on H100/A100 and in the high-30s to
 low-40s on A40 except at the most constrained settings.
 Pac-Man degrades more gradually with hardware and FPS than its miss-rate curve might
 suggest, while Snake is nearly flat across all tested settings.
@@ -1491,9 +1488,9 @@ qualitatively new behaviors.
 \begin{figure}[h]
   \centering
   \includegraphics[width=\linewidth]{figures/deployment_appendix.pdf}
-  \caption{Detailed two-GPU deployment breakdown across Tetris, Pac-Man, and Snake.
+  \caption{Detailed two-GPU deployment breakdown across real-time Tetris, Pac-Man, and Snake.
     Top: return vs.\ FPS. Middle: deadline miss rate. Bottom: p95 slack to the
-    $K{=}4$ deadline. Snake remains robust, Tetris fails only near the tightest
+    $K{=}4$ deadline. Snake remains robust, real-time Tetris fails only near the tightest
     A40 regime, and Pac-Man is the most latency-sensitive.}
   \label{fig:deployment_appendix}
 \end{figure}
@@ -1508,7 +1505,7 @@ features, zeroed planner trunk features, or a zeroed planner value input while
 the environment dynamics and MCTS planner remained unchanged.
 Across environments, ablating planner trunk features was consistently
 disruptive, while zeroing the scalar value input had only minor effect; in
-Tetris, zeroing either the board observation or planner trunk substantially
+real-time Tetris, zeroing either the board observation or planner trunk substantially
 reduced return, while in Pac-Man and Snake the learned behavior was more robust
 to removing any single input channel.
 
@@ -1521,7 +1518,7 @@ to removing any single input channel.
     Environment & Baseline & Zero obs & Zero time & Zero trunk & Zero value \\
     \midrule
     Pac-Man   & 2245.6 & 2379.2 & 1571.2 & 1812.6 & 2189.8 \\
-    Tetris RT &   44.0 &   34.4 &   37.6 &   33.2 &   44.0 \\
+    real-time Tetris &   44.0 &   34.4 &   37.6 &   33.2 &   44.0 \\
     Snake     &   15.18 &  14.92 &  15.94 &  15.66 &  16.14 \\
     \bottomrule
   \end{tabular}
