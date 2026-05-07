@@ -703,18 +703,17 @@ body-growth events as a prospective spatial-risk signal.
 
 \paragraph{Clock environments.}
 
-In the clocked PGX games, the key trigger is not a local board statistic alone but
+In the clocked PGX games, a key trigger is
 the interaction between board state and remaining time. Figure~\ref{fig:strategy}
 shows the resulting shift in allocation for both Speed Hex and Speed Go. Under the
 small clock budget ($T{=}300$), the policy heavily favors the cheapest option,
 reflecting the high opportunity cost of thinking. Under the larger clock budget
 ($T{=}4100$), the same learned policy spreads probability mass much more evenly
-across the four calibrated budgets, allocating deeper search substantially more often. Because
+across the budgets, allocating deeper search substantially more often. Because
 the policy is trained across many clock settings rather than tuned separately at
-each one, this shift is evidence of budget-conditioned generalization rather than
-retuning.
+each one, this shift is evidence of budget-conditioned generalization.
 
-\begin{figure}[t]
+\begin{figure}[h]
   \centering
   \includegraphics[width=\linewidth]{figures/interpretability_combined_alt.pdf}
   \caption{The policy plans deeply precisely when the state is dangerous or constrained.
@@ -728,7 +727,7 @@ retuning.
 
 
 
-\begin{figure}[t]
+\begin{figure}[h]
   \centering
   \includegraphics[width=1\linewidth]{figures/strategy_band.pdf}
   \caption{ In both Speed Hex and
@@ -737,8 +736,6 @@ retuning.
     available ($T{=}4100$).}
   \label{fig:strategy}
 \end{figure}
-
-
 % =============================================================================
 \section{Real-Time Deployment}
 \label{sec:deployment}
@@ -766,7 +763,7 @@ Latency remains well within budget on H100 in all three environments, and remain
 reliable on A100 except near the tightest deadline regimes. Return transfer is similarly strong.
 At 9\,FPS, deployed returns remain close to their simulation counterparts across all
 three environments, and the learned budget distribution also transfers cleanly.
-In real-time Tetris on H100, the deployed policy preserves the same strongly bimodal
+In real-time Tetris on H100, the policy preserves the same strongly bimodal
 ``react or plan deeply'' strategy seen in simulation.
 Appendix~\ref{app:deployment_details} gives the full per-environment, per-FPS,
 per-GPU analysis.
@@ -803,11 +800,10 @@ is the right abstraction for real-time deployment.
     \emph{Centre:} H100 and A100 miss deadlines rarely; A40 breaks down only at
     the tightest frame rates.
     \emph{Right:} Deployed returns at 9\,FPS match simulation closely across all
-    environments and GPU classes.
-    See Appendix~\ref{app:deployment_details} for the full breakdown.}
+    environments and GPU classes.}
   \label{fig:deployment}
 \end{figure}
-\vspace{-6pt}
+\vspace{-8pt}
 
 % % =============================================================================
 % \section{Discussion}
