@@ -278,6 +278,7 @@ next action, mathematically equivalent to a 1-step constant-delay
 MDP~\citep{walsh2009delayed}.
 Subsequent work extends this to fixed action and observation delays of
 larger length
+
 ~\citep{derman2021delayed,bouteiller2021random,katsikopoulos2003markov},
 to concurrent control~\citep{xiao2020thinking}, and to asynchronous and
 pipelined architectures that mitigate inference
@@ -845,25 +846,21 @@ is the right abstraction for real-time deployment.
 
 % =============================================================================
 \section{Conclusion}
-% =============================================================================
 
-We generalized \citet{ramstedt2019rtrl}'s fixed-delay real-time RL framework to
-the variable-delay setting, where the agent chooses how long to deliberate before
-its planned action takes effect. We formalized this problem as an SMDP over
-budgeted options, making planning-budget selection itself the control problem.
-Planning quality and real-time inference cost co-scale with simulation budget,
-making adaptive budget selection the natural lever for performance.
-A lightweight gating policy, trained via RL on top of a frozen planner, learns to
-invest computation proportionally to situational state complexity, more for dense
-boards and high-stakes decisions, less for easy ones.
-Across five environments spanning committed-action and clock-based real-time
-mechanisms, the gating policy consistently outperforms every fixed-budget baseline
-while using less average compute.
-While we instantiate the framework with MCTS, the formalism applies more broadly
-to anytime planners whose computation budget can be made cost-aware.
-We believe that variable-delay control and adaptive, state-conditioned compute
-allocation are important and underexplored ingredients for making planning-based
-RL systems both more capable and more resource-efficient in real-time settings.
+We generalized \citet{ramstedt2019rtrl}'s fixed-delay real-time RL
+framework to the variable-delay setting, where the agent chooses how
+long to deliberate before its planned action takes effect, and
+formalized this as an SMDP over budgeted options.
+A lightweight gating policy, trained with PPO on top of a frozen
+AlphaZero planner, learns to invest more search where it matters and
+to react quickly elsewhere.
+Across five environments spanning committed-action and clock-based
+real-time mechanisms, the gating policy outperforms every fixed-budget
+baseline, and the simulation-trained policy transfers to a true
+two-GPU asynchronous deployment with no architectural change.
+While we instantiate the framework with MCTS, the formalism applies
+more broadly to anytime planners whose computation budget can be made
+cost-aware.
 
 \paragraph{Limitations.}
 Our committed-action protocol relies on the MCTS tree faithfully
