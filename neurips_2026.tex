@@ -1521,7 +1521,7 @@ this by pushing nearly all control flow into JAX primitives.
 \textbf{Base planner training.}
 The frozen planners are trained with our own Gumbel-AlphaZero stack built on top of
 the Jumanji environments, using
-\texttt{mctx.gumbel\_muzero\_policy} for search. Within each planner step, the MCTS
+\texttt{mctx.gumbel\_muzero\_policy}\citep{deepmind2020jax} for search. Within each planner step, the MCTS
 simulations are executed inside a compiled \texttt{lax.scan}; leaf expansion and
 backup are batched across parallel environments with \texttt{vmap}; and the full
 self-play/training pipeline is wrapped in \texttt{jit}. In the multi-device setting,
