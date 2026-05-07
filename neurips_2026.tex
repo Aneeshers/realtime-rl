@@ -147,7 +147,7 @@ effect.
 % co-scaling of planning quality and real-time cost makes adaptive compute
 % allocation the natural lever for performance.
 
-We explore this setting with agents that use anytime planning algorithms to improve the quality of their actions, but must confront that doing so takes time in which the environment continues to evolve. Specifically, we use AlphaZero-style models \citep{silver2018general} that run Monte Carlo Tree Search (MCTS) at decision time to improve action quality. A property of these agents is that more search produces better actions but takes longer to run, and we verify empirically (Figure~\ref{fig:scaling}) that planning quality and inference latency scale together.
+We explore this setting with agents that use anytime planning algorithms to improve the quality of their actions, but must confront that doing so takes time in which the environment continues to evolve. Specifically, we use AlphaZero-style models \citep{silver2018general} that run Monte Carlo Tree Search (MCTS) at decision time to improve action quality (see Appendix~\ref{app:az_primer} for a primer). A property of these agents is that more search produces better actions but takes longer to run, and we verify empirically (Figure~\ref{fig:scaling}) that planning quality and inference latency scale together.
 
 Our generalization introduces three challenges.
 Firstly, choosing the right delay is state-dependent: some states reward careful planning
