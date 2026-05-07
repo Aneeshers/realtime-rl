@@ -256,7 +256,8 @@ Across five environments, the gating policy which adaptively selects among a set
   \includegraphics[width=\linewidth]{figures/realtime-rl-gating-diagram-compact.pdf}
   \caption{
     The gating policy chooses whether to react immediately or spend time planning.
-    Given the current state, a planning budget $K$ is selected. The agent then
+    Given the current state, the gating policy selects a planning budget $K$,
+    the number of timesteps over which to plan. The agent then
     takes $K{-}1$ committed actions from a fast reflex policy while MCTS plans,
     and finally executes the planned action.
   }
