@@ -5,7 +5,7 @@
 \item {\bf Claims}
     \item[] Question: Do the main claims made in the abstract and introduction accurately reflect the paper's contributions and scope?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The abstract and introduction clearly state all three contributions: (1) two real-time environment design patterns, (2) empirical characterisation of the quality/latency co-scaling tradeoff, and (3) a lightweight gating policy that outperforms fixed-budget baselines while using less compute. All claims are substantiated by experiments in Sections 5--6 and appendices.
+    \item[] Justification: The abstract and introduction clearly state all three contributions: (1) two real-time environment design patterns, (2) empirical characterization of the quality/latency co-scaling tradeoff, and (3) a lightweight gating policy that outperforms fixed-budget baselines while using less compute. All claims are substantiated by experiments in Sections 5--6 and appendices.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the abstract and introduction do not include the claims made in the paper.
@@ -17,7 +17,7 @@
 \item {\bf Limitations}
     \item[] Question: Does the paper discuss the limitations of the work performed by the authors?
     \item[] Answer: \answerYes{}
-    \item[] Justification: A dedicated Limitations paragraph appears in Section 7 (Discussion). It identifies three open problems: (1) joint optimisation of gating policy and base planner, (2) extension to richer or continuous compute vocabularies beyond the discrete set $K\in\{1,2,3,4\}$, and (3) extension to physical real-time settings with uncontrolled latency.
+    \item[] Justification: A dedicated Limitations paragraph appears in the conclusion. It identifies three main limitations: (1) the committed-action protocol assumes a perfect simulator because the MCTS tree must faithfully model the $K{-}1$ committed steps, (2) the gating policy is trained on top of a frozen base planner and is sensitive to the choice of base checkpoint, and (3) the method uses a small hand-calibrated discrete budget set rather than a richer or continuous compute vocabulary.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the paper has no limitation while the answer \answerNo{} means that the paper has limitations, but those are not discussed in the paper.
@@ -33,7 +33,7 @@
 \item {\bf Theory assumptions and proofs}
     \item[] Question: For each theoretical result, does the paper provide the full set of assumptions and a complete (and correct) proof?
     \item[] Answer: \answerNA{}
-    \item[] Justification: The paper does not contain formal theorems or proofs. The SMDP formulation in Section 4 and Appendix~\ref{app:rtrl_smdp} is a formal characterisation of the setting rather than a theorem-proof structure; all relevant assumptions (synchronous environment, deterministic holding time in training, concurrent GPU execution at deployment) are stated explicitly.
+    \item[] Justification: The paper does not contain formal theorems or proofs. The SMDP formulation in Section~\ref{sec:smdp} and Appendix~\ref{app:rtrl_smdp} is a formal characterization of the setting rather than a theorem-proof structure; the relevant assumptions are stated explicitly in the text.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the paper does not include theoretical results.
@@ -84,7 +84,7 @@
 \item {\bf Experimental setting/details}
     \item[] Question: Does the paper specify all the training and test details (e.g., data splits, hyperparameters, how they were chosen, type of optimizer) necessary to understand the results?
     \item[] Answer: \answerYes{}
-    \item[] Justification: Section~5 describes the evaluation protocol (100 seeds, mean $\pm$ SE). Appendix lists all hyperparameters including learning rates, batch sizes, PPO clip ratios, entropy coefficients, and discount factors. The optimizer and architecture (residual CNN + GRU gating network) are described in Sections~4--5 and Appendix.
+    \item[] Justification: Section~5 describes the evaluation protocol (100 seeds, mean $\pm$ SE). The appendix lists hyperparameters including learning rates, batch sizes, PPO clip ratios, entropy coefficients, and discount factors. The appendix also describes the gating architectures: a feedforward residual CNN-style gate for committed-action environments and a GRU-based gate for clock environments.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the paper does not include experiments.
@@ -111,8 +111,8 @@
 
 \item {\bf Experiments compute resources}
     \item[] Question: For each experiment, does the paper provide sufficient information on the computer resources (type of compute workers, memory, time of execution) needed to reproduce the experiments?
-    \item[] Answer: \answerYes{}
-    \item[] Justification: Appendix~\ref{app:implementation} states that the end-to-end training pipeline runs in approximately six hours on the hardware used. The deployment experiments are run on H100, A100, and A40 GPUs, which are identified throughout Section~6. GPU type is specified for all latency and deadline measurements.
+    \item[] Answer: \answerNo{}
+    \item[] Justification: The paper reports the GPU classes used for deployment experiments (H100, A100, and A40) and gives a rough end-to-end training time in Appendix~\ref{app:implementation}, but it does not yet tabulate per-experiment memory requirements or total compute in enough detail to count as a complete compute-resources disclosure.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the paper does not include experiments.
