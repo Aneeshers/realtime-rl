@@ -531,6 +531,9 @@ The clock is therefore the only dynamic element of the environment;
 it decrements with thinking time over the $K$ frames of an option,
 while the board state remains fixed until the planner's chosen
 action is applied.
+Intuitively, this is the same pressure as in speed chess: the board
+waits for your move, but your limited clock keeps running while you
+think.
 
 We instantiate this setting in Speed Hex ($11 \times 11$) and Speed
 Go ($9 \times 9$), both board-game environments built on \texttt{pgx} \citep{koyamada2023pgx}.
@@ -608,6 +611,10 @@ We train in two phases.
 First, we train AlphaZero-style base planners for each environment.
 We then freeze the selected base planner and train the gating policy
 with PPO~\citep{schulman2017proximal} on top of it.
+For the clock environments, these base planners are trained by
+self-play before we freeze them and train a recurrent gating policy
+on top; Appendix~\ref{app:implementation} gives the concrete
+training details.
 Because each meta-step has variable duration $K$, we adapt
 Generalized Advantage Estimation~\citep{schulman2015high} to carry
 the per-meta-step discount $\gamma^K$ through the advantage
@@ -1397,6 +1404,28 @@ state across moves within each game to track temporal context.
     \bottomrule
   \end{tabular}
 \end{table}
+
+\paragraph{Clock-environment training details.}
+The clock-game training runs use a separate self-play stack built on
+\texttt{pgx}. For Speed Go, the base AlphaZero planner is trained by
+pure self-play on 1024 parallel games with 32 MCTS simulations per
+move, a 256-move horizon, training batch size 4096, Adam with
+learning rate $10^{-3}$, and 800 training iterations; evaluation
+against the \texttt{pgx} baseline occurs every 5 iterations and
+checkpoints are saved every 200 iterations. The recurrent Speed Go
+gate then loads the frozen 16-simulation base checkpoint matched to
+the same seed and is trained in pure self-play for 500 PPO updates on
+256 parallel environments. Each PPO update collects 32768 rollout
+steps (128 per environment), chunks them into GRU sequences of length
+64, and uses 4 PPO epochs with batch size 512, $\gamma{=}0.99$,
+$\lambda{=}0.95$, PPO clip $\epsilon{=}0.2$, learning rate $3\times
+10^{-4}$, value-loss coefficient 0.5, entropy coefficient 0.01, and
+global gradient clipping at 1.0. The gate chooses among simulation
+options $\{16,32,64,96\}$, domain-randomizes episode clocks over
+$\{100,300,600,900,1200,1800,2300,2900,3500,4100,4800,5700\}$, and
+saves checkpoints every 25 updates. Although the codebase contains
+hooks for richer opponent schedules, the experiments reported here use
+pure self-play throughout.
 
 \subsection{JAX implementation and batching strategy}
 
