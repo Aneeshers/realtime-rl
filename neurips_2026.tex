@@ -1470,21 +1470,21 @@ state across moves within each game to track temporal context.
   \centering
   \caption{PPO hyperparameters for committed-action environments.}
   \label{tab:hparams}
-  \begin{tabular}{lcc}
+  \begin{tabular}{lccc}
     \toprule
-    Hyperparameter & Pac-Man & real-time Tetris \\
+    Hyperparameter & Pac-Man & real-time Tetris & Snake \\
     \midrule
-    Num.\ parallel envs     & 32   & 32   \\
-    Meta-steps per rollout  & 384  & 384  \\
-    PPO epochs per rollout  & 4    & 4    \\
-    Num.\ mini-batches      & 16   & 16   \\
-    Meta-reward mode        & raw  & raw  \\
-    Discount $\gamma$       & 0.99 & 0.99 \\
-    GAE $\lambda$           & 0.95 & 0.95 \\
-    PPO clip $\epsilon$     & 0.2  & 0.2  \\
-    Entropy coefficient     & 0.01 & 0.01 \\
-    Learning rate           & 3e-4 & 3e-4 \\
-    Sim options             & 32, 64, 96, 128 & 32, 64, 96, 128 \\
+    Num.\ parallel envs     & 32   & 32   & 32   \\
+    Meta-steps per rollout  & 384  & 384  & 384  \\
+    PPO epochs per rollout  & 4    & 4    & 4    \\
+    Num.\ mini-batches      & 16   & 16   & 16   \\
+    Meta-reward mode        & raw  & raw  & raw  \\
+    Discount $\gamma$       & 0.99 & 0.99 & 0.997 \\
+    GAE $\lambda$           & 0.95 & 0.95 & 0.95 \\
+    PPO clip $\epsilon$     & 0.2  & 0.2  & 0.2  \\
+    Entropy coefficient     & 0.01 & 0.01 & 0.05 \\
+    Learning rate           & 3e-4 & 3e-4 & 3e-4 \\
+    Sim options             & 32, 64, 96, 128 & 32, 64, 96, 128 & 32, 64, 96, 128 \\
     \bottomrule
   \end{tabular}
 \end{table}
