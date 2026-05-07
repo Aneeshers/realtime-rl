@@ -35,7 +35,7 @@
 
 
 
-\title{Learned Planning Budgets for Real-Time RL}
+\title{Learning Planning Budgets for Real-Time RL}
 
 %Reinforcement learning for budgeting MCTS planning under real-time
 
@@ -67,10 +67,9 @@ plan can paralyze the agent indefinitely.
 %Z Our genius insight
 We approach this setting by training a lightweight gating policy on
 top of a planner to select state-dependent planning budgets.
-Across real-time Pac-Man, real-time Tetris, Snake, Speed Hex,
+Across real-time Pac-Man, Tetris, Snake, Speed Hex,
 and Speed Go, the gating policy outperforms fixed-budget and
-heuristic baselines, and transfers to a true two-GPU deployment with
-no architectural change.
+heuristic baselines, and transfers to a true two-GPU deployment, validating that our framework captures real-time dynamics
 \end{abstract}
 
 
@@ -103,8 +102,7 @@ delay at exactly one timestep.
 %which the right amount of computation is highly state-dependent, fixing
 %the delay at one leaves the most interesting decision unspecified.
 We generalize \citet{ramstedt2019rtrl}'s framework and introduce
-\emph{variable-delay real-time RL}, a regime where the agent chooses,
-at each decision point, how long to deliberate before its action takes
+\emph{variable-delay real-time RL}, a regime where the agent chooses how long to deliberate before its action takes
 effect.
 
 % These real-time settings create a spectrum of decision-making regimes for an agent.
