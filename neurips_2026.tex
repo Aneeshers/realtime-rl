@@ -498,6 +498,9 @@ The $K-1$ committed actions are drawn from $\pi_{\mathrm{reflex}}$,
 which we instantiate as the planner's own policy network evaluated
 without MCTS, computed via a single forward pass in roughly two
 milliseconds, while the full MCTS runs in the background.
+We choose this instantiation rather than a separately trained reflex
+policy because it requires no additional training and keeps the
+committed-action policy aligned with the MCTS tree's internal rollouts.
 On the $K$-th frame the planner's chosen action is applied.
 The MCTS tree rolls out the same $K{-}1$ committed steps that the
 agent will actually execute, so search is performed over the future
@@ -792,10 +795,14 @@ In real-time Tetris on H100, the deployed policy preserves the same strongly bim
 Appendix~\ref{app:deployment_details} gives the full per-environment, per-FPS,
 per-GPU analysis.
 
-This result demonstrates a key property of the committed-action training protocol.
-Because training simulates the planning delay by actually executing committed actions
-in the environment, the learned policy requires no modification for deployment.
-The separation between environment and planner is already the right abstraction.
+This result tests a key hypothesis behind the committed-action training protocol.
+We treat the $K{-}1$ committed steps executed in simulation as a model of real
+asynchronous deployment: if this abstraction is correct, then a policy trained
+under it should transfer to a hardware-separated environment-and-planner system
+without modification. Because training simulates the planning delay by actually
+executing committed actions in the environment, the transfer result supports
+this hypothesis and suggests that the separation between environment and planner
+is the right abstraction for real-time deployment.
 
 \begin{figure}[h]
   \centering
@@ -876,6 +883,8 @@ boards and high-stakes decisions, less for easy ones.
 Across five environments spanning committed-action and clock-based real-time
 mechanisms, the gating policy consistently outperforms every fixed-budget baseline
 while using less average compute.
+While we instantiate the framework with MCTS, the formalism applies more broadly
+to anytime planners whose computation budget can be made cost-aware.
 We believe that variable-delay control and adaptive, state-conditioned compute
 allocation are important and underexplored ingredients for making planning-based
 RL systems both more capable and more resource-efficient in real-time settings.
