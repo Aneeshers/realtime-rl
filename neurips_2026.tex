@@ -956,18 +956,36 @@ require recalibrating the cost-quality tradeoff.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \appendix
 
+
 \section{AlphaZero and MCTS}
 \label{app:az_primer}
 
-This section answers common questions about the planning infrastructure used in this
-paper. It targets readers familiar with deep RL but not with tree-search methods.
+This appendix explains the planning infrastructure used in this paper.
+It targets readers familiar with deep RL but not with tree-search
+methods.
+
+The planner used throughout this paper is Monte Carlo Tree Search
+(MCTS) guided by a neural network, the same combination introduced
+in AlphaZero \citep{silver2018general}. The intuition is that the
+network alone is fast but imperfect: it gives a quick estimate of which
+actions look promising, but it never actually checks. MCTS turns a
+fixed compute budget into action-quality: it spends that budget on
+simulated rollouts, focusing on the actions the network considers most
+promising while still exploring less-likely alternatives, and uses what
+it learns to choose a better action than the network's raw guess. More
+simulations produce better actions but take longer, which is the
+tradeoff the gating policy in the main paper learns to manage.
 
 \textbf{What does ``running a simulation'' mean in MCTS?}
 
-A \emph{simulation} (also called a \emph{playout}) is one traversal of the search tree
-from the root node (the current observed state) to a leaf, followed by a backup of
-the resulting value estimate up to the root.
-Each traversal selects edges greedily according to the PUCT rule:
+A \emph{simulation} (or \emph{playout}) is one traversal of the search
+tree from the root (the current state) down to a leaf, followed by a
+backup of the resulting value estimate up the tree. Each step of the
+traversal picks a child to descend into, balancing two pressures:
+prefer children that have looked good so far (high empirical value),
+but also try children the search has barely visited (high prior, low
+visit count) in case those are even better. The PUCT rule formalizes
+this:
 \[
   a^* = \arg\max_a \Bigl[Q(s,a)
         + c \cdot \pi_\theta(a|s)
@@ -977,44 +995,58 @@ where $Q(s,a)$ is the empirical mean value of subtree $a$,
 $\pi_\theta(a|s)$ is the network's prior over actions,
 $N(s)$ is the total visit count of node $s$,
 and $N(s,a)$ is the visit count of edge $(s,a)$.
-Repeated simulations concentrate visits on high-value, high-prior subtrees while
-continuing to explore less-visited ones.
-After $n$ simulations the recommended action is the \emph{most-visited} child of
-the root.
+Repeated simulations concentrate visits on high-value, high-prior
+subtrees while continuing to explore less-visited ones.
+After $n$ simulations the recommended action is the
+\emph{most-visited} child of the root.
 
 \textbf{How is the final action selected?}
 
 At evaluation time the agent picks the most-visited root child.
 During training, the visit-count distribution
-$\hat{\pi}(a) \propto N(s_0,a)^{1/\tau}$
-(temperature $\tau > 0$) is recorded and used as a \emph{search target}:
-the network is updated to predict $\hat{\pi}$ at state $s_0$.
-This is the expert-iteration loop as search produces a better-than-raw-policy
-distribution, and the network learns to imitate it, improving its prior for
-future searches.
-
+$\hat{\pi}(a) \propto N(s_0,a)^{1/\tau}$ (temperature $\tau > 0$)
+is used as a \emph{search target}: the network is updated to predict
+$\hat{\pi}$ at state $s_0$. Lower $\tau$ concentrates probability on
+the most-visited action; higher $\tau$ spreads probability across
+alternatives, useful for exploration early in training.
+This setup (search produces a better-than-raw-policy distribution,
+and the network learns to imitate it) is called \emph{expert
+iteration} \citep{anthony2021expert}, and over many iterations it tightens the network's prior,
+making future searches better-targeted.
 
 \textbf{What is the difference between AlphaZero and MuZero?}
 
-\textbf{AlphaZero}~\cite{silver2018general} requires a \emph{perfect simulator}:
-given state $s$ and action $a$, the simulator returns the exact next state $s'$.
-MCTS is run entirely inside this simulator; the network supplies priors and value
-estimates but never models transitions.
+\textbf{AlphaZero}~\cite{silver2018general} requires a \emph{perfect
+simulator}: given state $s$ and action $a$, the simulator returns the
+exact next state $s'$. MCTS runs entirely inside this simulator; the
+network supplies priors and value estimates but never models
+transitions.
 
-\textbf{MuZero}~\cite{schrittwieser2020muzero} replaces the perfect simulator with a
-\emph{learned latent-space dynamics model}.
-Transitions during search are predicted by a network rather than a ground-truth
-engine, so MuZero can plan in environments without a simulator (e.g.\ Atari frames).
+\textbf{MuZero}~\cite{schrittwieser2020muzero} replaces the perfect
+simulator with a \emph{learned latent-space dynamics model}.
+Transitions during search are predicted by a network rather than a
+ground-truth engine, so MuZero can plan in environments without a
+simulator (e.g.\ Atari frames).
 
-All environments in this paper expose a JAX-native step function, so we use the
-AlphaZero paradigm: ground-truth transitions, no learned dynamics.
+All environments in this paper expose a JAX-native step function, so we
+use the AlphaZero paradigm. This choice is also what enables our
+committed-action protocol (Section~\ref{sec:committed}): the search
+tree explicitly rolls forward the $K{-}1$ committed steps to reach the
+future state where the planned action will land, which is only possible
+when the simulator is perfect.
 
-\textbf{AlphaZero was designed for two-player zero-sum games. How does it transfer to single-agent settings?}
+\textbf{AlphaZero was designed for two-player zero-sum games. How does
+it transfer to single-agent settings?}
 
-The core loop is \emph{expert iteration}~\cite{anthony2021expert},
-shown in Algorithm~\ref{alg:expert_iter}.
-The value head uses a bootstrapped return instead of a zero-sum game outcome;
-otherwise the algorithm is identical to two-player AlphaZero.
+The core loop is \emph{expert iteration}~\cite{anthony2021expert}: at
+each iteration the agent uses MCTS to produce an expert distribution
+over actions (better than the network's raw policy because it
+incorporates lookahead), and the network is trained to imitate that
+expert. Over many iterations, the network's prior gets stronger, which
+makes future searches better-targeted. The value head uses a
+bootstrapped return instead of a zero-sum game outcome; otherwise the
+algorithm is identical to two-player AlphaZero.
+Algorithm~\ref{alg:expert_iter} formalizes this.
 
 \begin{algorithm}[h]
 \caption{Single-agent AlphaZero via Expert Iteration}
@@ -1043,34 +1075,32 @@ otherwise the algorithm is identical to two-player AlphaZero.
 \end{algorithmic}
 \end{algorithm}
 
+\textbf{How does MCTS scale on modern accelerators?}
 
-\textbf{MCTS sounds inherently sequential. How do you run it efficiently at the scale needed for RL training?}
-
-Naively each MCTS simulation depends on the previous one (via the updated $Q$ and $N$
-tables), which conflicts with JAX's strength: massive data-parallel operations.
-We exploit two levels of parallelism.
+A common worry is that MCTS is inherently sequential, each
+simulation updates the $Q$ and $N$ tables that the next simulation
+reads. In practice, two layers of parallelism make this much less of a
+bottleneck than it appears.
 
 \textbf{Environment-level parallelism.}
-We maintain a batch of $E$ independent environment instances (32 in our experiments).
-Each instance has its own search tree; all $E$ leaf nodes are evaluated in a
-\emph{single batched forward pass} of the neural network, which is the GPU/TPU
-bottleneck.
+We maintain a batch of $E$ independent environment instances (32 in our
+experiments). Each instance has its own search tree; all $E$ leaf nodes
+are evaluated in a \emph{single batched forward pass} of the neural
+network, which is the GPU/TPU bottleneck.
 
 \textbf{Intra-tree simulation loop via \texttt{jax.lax.scan}.}
 Within each tree the $n$ simulations are unrolled as a \texttt{scan}.
-Each iteration: (1) traverse all $E$ trees to their current leaf using PUCT
-(parallelised over $E$), (2) batch-evaluate the $E$ leaves in one network call,
-(3) back-propagate values.
-Because JAX traces the full scan at compile time, the tree-update logic is fused
-into a single XLA kernel with zero Python-level iteration overhead at runtime.
+Each iteration: (1) traverse all $E$ trees to their current leaf using
+PUCT (parallelised over $E$), (2) batch-evaluate the $E$ leaves in one
+network call, (3) back-propagate values. Because JAX traces the full
+scan at compile time, the tree-update logic is fused into a single XLA
+kernel with zero Python-level iteration overhead at runtime.
 
-The result is that all $n$ simulations across all $E$ environments are compiled
-into a single \texttt{jit}-ted function that runs entirely on the accelerator,
-with one network forward pass per simulation step and no host-device transfers
-during rollout.
+The result is that all $n$ simulations across all $E$ environments are
+compiled into a single \texttt{jit}-ted function that runs entirely on
+the accelerator, with one network forward pass per simulation step and
+no host-device transfers during rollout.
 
-
-% =============================================================================
 \section{Variable-duration GAE}
 \label{app:gae}
 % =============================================================================
@@ -1518,7 +1548,7 @@ control flow. In practice this systems tradeoff is what makes the meta-MCTS stac
 fast enough to train routinely rather than as a one-off systems effort.
 
 \textbf{Practical effect.}
-These engineering choices --- \texttt{mctx} for search, \texttt{vmap} for environment
+These engineering choices --- \texttt{mctx}\citep{deepmind2020jax} for search, \texttt{vmap} for environment
 parallelism, \texttt{jit} for whole-program compilation, \texttt{pmap} for device
 parallelism, and \texttt{lax.scan} for both MCTS inner loops and PPO rollout loops ---
 reduce wall-clock training time dramatically. In our internal runs, the end-to-end
