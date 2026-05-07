@@ -36,7 +36,7 @@
 
 
 
-\title{Learning Planning Budgets for Real-Time RL}
+\title{Learning to Allocate Planning Budgets in Real-time Reinforcement Learning}
 
 %Reinforcement learning for budgeting MCTS planning under real-time
 
@@ -255,10 +255,9 @@ Across five environments, the gating policy which adaptively selects among a set
   \centering
   \includegraphics[width=\linewidth]{figures/realtime-rl-gating-diagram-compact.pdf}
   \caption{
-    The gating policy chooses whether to react immediately or spend time planning.
-    Given the current state, the gating policy selects a planning budget $K$,
-    the number of timesteps over which to plan. The agent then
-    takes $K{-}1$ committed actions from a fast reflex policy while MCTS plans,
+    Given the current state, the gating policy chooses whether to react immediately or spend time planning, selecting
+    the number of $K$ timesteps over which to plan. The agent then
+    takes $K{-}1$ committed actions using $\pi_{\mathrm{reflex}}$ ($\pi_{\mathrm{0}}$) while MCTS plans,
     and finally executes the planned action.
   }
   \label{fig:realtime-rl-gating-diagram}
@@ -629,7 +628,7 @@ As an agent runs more MCTS simulations, its action quality improves;
 but more simulations also take longer to run, and in real-time
 settings that longer inference is exactly what advances the
 environment, or depletes the clock, before the agent acts.
-We verify empirically this relationship (Figure~\ref{fig:scaling}).
+We empirically verify this relationship in Figure~\ref{fig:scaling}.
 The full five-environment scaling results appear in Appendix~\ref{app:sim_calibration}. This joint scaling means
 we do not need to learn \emph{how} to plan as the planner handles
 that, only \emph{when} the additional quality gain is worth the
@@ -685,7 +684,7 @@ which we summarize in Appendix~\ref{app:implementation}.
 % =============================================================================
 
 \paragraph{Baselines.}
-For Pacman, real-time Tetris, and Snake we compare against: \emph{always-$K$} policies for
+For real-time Pacman, Tetris, and Snake we compare against: \emph{always-$K$} policies for
 each $K \in \Kset$; and a \emph{random} policy selecting $K$ uniformly at each
 meta-step.
 For speed environments we additionally compare against \emph{greedy} (always use
@@ -854,7 +853,7 @@ is the right abstraction for real-time deployment.
     GPU~1 runs MCTS in parallel, so a larger $K$ buys more planning time without
     pausing the game.
     \emph{Left:} schematic of the two-GPU loop.
-    \emph{Right:} execution trace at 9\,FPS---a $K{=}4$ meta-step spans four 111\,ms
+    \emph{Right:} execution trace at 9\,FPS, a $K{=}4$ meta-step spans four 111\,ms
     frames, followed by a $K{=}1$ recovery step.}
   \label{fig:deployment_timeline}
 \end{figure}
