@@ -5,7 +5,7 @@
 \item {\bf Claims}
     \item[] Question: Do the main claims made in the abstract and introduction accurately reflect the paper's contributions and scope?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The abstract and introduction clearly state all three contributions: (1) two real-time environment design patterns, (2) empirical characterization of the quality/latency co-scaling tradeoff, and (3) a lightweight gating policy that outperforms fixed-budget baselines while using less compute. All claims are substantiated by experiments in Sections 5--6 and appendices.
+    \item[] Justification: The abstract and introduction state three contributions: (1) a generalization of \citet{ramstedt2019rtrl}'s fixed-delay framework to variable-delay real-time RL, (2) an empirical characterization of the planning-quality / inference-cost co-scaling tradeoff, and (3) a lightweight gating policy on top of a frozen AlphaZero planner that selects state-dependent planning budgets and outperforms fixed-budget and heuristic baselines across five environments. All claims are substantiated by experiments in Sections~5--6 and validated by two-GPU deployment in Section~\ref{sec:deployment}.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the abstract and introduction do not include the claims made in the paper.
@@ -67,7 +67,7 @@
 \item {\bf Open access to data and code}
     \item[] Question: Does the paper provide open access to the data and code, with sufficient instructions to faithfully reproduce the main experimental results, as described in supplemental material?
     \item[] Answer: \answerYes{}
-    \item[] Justification: An anonymised code submission accompanies this paper. All environments are built on publicly available libraries (Jumanji, pgx, JAX/mctx). No proprietary data is used.
+    \item[] Justification: An anonymised code submission accompanies this paper. All environments are built on publicly available libraries (Jumanji, pgx) and JAX/mctx for training infrastructure. No proprietary data is used.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that paper does not include experiments requiring code.
@@ -111,8 +111,8 @@
 
 \item {\bf Experiments compute resources}
     \item[] Question: For each experiment, does the paper provide sufficient information on the computer resources (type of compute workers, memory, time of execution) needed to reproduce the experiments?
-    \item[] Answer: \answerNo{}
-    \item[] Justification: The paper reports the GPU classes used for deployment experiments (H100, A100, and A40) and gives a rough end-to-end training time in Appendix~\ref{app:implementation}, but it does not yet tabulate per-experiment memory requirements or total compute in enough detail to count as a complete compute-resources disclosure.
+    \item[] Answer: \answerYes{}
+    \item[] Justification: Training experiments were run on H100 GPUs; the end-to-end training pipeline takes approximately 6 hours per environment after JAX/XLA optimization (Appendix~\ref{app:implementation}). Deployment experiments were run across H100, A100, and A40 GPU classes (Section~\ref{sec:deployment}, Appendix~\ref{app:deployment_details}). Memory requirements are modest: the meta-MCTS stack runs comfortably on a single GPU with 32 parallel environments. We did not extensively track failed or preliminary experiments, but estimate total project compute at roughly 200--400 GPU-hours including ablations and base-planner training across all five environments.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the paper does not include experiments.
