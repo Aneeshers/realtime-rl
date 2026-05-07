@@ -58,6 +58,7 @@ FONT_STATE = FS_ANNOT + 1
 FONT_LABEL = FS_ANNOT + 1
 FONT_SMALL = FS_ANNOT - 1
 FONT_GATE = FS_BADGE - 3
+FONT_REFLEX = FS_ANNOT + 1
 
 FINAL_STATE_COLOR = sns.color_palette("crest", 7)[4]
 OPTION_COLOR = sns.color_palette("crest", 7)[5]
@@ -146,7 +147,7 @@ def _mcts_bar(ax, x0, x1, y, text):
 def draw():
     fig, ax = plt.subplots(figsize=(FIG_W, FIG_H))
     ax.set_xlim(-2.1, 10.2)
-    ax.set_ylim(-1.45, 1.25)
+    ax.set_ylim(-1.18, 1.25)
     ax.axis("off")
 
     state_labels = [
@@ -163,9 +164,9 @@ def draw():
         else:
             _state_box(ax, x, Y_STATE, label, facecolor=C_STATE, edgecolor=C_BLUE)
 
-    _arrow(ax, X_STATES[0], X_STATES[1], Y_STATE, r"$\pi_{\mathrm{reflex}}$", C_MID_GRAY)
-    _arrow(ax, X_STATES[1], X_STATES[2], Y_STATE, r"$\pi_{\mathrm{reflex}}$", C_MID_GRAY)
-    _arrow(ax, X_STATES[2], X_STATES[3], Y_STATE, r"$\pi_{\mathrm{reflex}}$", C_MID_GRAY)
+    _arrow(ax, X_STATES[0], X_STATES[1], Y_STATE, r"$\pi_{\mathrm{reflex}}$", C_MID_GRAY, fsize=FONT_REFLEX)
+    _arrow(ax, X_STATES[1], X_STATES[2], Y_STATE, r"$\pi_{\mathrm{reflex}}$", C_MID_GRAY, fsize=FONT_REFLEX)
+    _arrow(ax, X_STATES[2], X_STATES[3], Y_STATE, r"$\pi_{\mathrm{reflex}}$", C_MID_GRAY, fsize=FONT_REFLEX)
     _arrow(ax, X_STATES[3], X_STATES[4], Y_STATE, r"$\pi_{\mathrm{plan}}^{(K)}$", C_RED, lw=2.4)
 
     _mcts_bar(
@@ -202,7 +203,7 @@ def draw():
 
     ax.text(
         X_STATES[4],
-        -1.18,
+        -0.97,
         r"return to meta-level at $s_{t+K}$",
         ha="center",
         va="top",
