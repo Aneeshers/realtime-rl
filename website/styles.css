@@ -83,9 +83,9 @@ img {
 }
 
 h1 {
-  max-width: 24ch;
+  max-width: 30ch;
   margin: 0;
-  font-size: clamp(2rem, 4vw, 3.1rem);
+  font-size: clamp(1.8rem, 3.2vw, 2.55rem);
   letter-spacing: -0.02em;
 }
 
@@ -146,12 +146,19 @@ h1 {
   max-width: 64ch;
 }
 
+.abstract-box {
+  padding: 12px 14px;
+  background: #eef5ff;
+  border: 1px solid #d8e6fb;
+}
+
 .hero-media-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
-  width: 100%;
+  width: min(100%, 860px);
   margin-top: 8px;
+  justify-self: center;
 }
 
 .hero-media-item {

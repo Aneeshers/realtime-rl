@@ -1,12 +1,12 @@
 window.PAPER_SITE = {
   meta: {
-    title: "Finding the Time to Think: Adaptive MCTS in Real-Time RL",
+    title: "Learning Planning Budgets in Real-Time RL",
     description:
       "A flat paper-style project page for variable-delay real-time RL, AlphaZero-style planning, and state-dependent compute budgets.",
-    ogImage: "assets/figures/mcts_tree.gif",
+    ogImage: "assets/figures/option_timeline.gif",
   },
   paper: {
-    title: "Finding the Time to Think:<br />Adaptive MCTS in Real-Time RL",
+    title: "Learning Planning Budgets in Real-Time RL",
     authors: [
       { name: "Aneesh Muppidi", href: "https://aneeshers.github.io" },
       { name: "Firas Darwish", href: "https://firasdarwish.com" },
@@ -16,25 +16,15 @@ window.PAPER_SITE = {
     ],
     links: [
       { label: "GitHub", href: "https://github.com/Aneeshers/Real-time-RL", icon: "assets/icons/github.png" },
-      { label: "Paper", href: "https://github.com/Aneeshers/Real-time-RL/blob/main/neurips_2026.tex", icon: "assets/icons/arxiv-square.svg" },
+      { label: "Paper", href: "https://openreview.net/attachment?id=co1yOG9PHM&name=pdf", icon: "assets/icons/arxiv-square.svg" },
       { label: "Figures", href: "https://github.com/Aneeshers/Real-time-RL/tree/main/figures", icon: "assets/icons/pdf.png" },
       { label: "Code", href: "https://github.com/Aneeshers/Real-time-RL", icon: "assets/icons/python.png" },
     ],
     openingMedia: [
       {
-        src: "assets/figures/mcts_tree.gif",
-        alt: "Animated MCTS tree",
-        caption: "AlphaZero-style MCTS gets better as the search tree grows, but each additional rollout costs more latency before the move lands.",
-      },
-      {
         src: "assets/figures/option_timeline.gif",
         alt: "Budgeted option timeline",
-        caption: "Variable-delay real-time RL turns planning budget into an option: spend K frames thinking, then act from the future state.",
-      },
-      {
-        src: "assets/figures/pacman_gate.gif",
-        alt: "Pac-Man gate animation",
-        caption: "The gate learns when to react quickly and when to spend more compute in dangerous states.",
+        caption: "The opening idea is simple: choose how long to think, then act from the future state that arrives after that delay.",
       },
     ],
     abstract:
@@ -44,14 +34,15 @@ window.PAPER_SITE = {
     "AlphaZero-style MCTS buys better actions with more simulations, but the same increase also raises decision latency. In real-time settings, that delay matters because the state changes before the final action lands.",
   sections: [
     {
-      id: "overview",
-      title: "Overview",
+      id: "story",
+      title: "The Story",
       blocks: [
         {
           type: "prose",
           paragraphs: [
-            "The paper generalizes fixed-delay real-time MDPs to a variable-delay setting. Instead of hard-coding one planning delay, the agent chooses a budget K state by state and executes K-1 filler actions before the planned action lands.",
-            "That choice is the core problem: some states reward deeper search, while others need an immediate response. The gate learns that tradeoff on top of a frozen planner, so the meta-decision stays cheap relative to MCTS itself.",
+            "The paper studies what happens when an RL agent cannot assume that the environment waits for it. In ordinary RL, planning is free from the world’s point of view; in real-time RL, thinking longer changes the state you eventually act in.",
+            "That turns planning itself into a control problem. Instead of using a fixed search budget everywhere, the agent learns when to react immediately and when to spend extra time on MCTS.",
+            "The gate is intentionally lightweight. It sits on top of a frozen planner, reads the current state and planner features, and chooses a planning budget K before the MCTS action lands.",
           ],
         },
       ],
@@ -63,14 +54,37 @@ window.PAPER_SITE = {
         {
           type: "prose",
           paragraphs: [
-            "The opening gif shows the central pressure in AlphaZero-style planning: more MCTS rollouts sharpen the action estimate, but they also delay the move. In ordinary RL that delay is invisible because the environment waits; in real-time RL, it directly changes the state you eventually act in.",
+            "The budgeted-option formalism makes the delay explicit: a choice of K means K-1 filler actions followed by the planner’s action. That is the bridge between the MCTS computation graph and the environment’s evolving state.",
           ],
+        },
+        {
+          type: "figure",
+          src: "assets/figures/mcts_tree.gif",
+          alt: "Animated MCTS tree",
+          caption: "More rollouts refine the search tree, but every extra rollout pushes the action further into the future.",
         },
         {
           type: "figure",
           src: "assets/figures/scaling.pdf",
           alt: "Co-scaling between planning quality and latency",
           caption: "Planning quality and latency co-scale with the number of MCTS simulations. The blue curve tracks return or win rate, while the red curve tracks inference latency.",
+        },
+      ],
+    },
+    {
+      id: "method",
+      title: "Variable-Delay Control",
+      blocks: [
+        {
+          type: "prose",
+          paragraphs: [
+            "We frame the problem as a semi-Markov decision process whose holding time is selected by the gate. Each meta-action chooses a budget K, collects discounted reward while the world advances, and then resumes planning from the state reached after that delay.",
+          ],
+        },
+        {
+          type: "equation",
+          tex: String.raw`R_t = \sum_{k=0}^{K_t - 1} \gamma^k r_{t+k}, \qquad V(s_t) = \mathbb{E}_{K_t \sim \pi_{\mathrm{gate}}}\!\left[R_t + \gamma^{K_t} V(s_{t+K_t})\right]`,
+          note: "The discount changes with the selected holding time, so the meta-policy learns the cost of waiting directly.",
         },
         {
           type: "code",
@@ -86,89 +100,56 @@ a_t = mcts(s_t)`,
       ],
     },
     {
-      id: "method",
-      title: "Variable-Delay Control",
-      blocks: [
-        {
-          type: "prose",
-          paragraphs: [
-            "The method is framed as a semi-Markov decision process with holding time chosen by the gate. Each meta-action selects a duration K and the agent collects discounted reward over the K-frame option.",
-          ],
-        },
-        {
-          type: "equation",
-          tex: String.raw`R_t = \sum_{k=0}^{K_t - 1} \gamma^k r_{t+k}, \qquad V(s_t) = \mathbb{E}_{K_t \sim \pi_{\mathrm{gate}}}\!\left[R_t + \gamma^{K_t} V(s_{t+K_t})\right]`,
-          note: "The gate trains on per-meta-step advantages with the discount adjusted by the selected holding time.",
-        },
-        {
-          type: "callout",
-          html: "The point is not to penalize computation separately. Instead, delay is modeled through the environment dynamics and the holding time of the option itself.",
-        },
-      ],
-    },
-    {
       id: "results",
       title: "Results",
       blocks: [
         {
           type: "prose",
           paragraphs: [
-            "The gate beats fixed-budget policies and simple heuristics across all five environments, and the learned allocation is state-dependent rather than collapsing to a single budget.",
+            "Across the benchmark suite, the learned gate beats fixed-budget and heuristic baselines because it adapts compute to the state. The policy is not merely averaging over budgets; it reallocates them based on danger, density, reachability, and clock pressure.",
           ],
         },
         {
-          type: "figureGrid",
-          columns: 2,
-          items: [
-            {
-              src: "assets/figures/main_results_horizontal.pdf",
-              alt: "Main results comparison",
-              caption: "Headline result: adaptive gating outperforms fixed budgets and heuristics across Pac-Man, real-time Tetris, Snake, Speed Hex, and Speed Go.",
-            },
-            {
-              src: "assets/figures/strategy_band.pdf",
-              alt: "Strategy allocation figure",
-              caption: "The policy reallocates compute across budgets instead of sticking to one fixed K.",
-            },
-            {
-              src: "assets/figures/interpretability_combined_alt.pdf",
-              alt: "Interpretability figure",
-              caption: "Deeper planning appears when the state is dangerous, dense, or otherwise constrained.",
-            },
-            {
-              src: "assets/figures/deployment.pdf",
-              alt: "Deployment summary figure",
-              caption: "Simulation-trained policies transfer to a real two-GPU deployment with small latency misses on the tightest deadlines.",
-            },
-          ],
+          type: "figure",
+          src: "assets/figures/main_results_horizontal.pdf",
+          alt: "Main results comparison",
+          caption: "Headline result: adaptive gating outperforms fixed budgets and heuristics across Pac-Man, real-time Tetris, Snake, Speed Hex, and Speed Go.",
+        },
+        {
+          type: "figure",
+          src: "assets/figures/strategy_band.pdf",
+          alt: "Strategy allocation figure",
+          caption: "The gate reallocates compute across budgets instead of collapsing to a single fixed K.",
+        },
+        {
+          type: "figure",
+          src: "assets/figures/interpretability_combined_alt.pdf",
+          alt: "Interpretability figure",
+          caption: "Deeper planning appears when the state is dangerous, dense, or otherwise constrained.",
         },
       ],
     },
     {
       id: "deployment",
-      title: "Two-GPU Deployment",
+      title: "Deployment",
       blocks: [
         {
           type: "prose",
           paragraphs: [
-            "The deployment setup splits the environment and MCTS across two GPUs. Planning happens asynchronously while the environment keeps moving, which is exactly the behavior the training setup was designed to simulate.",
+            "The deployment story closes the loop. Training already simulates planning delay, so the learned gate transfers to a two-GPU setting where the environment keeps running while MCTS works on the second device.",
           ],
         },
         {
-          type: "figureGrid",
-          columns: 2,
-          items: [
-            {
-              src: "assets/figures/deployment_timeline.pdf",
-              alt: "Deployment timeline",
-              caption: "A K=4 meta-step spans four frames while MCTS runs in parallel on the second GPU.",
-            },
-            {
-              src: "assets/figures/option_timeline.gif",
-              alt: "Option timeline animation",
-              caption: "Budgeted options provide the bridge between the planning model and the real-time execution trace.",
-            },
-          ],
+          type: "figure",
+          src: "assets/figures/deployment_timeline.pdf",
+          alt: "Deployment timeline",
+          caption: "A K=4 meta-step spans four frames while MCTS runs in parallel on the second GPU.",
+        },
+        {
+          type: "figure",
+          src: "assets/figures/deployment.pdf",
+          alt: "Deployment summary figure",
+          caption: "Simulation-trained policies transfer to hardware deployment with small deadline misses only at the tightest frame budgets.",
         },
       ],
     },
