@@ -8,12 +8,13 @@ window.PAPER_SITE = {
   paper: {
     title: "Learning Planning Budgets in Real-Time RL",
     authors: [
-      { name: "Aneesh Muppidi", href: "https://aneeshers.github.io" },
-      { name: "Firas Darwish", href: "https://firasdarwish.com" },
+      { name: "Aneesh Muppidi", href: "https://aneeshers.github.io", equal: true },
+      { name: "Firas Darwish", href: "https://firasdarwish.com", equal: true },
       { name: "Dylan Cope", href: "https://dylancope.com" },
       { name: "Joao F. Henriques", href: "https://joao.science" },
       { name: "Jakob Nicolaus Foerster", href: "https://www.jakobfoerster.com" },
     ],
+    authorsNote: "* indicates equal contribution",
     links: [
       { label: "GitHub", href: "https://github.com/Aneeshers/Real-time-RL", icon: "assets/icons/github.png" },
       { label: "Paper", href: "https://openreview.net/attachment?id=co1yOG9PHM&name=pdf", icon: "assets/icons/arxiv-square.svg" },
@@ -56,15 +57,10 @@ window.PAPER_SITE = {
         },
         {
           type: "figure",
-          src: "assets/figures/mcts_tree.gif",
+          src: "assets/figures/mcts_tree_scaling.gif",
           alt: "Animated MCTS tree",
-          caption: "More rollouts refine the search tree, but every extra rollout pushes the action further into the future.",
-        },
-        {
-          type: "figure",
-          src: "assets/figures/scaling.pdf",
-          alt: "Co-scaling between planning quality and latency",
-          caption: "Planning quality and latency co-scale with the number of MCTS simulations: the blue curve tracks return or win rate, while the red curve tracks inference latency.",
+          caption:
+            "More rollouts refine the search tree, but every extra rollout pushes the action further into the future. Planning quality and latency co-scale with the number of MCTS simulations: the blue curve tracks return or win rate, while the red curve tracks inference latency.",
         },
       ],
     },
