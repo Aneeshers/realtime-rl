@@ -358,6 +358,13 @@ figcaption span {
   margin-bottom: 72px;
 }
 
+.deployment-note {
+  margin-top: 18px;
+  color: var(--blue);
+  font-family: "BerkeleyMono", "IBM Plex Sans", monospace;
+  font-size: 0.9rem;
+}
+
 .site-footer {
   display: flex;
   justify-content: space-between;
