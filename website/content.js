@@ -38,8 +38,8 @@ window.PAPER_SITE = {
       title: "The Story",
       blocks: [
         {
-          type: "prose",
-          paragraphs: [
+          type: "bullet",
+          items: [
             "The paper studies what happens when an RL agent cannot assume that the environment waits for it. In ordinary RL, planning is free from the world’s point of view; in real-time RL, thinking longer changes the state you eventually act in.",
             "That turns planning itself into a control problem. Instead of using a fixed search budget everywhere, the agent learns when to react immediately and when to spend extra time on MCTS.",
             "The gate is intentionally lightweight. It sits on top of a frozen planner, reads the current state and planner features, and chooses a planning budget K before the MCTS action lands.",
@@ -54,7 +54,7 @@ window.PAPER_SITE = {
         {
           type: "prose",
           paragraphs: [
-            "The budgeted-option formalism makes the delay explicit: a choice of K means K-1 filler actions followed by the planner’s action. That is the bridge between the MCTS computation graph and the environment’s evolving state.",
+            "AlphaZero is a policy-value network plus MCTS that improves the final action by running more rollouts at test time, and the budgeted-option formalism makes the delay explicit: a choice of K means K-1 filler actions followed by the planner’s action.",
           ],
         },
         {
@@ -67,7 +67,7 @@ window.PAPER_SITE = {
           type: "figure",
           src: "assets/figures/scaling.pdf",
           alt: "Co-scaling between planning quality and latency",
-          caption: "Planning quality and latency co-scale with the number of MCTS simulations. The blue curve tracks return or win rate, while the red curve tracks inference latency.",
+          caption: "Planning quality and latency co-scale with the number of MCTS simulations: the blue curve tracks return or win rate, while the red curve tracks inference latency.",
         },
       ],
     },
@@ -120,6 +120,12 @@ a_t = mcts(s_t)`,
           src: "assets/figures/strategy_band.pdf",
           alt: "Strategy allocation figure",
           caption: "The gate reallocates compute across budgets instead of collapsing to a single fixed K.",
+        },
+        {
+          type: "figure",
+          src: "assets/figures/pacman_gate.gif",
+          alt: "Pac-Man gate animation",
+          caption: "Pac-Man makes the state dependence intuitive: as ghosts move closer, the gate shifts from deeper planning toward immediate reaction, and the selected budget follows the nearest-ghost distance.",
         },
         {
           type: "figure",

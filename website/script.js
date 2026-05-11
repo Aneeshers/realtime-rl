@@ -173,7 +173,11 @@
       return `
         <div class="block bullet-block">
           <ul class="note-list">
-            ${block.items.map((item) => `<li>${item}</li>`).join("")}
+            ${block.items
+              .map(
+                (item, index) => `<li class="fade-in" style="--fade-delay:${index * 110}ms">${item}</li>`
+              )
+              .join("")}
           </ul>
         </div>
       `;
@@ -272,9 +276,32 @@
     });
   }
 
+  function setupFadeIns() {
+    const items = document.querySelectorAll(".fade-in");
+    if (!items.length || typeof IntersectionObserver === "undefined") {
+      items.forEach((item) => item.classList.add("visible"));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+
+    items.forEach((item) => observer.observe(item));
+  }
+
   updateMetadata();
   renderHero();
   renderSections();
   renderFooter();
   renderMath();
+  setupFadeIns();
 })();

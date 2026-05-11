@@ -139,6 +139,20 @@ h1 {
   flex: 0 0 auto;
 }
 
+.fade-in {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 520ms ease,
+    transform 520ms ease;
+  transition-delay: var(--fade-delay, 0ms);
+}
+
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .abstract {
   margin: 0;
   color: var(--muted);
@@ -388,5 +402,13 @@ figcaption {
   .footer {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }
