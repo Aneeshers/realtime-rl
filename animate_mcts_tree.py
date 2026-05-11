@@ -25,7 +25,7 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 from matplotlib.lines import Line2D
 
 from plot_config import (
-    C_BLACK, C_NAVY, C_RED, C_LIGHT_GRAY, C_DARK_GRAY,
+    C_BLACK, C_BLUE, C_NAVY, C_RED, C_LIGHT_GRAY, C_DARK_GRAY,
     FS_TITLE, FS_LABEL, FS_TICK, FS_ANNOT,
     K_COLORS,
     apply_style,
@@ -36,7 +36,8 @@ apply_style()
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIGS = os.path.join(HERE, "figures")
 os.makedirs(FIGS, exist_ok=True)
-OUT_GIF = os.path.join(FIGS, "mcts_tree.gif")
+OUT_GIF_BASIC = os.path.join(FIGS, "mcts_tree.gif")
+OUT_GIF_SCALING = os.path.join(FIGS, "mcts_tree_scaling.gif")
 
 # ── Timing ────────────────────────────────────────────────────────────────────
 FPS       = 30
@@ -96,22 +97,94 @@ def build_state_history():
     return history
 
 
+# ── Pac-Man scaling data (from paper Fig 3 / plot_scaling.py) ────────────────
+# Cached locally so we don't refetch on every render. To refresh, delete the cache.
+PACMAN_CACHE = os.path.join(HERE, ".cache", "pacman_scaling.npz")
+N_DENSE = 240   # interpolated points along log-x for smooth curve reveal
+
+
+def load_pacman_scaling():
+    """Return (sims_dense, perf_dense, perf_se_dense, lat_dense, lat_se_dense,
+    sims_real, perf_real, lat_real) for the Pac-Man scaling panel.
+    Fetches from W&B and caches. SE bands match paper Fig 3."""
+    REQUIRED_KEYS = {"sims_dense", "perf_dense", "perf_se_dense",
+                     "lat_dense", "lat_se_dense",
+                     "sims_real", "perf_real", "lat_real"}
+    if os.path.exists(PACMAN_CACHE):
+        z = np.load(PACMAN_CACHE)
+        if REQUIRED_KEYS.issubset(z.files):
+            return (z["sims_dense"], z["perf_dense"], z["perf_se_dense"],
+                    z["lat_dense"], z["lat_se_dense"],
+                    z["sims_real"], z["perf_real"], z["lat_real"])
+
+    print("Fetching Pac-Man scaling data from W&B (one-time cache)...")
+    from plot_scaling import (
+        _fetch_committed_action, build_series, synthetic_latency, TARGET_SIMS,
+    )
+    sims, ret, lat = _fetch_committed_action(
+        "pacman_kt_cross_eval_mature", k_model=1, k_eval=1,
+    )
+    perf_real_means, perf_real_ses = build_series(
+        sims, ret, TARGET_SIMS, clamp_min=0, se_frac=0.10,
+    )
+    ok = ~np.isnan(lat)
+    if ok.sum() >= 2:
+        lat_real_means, lat_real_ses = build_series(
+            sims[ok], lat[ok], TARGET_SIMS,
+            clamp_min=0, se_frac=0.15, extrap_se_mult=1.6,
+        )
+    else:
+        lat_real_means, lat_real_ses = synthetic_latency(TARGET_SIMS, 0.028)
+
+    log_real = np.log2(TARGET_SIMS)
+    log_dense = np.linspace(log_real[0], log_real[-1], N_DENSE)
+    sims_dense = 2.0 ** log_dense
+    perf_dense    = np.interp(log_dense, log_real, perf_real_means)
+    perf_se_dense = np.interp(log_dense, log_real, perf_real_ses)
+    lat_dense     = np.interp(log_dense, log_real, lat_real_means)
+    lat_se_dense  = np.interp(log_dense, log_real, lat_real_ses)
+
+    os.makedirs(os.path.dirname(PACMAN_CACHE), exist_ok=True)
+    np.savez(
+        PACMAN_CACHE,
+        sims_dense=sims_dense, perf_dense=perf_dense, perf_se_dense=perf_se_dense,
+        lat_dense=lat_dense, lat_se_dense=lat_se_dense,
+        sims_real=TARGET_SIMS, perf_real=perf_real_means, lat_real=lat_real_means,
+    )
+    print(f"  cached -> {PACMAN_CACHE}")
+    return (sims_dense, perf_dense, perf_se_dense, lat_dense, lat_se_dense,
+            TARGET_SIMS, perf_real_means, lat_real_means)
+
+
 def _leaf_value(action, leaf):
     """Plausible per-leaf value tag, deterministic. Range 0.30..0.85."""
     return 0.30 + 0.55 * (((action * 3 + leaf) * 7919) % 100) / 100.0
 
 
-def build_figure():
-    fig = plt.figure(figsize=(11.5, 5.6))
-    gs = gridspec.GridSpec(
-        1, 2, width_ratios=[1.7, 1.0],
-        wspace=0.20, left=0.03, right=0.97,
-        top=0.92, bottom=0.10,
-    )
-    ax_tree = fig.add_subplot(gs[0])
-    ax_bars = fig.add_subplot(gs[1])
+def build_figure(with_scaling=True):
+    if with_scaling:
+        fig = plt.figure(figsize=(15.5, 5.2))
+        gs = gridspec.GridSpec(
+            1, 3, width_ratios=[1.8, 0.9, 1.15],
+            wspace=0.45,
+            left=0.03, right=0.94, top=0.91, bottom=0.14,
+        )
+        ax_tree = fig.add_subplot(gs[0])
+        ax_bars = fig.add_subplot(gs[1])
+        ax_scale = fig.add_subplot(gs[2])
+    else:
+        fig = plt.figure(figsize=(11.5, 5.2))
+        gs = gridspec.GridSpec(
+            1, 2, width_ratios=[1.8, 0.9],
+            wspace=0.35,
+            left=0.03, right=0.97, top=0.91, bottom=0.12,
+        )
+        ax_tree = fig.add_subplot(gs[0])
+        ax_bars = fig.add_subplot(gs[1])
+        ax_scale = None
 
-    ax_tree.set_xlim(-0.02, 1.02)
+    # Tight xlim matched to the tree axis display aspect so the tree fills the panel.
+    ax_tree.set_xlim(-0.15, 1.15)
     ax_tree.set_ylim(0.04, 1.04)
     ax_tree.set_aspect("equal")
     ax_tree.axis("off")
@@ -189,16 +262,105 @@ def build_figure():
     ax_bars.set_xticks(range(4))
     ax_bars.set_xticklabels([f"$a_{i}$" for i in range(4)], fontsize=FS_TICK)
     ax_bars.set_ylabel(r"$P(a) \propto N(s,a)$", fontsize=FS_LABEL)
-    ax_bars.set_title("Action recommendation", fontsize=FS_TITLE, pad=6)
+    ax_bars.set_title("Recommended action", fontsize=FS_TITLE, pad=6)
     ax_bars.tick_params(axis="y", labelsize=FS_TICK)
     ax_bars.spines["top"].set_visible(False)
     ax_bars.spines["right"].set_visible(False)
 
-    return fig, nodes, sizes, rgba, ov_top, ov_bot, v_label, counter, bars
+    if ax_scale is None:
+        return (fig, nodes, sizes, rgba, ov_top, ov_bot, v_label, counter, bars,
+                None, None, None, None, None, None,           # perf_line..lat_dots
+                None, None, None, None, None,                  # sims_dense..lat_se_dense
+                None, None, None)                              # sims_real, *_rgba
+
+    # Scaling subplot: Pac-Man planning quality (blue solid) and H100 latency
+    # (red dashed) — same panel as paper Fig 3, animated to reveal progressively.
+    (sims_dense, perf_dense, perf_se_dense, lat_dense, lat_se_dense,
+     sims_real, perf_real, lat_real) = load_pacman_scaling()
+    # Align both y-axes so each curve traverses bottom-left to top-right, filling
+    # the panel. (Otherwise return starts at ~2400/4400 = 55% height while
+    # latency starts near 0, leaving a big visual gap.)
+    perf_lo = float(perf_dense.min())
+    perf_hi = float(perf_dense.max())
+    perf_pad = 0.08 * (perf_hi - perf_lo)
+    lat_lo  = float(lat_dense.min())
+    lat_hi  = float(lat_dense.max())
+    lat_pad  = 0.08 * (lat_hi - lat_lo)
+    ymin_perf = max(0.0, perf_lo - perf_pad)
+    ymax_perf = perf_hi + perf_pad
+    ymin_lat  = max(0.0, lat_lo - lat_pad)
+    ymax_lat  = lat_hi + lat_pad
+
+    from matplotlib.ticker import FixedLocator, FixedFormatter, NullLocator
+
+    ax_scale.set_xscale("log", base=2)
+    ax_scale.set_xlim(sims_real[0], sims_real[-1])
+    ax_scale.set_ylim(ymin_perf, ymax_perf)
+    ax_scale.set_xlabel("simulations  $\\rightarrow$", fontsize=FS_TICK,
+                        color=C_DARK_GRAY)
+    ax_scale.set_ylabel("quality  $\\rightarrow$", color=C_BLUE, fontsize=FS_TICK)
+    ax_scale.spines["top"].set_visible(False)
+    ax_scale.set_title("Quality vs. latency", fontsize=FS_TITLE, pad=4)
+
+    ax_lat = ax_scale.twinx()  # twinx shares x; do NOT re-set xscale here
+    ax_lat.set_ylim(ymin_lat, ymax_lat)
+    ax_lat.set_ylabel("latency  $\\rightarrow$", color=C_RED, fontsize=FS_TICK)
+    ax_lat.spines["top"].set_visible(False)
+
+    # Strip ticks + tick labels on all three axes for an abstract look.
+    for a in (ax_scale, ax_lat):
+        a.set_xticks([])
+        a.set_yticks([])
+        a.xaxis.set_minor_locator(NullLocator())
+        a.yaxis.set_minor_locator(NullLocator())
+
+    from matplotlib.patches import Polygon
+
+    LINE_WIDTH = 3.2
+    BAND_ALPHA = 0.20
+
+    # SE bands (Polygon patches whose vertices we'll update each frame).
+    perf_band = Polygon(np.array([[sims_real[0], ymin_perf]]),
+                        closed=True, facecolor=C_BLUE, alpha=BAND_ALPHA,
+                        edgecolor="none", zorder=2)
+    lat_band  = Polygon(np.array([[sims_real[0], ymin_lat]]),
+                        closed=True, facecolor=C_RED,  alpha=BAND_ALPHA,
+                        edgecolor="none", zorder=2)
+    ax_scale.add_patch(perf_band)
+    ax_lat.add_patch(lat_band)
+
+    perf_line, = ax_scale.plot([], [], color=C_BLUE, lw=LINE_WIDTH, zorder=4)
+    lat_line,  = ax_lat.plot([], [],   color=C_RED,  lw=LINE_WIDTH,
+                              linestyle="--", zorder=4)
+
+    # Measured-point markers — alpha-controlled per frame to "appear" when revealed.
+    perf_dots = ax_scale.scatter(
+        sims_real, perf_real, color=C_BLUE, s=36,
+        edgecolor="white", linewidths=0.6, zorder=6,
+    )
+    lat_dots = ax_lat.scatter(
+        sims_real, lat_real, color=C_RED, s=32, marker="s",
+        edgecolor="white", linewidths=0.6, zorder=6,
+    )
+    # Initialize all dots hidden (alpha=0); update() will reveal them as the x-sweep passes.
+    perf_dots_rgba = np.tile(np.array([*mcolors.to_rgba(C_BLUE)]), (len(sims_real), 1))
+    lat_dots_rgba  = np.tile(np.array([*mcolors.to_rgba(C_RED)]),  (len(sims_real), 1))
+    perf_dots_rgba[:, 3] = 0.0
+    lat_dots_rgba[:, 3]  = 0.0
+    perf_dots.set_facecolors(perf_dots_rgba)
+    lat_dots.set_facecolors(lat_dots_rgba)
+
+    return (fig, nodes, sizes, rgba, ov_top, ov_bot, v_label, counter, bars,
+            perf_line, lat_line, perf_band, lat_band, perf_dots, lat_dots,
+            sims_dense, perf_dense, perf_se_dense, lat_dense, lat_se_dense,
+            sims_real, perf_dots_rgba, lat_dots_rgba)
 
 
 def update(frame_idx, ctx):
     (nodes, sizes, rgba, ov_top, ov_bot, v_label, counter, bars,
+     perf_line, lat_line, perf_band, lat_band, perf_dots, lat_dots,
+     sims_dense, perf_dense, perf_se_dense, lat_dense, lat_se_dense, sims_real,
+     perf_dots_rgba, lat_dots_rgba,
      state_history) = ctx
 
     t = frame_idx / FPS
@@ -277,23 +439,82 @@ def update(frame_idx, ctx):
     for bar, h in zip(bars, p):
         bar.set_height(h)
 
+    # Pac-Man scaling: reveal curves up to a sweep position that progresses linearly
+    # in log-x from sims_real[0] to sims_real[-1] across the animation's sim phase.
+    if perf_line is None:
+        return []   # 2-panel variant — no scaling subplot to update
+
+    if t < T_INTRO:
+        reveal_frac = 0.0
+    elif t < T_INTRO + T_SIMS:
+        reveal_frac = (t - T_INTRO) / T_SIMS
+    else:
+        reveal_frac = 1.0
+    n_visible = int(round(reveal_frac * len(sims_dense)))
+    n_visible = max(0, min(len(sims_dense), n_visible))
+    perf_line.set_data(sims_dense[:n_visible], perf_dense[:n_visible])
+    lat_line.set_data(sims_dense[:n_visible], lat_dense[:n_visible])
+
+    # Grow the SE bands as Polygon vertices: top edge (mean+se) left→right,
+    # then bottom edge (mean-se) right→left to close the polygon.
+    if n_visible >= 2:
+        x_seg = sims_dense[:n_visible]
+        p_hi = perf_dense[:n_visible] + perf_se_dense[:n_visible]
+        p_lo = perf_dense[:n_visible] - perf_se_dense[:n_visible]
+        perf_band.set_xy(np.vstack([
+            np.column_stack([x_seg, p_hi]),
+            np.column_stack([x_seg[::-1], p_lo[::-1]]),
+        ]))
+        l_hi = lat_dense[:n_visible] + lat_se_dense[:n_visible]
+        l_lo = lat_dense[:n_visible] - lat_se_dense[:n_visible]
+        lat_band.set_xy(np.vstack([
+            np.column_stack([x_seg, l_hi]),
+            np.column_stack([x_seg[::-1], l_lo[::-1]]),
+        ]))
+    else:
+        perf_band.set_xy(np.array([[sims_dense[0], perf_dense[0]]]))
+        lat_band.set_xy(np.array([[sims_dense[0], lat_dense[0]]]))
+
+    # Measured dots fade in once the sweep passes their x position.
+    if n_visible > 0:
+        x_sweep = sims_dense[n_visible - 1]
+    else:
+        x_sweep = sims_real[0]
+    for i, sx in enumerate(sims_real):
+        a = 1.0 if sx <= x_sweep + 1e-6 else 0.0
+        perf_dots_rgba[i, 3] = a
+        lat_dots_rgba[i, 3]  = a
+    perf_dots.set_facecolors(perf_dots_rgba)
+    lat_dots.set_facecolors(lat_dots_rgba)
+
     return []
 
 
-def main():
+def _render(with_scaling, out_path):
     state_history = build_state_history()
-    fig, nodes, sizes, rgba, ov_top, ov_bot, v_label, counter, bars = build_figure()
-    ctx = (nodes, sizes, rgba, ov_top, ov_bot, v_label, counter, bars, state_history)
-
+    (fig, nodes, sizes, rgba, ov_top, ov_bot, v_label, counter, bars,
+     perf_line, lat_line, perf_band, lat_band, perf_dots, lat_dots,
+     sims_dense, perf_dense, perf_se_dense, lat_dense, lat_se_dense,
+     sims_real, perf_dots_rgba, lat_dots_rgba) = build_figure(with_scaling=with_scaling)
+    ctx = (nodes, sizes, rgba, ov_top, ov_bot, v_label, counter, bars,
+           perf_line, lat_line, perf_band, lat_band, perf_dots, lat_dots,
+           sims_dense, perf_dense, perf_se_dense, lat_dense, lat_se_dense,
+           sims_real, perf_dots_rgba, lat_dots_rgba,
+           state_history)
     anim = FuncAnimation(
         fig, update, frames=N_FRAMES,
         fargs=(ctx,),
         interval=1000.0 / FPS, blit=False,
     )
-    print(f"Rendering {N_FRAMES} frames at {FPS} fps -> {OUT_GIF}")
-    anim.save(OUT_GIF, writer=PillowWriter(fps=FPS), dpi=140)
+    print(f"Rendering {N_FRAMES} frames at {FPS} fps -> {out_path}")
+    anim.save(out_path, writer=PillowWriter(fps=FPS), dpi=140)
     plt.close(fig)
-    print(f"Saved: {OUT_GIF}")
+    print(f"Saved: {out_path}")
+
+
+def main():
+    _render(with_scaling=False, out_path=OUT_GIF_BASIC)
+    _render(with_scaling=True,  out_path=OUT_GIF_SCALING)
 
 
 if __name__ == "__main__":
