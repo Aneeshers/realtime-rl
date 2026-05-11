@@ -145,7 +145,6 @@ h1 {
   transition:
     opacity 520ms ease,
     transform 520ms ease;
-  transition-delay: var(--fade-delay, 0ms);
 }
 
 .fade-in.visible {

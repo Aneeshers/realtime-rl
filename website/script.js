@@ -173,12 +173,7 @@
       return `
         <div class="block bullet-block">
           <ul class="note-list">
-            ${block.items
-              .map(
-                (item, index) =>
-                  `<li class="fade-in" style="--fade-delay:${index * 110}ms">${item}</li>`
-              )
-              .join("")}
+            ${block.items.map((item) => `<li class="fade-in">${item}</li>`).join("")}
           </ul>
         </div>
       `;
@@ -283,24 +278,9 @@
       return;
     }
 
-    if (typeof IntersectionObserver === "undefined") {
-      items.forEach((item) => item.classList.add("visible"));
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("visible");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.15 }
-    );
-
-    items.forEach((item) => observer.observe(item));
+    items.forEach((item, index) => {
+      window.setTimeout(() => item.classList.add("visible"), 120 + index * 160);
+    });
   }
 
   updateMetadata();

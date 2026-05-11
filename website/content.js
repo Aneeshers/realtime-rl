@@ -50,14 +50,8 @@ window.PAPER_SITE = {
       title: "AlphaZero And Latency",
       blocks: [
         {
-          type: "prose",
-          paragraphs: [
-            "AlphaZero is a policy-value network plus MCTS that improves the final action by running more rollouts at test time, and the budgeted-option formalism makes the delay explicit: a choice of K means K-1 filler actions followed by the planner’s action.",
-          ],
-        },
-        {
           type: "callout",
-          html: "AlphaZero-style MCTS buys better actions with more simulations, but the same increase also raises decision latency. In real-time settings, that delay matters because the state changes before the final action lands.",
+          html: "AlphaZero is a policy-value network plus MCTS that improves the final action by running more rollouts at test time, and the budgeted-option formalism makes the delay explicit: a choice of K means K-1 filler actions followed by the planner’s action. AlphaZero-style MCTS buys better actions with more simulations, but the same increase also raises decision latency. In real-time settings, that delay matters because the state changes before the final action lands.",
         },
         {
           type: "figure",
@@ -128,12 +122,6 @@ a_t = mcts(s_t)`,
           src: "assets/figures/pacman_gate.gif",
           alt: "Pac-Man gate animation",
           caption: "Pac-Man makes the state dependence intuitive: as ghosts move closer, the gate shifts from deeper planning toward immediate reaction, and the selected budget follows the nearest-ghost distance.",
-        },
-        {
-          type: "figure",
-          src: "assets/figures/interpretability_combined_alt.pdf",
-          alt: "Interpretability figure",
-          caption: "Deeper planning appears when the state is dangerous, dense, or otherwise constrained.",
         },
       ],
     },
