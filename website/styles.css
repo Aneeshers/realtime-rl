@@ -145,6 +145,7 @@ h1 {
   transition:
     opacity 520ms ease,
     transform 520ms ease;
+  transition-delay: var(--fade-delay, 0ms);
 }
 
 .fade-in.visible {
@@ -283,7 +284,10 @@ h2 {
 }
 
 .callout.yellow {
-  background: #fff5cc;
+  background: #ffefad;
+  border: 1px solid #d9be4f;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+  color: var(--ink);
 }
 
 .code-block {

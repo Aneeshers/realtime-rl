@@ -51,6 +51,7 @@ window.PAPER_SITE = {
       blocks: [
         {
           type: "callout",
+          tone: "yellow",
           html: "AlphaZero is a policy-value network plus MCTS that improves the final action by running more rollouts at test time, and the budgeted-option formalism makes the delay explicit: a choice of K means K-1 filler actions followed by the planner’s action. AlphaZero-style MCTS buys better actions with more simulations, but the same increase also raises decision latency. In real-time settings, that delay matters because the state changes before the final action lands.",
         },
         {

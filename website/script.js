@@ -173,14 +173,17 @@
       return `
         <div class="block bullet-block">
           <ul class="note-list">
-            ${block.items.map((item) => `<li class="fade-in">${item}</li>`).join("")}
+            ${block.items
+              .map((item, index) => `<li class="fade-in" style="--fade-delay: ${index * 140}ms">${item}</li>`)
+              .join("")}
           </ul>
         </div>
       `;
     }
 
     if (block.type === "callout") {
-      return `<div class="block callout">${block.html}</div>`;
+      const tone = block.tone ? ` ${block.tone}` : "";
+      return `<div class="block callout${tone}">${block.html}</div>`;
     }
 
     if (block.type === "code") {
@@ -278,9 +281,28 @@
       return;
     }
 
-    items.forEach((item, index) => {
-      window.setTimeout(() => item.classList.add("visible"), 120 + index * 160);
-    });
+    if (!("IntersectionObserver" in window)) {
+      items.forEach((item) => item.classList.add("visible"));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+          } else {
+            entry.target.classList.remove("visible");
+          }
+        });
+      },
+      {
+        threshold: 0.35,
+        rootMargin: "0px 0px -8% 0px",
+      }
+    );
+
+    items.forEach((item) => observer.observe(item));
   }
 
   updateMetadata();
