@@ -8,12 +8,13 @@ window.PAPER_SITE = {
   paper: {
     title: "Learning Planning Budgets in Real-Time RL",
     authors: [
-      { name: "Aneesh Muppidi", href: "https://aneeshers.github.io" },
-      { name: "Firas Darwish", href: "https://firasdarwish.com" },
+      { name: "Aneesh Muppidi", href: "https://aneeshers.github.io", equal: true },
+      { name: "Firas Darwish", href: "https://firasdarwish.com", equal: true },
       { name: "Dylan Cope", href: "https://dylancope.com" },
       { name: "Joao F. Henriques", href: "https://joao.science" },
       { name: "Jakob Nicolaus Foerster", href: "https://www.jakobfoerster.com" },
     ],
+    authorsNote: "Equal contribution: Aneesh Muppidi and Firas Darwish.",
     links: [
       { label: "GitHub", href: "https://github.com/Aneeshers/Real-time-RL", icon: "assets/icons/github.png" },
       { label: "Paper", href: "https://openreview.net/attachment?id=co1yOG9PHM&name=pdf", icon: "assets/icons/arxiv-square.svg" },

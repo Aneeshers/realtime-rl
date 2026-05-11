@@ -24,9 +24,10 @@
   }
 
   function authorMarkup(author) {
+    const marker = author.equal ? '<sup class="author-equal">*</sup>' : "";
     return author.href
-      ? `<a href="${author.href}">${author.name}</a>`
-      : author.name;
+      ? `<a href="${author.href}">${author.name}${marker}</a>`
+      : `${author.name}${marker}`;
   }
 
   function escapeHTML(text) {
@@ -139,6 +140,7 @@
       <div class="hero-copy">
         <h1>${data.paper.title}</h1>
         <p class="authors-line">${data.paper.authors.map(authorMarkup).join(", ")}</p>
+        ${data.paper.authorsNote ? `<p class="authors-note">${data.paper.authorsNote}</p>` : ""}
         <div class="hero-links">
           ${data.paper.links.map(linkMarkup).join("")}
         </div>
