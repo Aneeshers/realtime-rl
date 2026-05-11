@@ -134,9 +134,10 @@ a_t = mcts(s_t)`,
         },
         {
           type: "figure",
-          src: "assets/figures/deployment_timeline.pdf",
-          alt: "Deployment timeline",
-          caption: "A K=4 meta-step spans four frames while MCTS runs in parallel on the second GPU.",
+          src: "assets/figures/deployment_timeline.gif",
+          alt: "Animated deployment timeline",
+          caption:
+            "A two-panel animation couples the two-GPU async loop with a Gantt-style execution timeline: state and action packets move between the GPUs while the playhead sweeps the K=4 + K=1 + start-of-K=2 sequence at about 9.4x slowdown.",
         },
         {
           type: "figure",
