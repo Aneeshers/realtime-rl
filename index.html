@@ -3,296 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Learning Planning Budgets in Real-Time RL</title>
+    <title>Finding the Time to Think: Adaptive MCTS in Real-Time RL</title>
     <meta
       name="description"
-      content="Project page for Learning Planning Budgets in Real-Time RL, a Distill-inspired visual overview of adaptive planning budgets, variable-delay control, and real-time deployment."
+      content="A flat paper-style project page for variable-delay real-time RL, AlphaZero-style planning, and state-dependent compute budgets."
     />
-    <meta property="og:title" content="Learning Planning Budgets in Real-Time RL" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Finding the Time to Think: Adaptive MCTS in Real-Time RL" />
     <meta
       property="og:description"
-      content="Adaptive planning budgets for real-time reinforcement learning across Pac-Man, Tetris, Snake, Speed Hex, and Speed Go."
+      content="A flat paper-style project page for variable-delay real-time RL, AlphaZero-style planning, and state-dependent compute budgets."
     />
-    <meta property="og:image" content="assets/figures/gating_diagram.png" />
-    <meta property="og:type" content="website" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <meta property="og:image" content="assets/figures/mcts_tree.gif" />
     <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap"
       rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="page-shell">
-      <header class="site-header">
-        <a class="site-mark" href="#top">realtime-rl</a>
-        <nav class="site-nav" aria-label="Primary">
-          <a href="#overview">Overview</a>
-          <a href="#method">Method</a>
-          <a href="#results">Results</a>
-          <a href="#deployment">Deployment</a>
-        </nav>
-      </header>
-
-      <main id="top">
-        <section class="hero">
-          <div class="hero-copy" data-reveal>
-            <p class="eyebrow">NeurIPS 2026 submission / project page</p>
-            <h1>Learning Planning Budgets in Real-Time RL</h1>
-            <p class="lede">
-              In real-time reinforcement learning, thinking longer is not free. We
-              study agents that decide how much time to spend planning before an
-              action takes effect, then train a lightweight gating policy to choose
-              state-dependent planning budgets.
-            </p>
-            <div class="hero-actions">
-              <a class="button button-primary" href="https://github.com/Aneeshers/realtime-rl" target="_blank" rel="noreferrer">Repository</a>
-              <a class="button button-secondary" href="#results">Results</a>
-              <span class="status-pill">paper link pending</span>
-            </div>
-          </div>
-          <figure class="hero-media" data-reveal>
-            <img
-              src="assets/figures/option_timeline.gif"
-              alt="Animated timeline showing the gate selecting a planning budget K and the planner running while reflex actions are executed."
-            />
-            <figcaption>
-              Opening view: a budgeted option lasts for <span>K</span> frames while
-              MCTS plans in parallel.
-            </figcaption>
-          </figure>
-        </section>
-
-        <section id="overview" class="overview">
-          <div class="section-heading" data-reveal>
-            <p class="eyebrow">Overview</p>
-            <h2>Adaptive planning under real-time constraints</h2>
-          </div>
-          <div class="metric-grid">
-            <article class="metric-card" data-reveal>
-              <p class="metric-value">5</p>
-              <p class="metric-label">evaluation environments</p>
-            </article>
-            <article class="metric-card" data-reveal>
-              <p class="metric-value">2</p>
-              <p class="metric-label">real-time regimes: committed-action and clock-based</p>
-            </article>
-            <article class="metric-card" data-reveal>
-              <p class="metric-value">1</p>
-              <p class="metric-label">lightweight gate on top of a frozen planner</p>
-            </article>
-            <article class="metric-card" data-reveal>
-              <p class="metric-value">0</p>
-              <p class="metric-label">architectural changes needed for two-GPU transfer</p>
-            </article>
-          </div>
-          <div class="text-columns" data-reveal>
-            <p>
-              Standard RL assumes the environment waits for an agent forever. This
-              paper drops that assumption. The world keeps moving while the agent
-              thinks, so the right amount of deliberation becomes a resource
-              allocation problem.
-            </p>
-            <p>
-              The central question is not whether planning helps. It does. The
-              question is when to react immediately and when to pay the real-time
-              cost of deeper search.
-            </p>
-          </div>
-        </section>
-
-        <section id="method" class="feature-section">
-          <div class="section-heading" data-reveal>
-            <p class="eyebrow">Method</p>
-            <h2>A gating policy selects the planning budget</h2>
-          </div>
-          <div class="feature-layout">
-            <figure class="panel figure-panel wide-panel" data-reveal>
-              <img
-                src="assets/figures/gating_diagram.png"
-                alt="Diagram of the gating policy observing a state, choosing a planning budget, executing committed actions, and improving the final action with a growing MCTS tree."
-              />
-              <figcaption>
-                The gate selects a budget <span>K</span>; reflex actions keep the
-                environment moving while MCTS refines the action that lands
-                <span>K</span> steps later.
-              </figcaption>
-            </figure>
-            <div class="panel copy-panel" data-reveal>
-              <h3>Variable-delay control as a meta-decision problem</h3>
-              <p>
-                Each decision point includes a second decision: how much computation
-                should the agent spend before the next planned action takes effect?
-                The gate predicts that budget cheaply, avoiding the paradox where
-                planning about planning would itself cost too much.
-              </p>
-              <ul class="bullet-list">
-                <li>Planner: AlphaZero-style MCTS with simulation budget as the compute knob.</li>
-                <li>Gate: PPO-trained policy on top of a frozen planner.</li>
-                <li>Execution: committed reflex actions in dynamic environments, or clock consumption in board games.</li>
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        <section class="feature-section">
-          <div class="section-heading" data-reveal>
-            <p class="eyebrow">Tradeoff</p>
-            <h2>Planning quality and latency scale together</h2>
-          </div>
-          <div class="feature-layout reverse">
-            <div class="panel copy-panel" data-reveal>
-              <h3>More search helps, but it is visibly slower</h3>
-              <p>
-                Across Pac-Man, real-time Tetris, and Speed Hex, deeper MCTS
-                improves action quality while increasing inference latency on H100,
-                A100, and A40 GPUs. That co-scaling is the reason adaptive budget
-                allocation matters in the first place.
-              </p>
-            </div>
-            <figure class="panel figure-panel" data-reveal>
-              <img
-                src="assets/figures/scaling.png"
-                alt="Plots showing planning quality increasing with simulations while inference latency also increases."
-              />
-              <figcaption>
-                Simulation count simultaneously changes decision quality and real-time
-                cost.
-              </figcaption>
-            </figure>
-          </div>
-        </section>
-
-        <section id="results" class="feature-section">
-          <div class="section-heading" data-reveal>
-            <p class="eyebrow">Results</p>
-            <h2>The learned gate outperforms fixed-budget baselines</h2>
-          </div>
-          <figure class="panel figure-panel spotlight" data-reveal>
-            <img
-              src="assets/figures/main_results_horizontal.png"
-              alt="Main results across Pac-Man, Tetris RT, Speed Hex, Speed Go, and Snake showing the gating policy outperforming baselines."
-            />
-            <figcaption>
-              Across all five environments, the adaptive gate outperforms fixed
-              budgets and clock heuristics.
-            </figcaption>
-          </figure>
-          <div class="environment-grid">
-            <article class="environment-card" data-reveal>
-              <h3>Pac-Man</h3>
-              <p>Threat-sensitive control: react when ghosts are close, plan when the board opens up.</p>
-            </article>
-            <article class="environment-card" data-reveal>
-              <h3>Tetris RT</h3>
-              <p>Dense boards trigger deep planning; sparse boards favor near-instant reaction.</p>
-            </article>
-            <article class="environment-card" data-reveal>
-              <h3>Snake</h3>
-              <p>Spatial constraint, not just fruit distance, determines when extra thinking is worth it.</p>
-            </article>
-            <article class="environment-card" data-reveal>
-              <h3>Speed Hex</h3>
-              <p>Budget use changes with both board position and remaining clock.</p>
-            </article>
-            <article class="environment-card" data-reveal>
-              <h3>Speed Go</h3>
-              <p>The gate shifts compute across the game instead of committing to a single search depth.</p>
-            </article>
-          </div>
-        </section>
-
-        <section class="feature-section">
-          <div class="section-heading" data-reveal>
-            <p class="eyebrow">Interpretability</p>
-            <h2>Deeper planning appears exactly where the state gets dangerous</h2>
-          </div>
-          <div class="feature-layout">
-            <figure class="panel figure-panel" data-reveal>
-              <img
-                src="assets/figures/interpretability_combined_alt.png"
-                alt="Interpretability figure showing how Pac-Man, Snake, and Tetris states correlate with chosen planning budgets."
-              />
-              <figcaption>
-                In Pac-Man, Snake, and Tetris, the gate spends compute when the
-                consequences of a bad action become larger.
-              </figcaption>
-            </figure>
-            <figure class="panel figure-panel" data-reveal>
-              <img
-                src="assets/figures/strategy_band.png"
-                alt="Strategy band figure showing budget allocation profiles across Speed Hex and Speed Go under different clock budgets."
-              />
-              <figcaption>
-                In the clock games, budget allocation is tied to both board state
-                and remaining time.
-              </figcaption>
-            </figure>
-          </div>
-        </section>
-
-        <section id="deployment" class="feature-section">
-          <div class="section-heading" data-reveal>
-            <p class="eyebrow">Deployment</p>
-            <h2>Simulation-trained policies transfer to a true two-GPU loop</h2>
-          </div>
-          <div class="feature-layout">
-            <figure class="panel figure-panel" data-reveal>
-              <img
-                src="assets/figures/deployment_timeline.png"
-                alt="Two-GPU asynchronous deployment pipeline and execution timeline at 9 FPS."
-              />
-              <figcaption>
-                The environment runs continuously on one GPU while MCTS searches on a
-                second GPU.
-              </figcaption>
-            </figure>
-            <figure class="panel figure-panel" data-reveal>
-              <img
-                src="assets/figures/deployment.png"
-                alt="Deployment plots showing latency distributions, miss rates, and real-vs-sim return transfer."
-              />
-              <figcaption>
-                Hardware transfer remains strong across GPU classes and frame rates,
-                with the cleanest latency margins on H100.
-              </figcaption>
-            </figure>
-          </div>
-        </section>
-
-        <section class="closing-section" data-reveal>
-          <p class="eyebrow">Takeaway</p>
-          <h2>Real-time intelligence is partly a scheduling problem</h2>
-          <p>
-            The paper’s main claim is simple: in environments that do not wait,
-            computation itself becomes a control variable. Learning when to think is
-            as important as learning what to do.
-          </p>
-          <p class="deployment-note">
-            This site is deployed directly from the repository through GitHub Pages
-            Actions.
-          </p>
-        </section>
+    <div class="site">
+      <main id="top" class="page">
+        <section class="hero" id="hero"></section>
+        <div class="sections" id="sections"></div>
       </main>
 
-      <footer class="site-footer">
-        <p>Built from the paper draft and figure set in <code>Real-time-RL/</code>.</p>
-        <p>
-          Update the paper button in <code>index.html</code> once you have a final
-          PDF or arXiv link.
-        </p>
-      </footer>
+      <footer class="footer" id="footer"></footer>
     </div>
 
-    <div class="lightbox" id="lightbox" hidden>
-      <button class="lightbox-close" id="lightbox-close" aria-label="Close figure">
-        Close
-      </button>
-      <img id="lightbox-image" alt="" />
-      <p id="lightbox-caption"></p>
-    </div>
-
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script src="content.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
