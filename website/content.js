@@ -30,8 +30,6 @@ window.PAPER_SITE = {
     abstract:
       "Real-time reinforcement learning is different from standard RL because the world keeps moving while the agent plans. We study variable-delay real-time RL, where a gate chooses how long to deliberate at each decision point on top of a frozen AlphaZero-style MCTS planner. The resulting policy spends more compute when the state is risky or constrained, outperforms fixed-budget and heuristic baselines across Pac-Man, real-time Tetris, Snake, Speed Hex, and Speed Go, and transfers to a two-GPU deployment without retraining.",
   },
-  highlight:
-    "AlphaZero-style MCTS buys better actions with more simulations, but the same increase also raises decision latency. In real-time settings, that delay matters because the state changes before the final action lands.",
   sections: [
     {
       id: "story",
@@ -56,6 +54,10 @@ window.PAPER_SITE = {
           paragraphs: [
             "AlphaZero is a policy-value network plus MCTS that improves the final action by running more rollouts at test time, and the budgeted-option formalism makes the delay explicit: a choice of K means K-1 filler actions followed by the planner’s action.",
           ],
+        },
+        {
+          type: "callout",
+          html: "AlphaZero-style MCTS buys better actions with more simulations, but the same increase also raises decision latency. In real-time settings, that delay matters because the state changes before the final action lands.",
         },
         {
           type: "figure",

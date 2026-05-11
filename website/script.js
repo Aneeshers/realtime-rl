@@ -175,7 +175,8 @@
           <ul class="note-list">
             ${block.items
               .map(
-                (item, index) => `<li class="fade-in" style="--fade-delay:${index * 110}ms">${item}</li>`
+                (item, index) =>
+                  `<li class="fade-in" style="--fade-delay:${index * 110}ms">${item}</li>`
               )
               .join("")}
           </ul>
@@ -278,7 +279,11 @@
 
   function setupFadeIns() {
     const items = document.querySelectorAll(".fade-in");
-    if (!items.length || typeof IntersectionObserver === "undefined") {
+    if (!items.length) {
+      return;
+    }
+
+    if (typeof IntersectionObserver === "undefined") {
       items.forEach((item) => item.classList.add("visible"));
       return;
     }
