@@ -43,7 +43,8 @@ a:focus-visible {
   color: var(--accent);
 }
 
-img {
+img,
+video {
   display: block;
   max-width: 100%;
 }
@@ -195,7 +196,8 @@ h1 {
   margin: 0;
 }
 
-.hero-media-item img {
+.hero-media-item img,
+.hero-media-item video {
   width: 100%;
   height: auto;
 }
@@ -350,7 +352,8 @@ h2 {
   line-height: 1.65;
 }
 
-.figure-block img {
+.figure-block img,
+.figure-block video {
   width: 100%;
 }
 

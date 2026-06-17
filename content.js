@@ -1,12 +1,12 @@
 window.PAPER_SITE = {
   meta: {
-    title: "Learning Planning Budgets in Real-Time RL",
+    title: "Finding the Time to Think in Real-Time RL",
     description:
-      "A flat paper-style project page for variable-delay real-time RL, AlphaZero-style planning, and state-dependent compute budgets.",
-    ogImage: "assets/figures/option_timeline.gif",
+      "Project page for variable-delay real-time RL: a lightweight gate learns how long to run AlphaZero-style MCTS at each decision, on top of a frozen planner.",
+    ogImage: "assets/figures/main_results_horizontal.png",
   },
   paper: {
-    title: "Learning Planning Budgets in Real-Time RL",
+    title: "Finding the Time to Think in Real-Time RL",
     authors: [
       { name: "Aneesh Muppidi", href: "https://aneeshers.github.io", equal: true },
       { name: "Firas Darwish", href: "https://firasdarwish.com", equal: true },
@@ -16,16 +16,15 @@ window.PAPER_SITE = {
     ],
     authorsNote: "* indicates equal contribution",
     links: [
-      { label: "GitHub", href: "https://github.com/Aneeshers/Real-time-RL", icon: "assets/icons/github.png" },
-      { label: "Paper", href: "https://openreview.net/attachment?id=co1yOG9PHM&name=pdf", icon: "assets/icons/arxiv-square.svg" },
-      { label: "Figures", href: "https://github.com/Aneeshers/Real-time-RL/tree/main/figures", icon: "assets/icons/pdf.png" },
-      { label: "Code", href: "https://github.com/Aneeshers/Real-time-RL", icon: "assets/icons/python.png" },
+      { label: "Paper (PDF)", href: "assets/finding-the-time-to-think.pdf", icon: "assets/icons/pdf.png" },
+      { label: "Code", href: "https://github.com/Aneeshers/realtime-rl-code", icon: "assets/icons/github.png" },
+      { label: "Video", href: "assets/trailer_music.mp4", icon: "assets/icons/python.png" },
     ],
     openingMedia: [
       {
-        src: "assets/figures/option_timeline.gif",
-        alt: "Budgeted option timeline",
-        caption: "The opening idea is simple: choose how long to think, then act from the future state that arrives after that delay.",
+        src: "assets/trailer.mp4",
+        alt: "Real-time RL explainer trailer",
+        caption: "A short tour of the whole idea: standard RL lets you think for free, the real world never waits, and a learned gate decides how long to think at each step. (Sound on the Video link above.)",
       },
     ],
     abstract:
@@ -33,46 +32,64 @@ window.PAPER_SITE = {
   },
   sections: [
     {
-      id: "story",
-      title: "The Story",
+      id: "problem",
+      title: "The Problem",
       blocks: [
         {
           type: "bullet",
           items: [
-            "The paper studies what happens when an RL agent cannot assume that the environment waits for it. In ordinary RL, planning is free from the world’s point of view; in real-time RL, thinking longer changes the state you eventually act in.",
-            "That turns planning itself into a control problem. Instead of using a fixed search budget everywhere, the agent learns when to react immediately and when to spend extra time on MCTS.",
-            "The gate is intentionally lightweight. It sits on top of a frozen planner, reads the current state and planner features, and chooses a planning budget K before the MCTS action lands.",
+            "In ordinary RL the environment waits while the agent deliberates, so planning is free from the world&rsquo;s point of view. The animation below shows that idealized setting: Pac-Man pauses the world, imagines a few rollouts, picks one, and only then moves.",
+            "Real-time RL removes that luxury &mdash; the world keeps moving while you think. Deliberate too long and a ghost reaches you before your plan is ready; react instantly and you act on a weak, unplanned policy.",
+            "That turns &ldquo;how long to think&rdquo; into a control problem: the agent should react immediately in some states and spend real search time in others.",
           ],
+        },
+        {
+          type: "figure",
+          src: "assets/figures/rtrl_scene1.mp4",
+          alt: "Standard RL: the world waits while you think",
+          caption: "Standard RL. The board freezes, the planner imagines rollouts, the best one is chosen, and the agent acts &mdash; the environment never moved while it planned.",
+        },
+        {
+          type: "figure",
+          src: "assets/figures/rtrl_scene2.mp4",
+          alt: "The real world never waits",
+          caption: "Real-time RL. Think too slow and the ghost catches you; think too fast and the greedy move is weak. Neither fixed strategy works.",
         },
       ],
     },
     {
       id: "alphazero",
-      title: "AlphaZero And Latency",
+      title: "Planning Costs Time",
       blocks: [
         {
           type: "callout",
           tone: "yellow",
-          html: "AlphaZero is a policy-value network plus MCTS that improves the final action by running more rollouts at test time, and the budgeted-option formalism makes the delay explicit: a choice of K means K-1 filler actions followed by the planner’s action. AlphaZero-style MCTS buys better actions with more simulations, but the same increase also raises decision latency. In real-time settings, that delay matters because the state changes before the final action lands.",
+          html: "AlphaZero is a policy-value network plus MCTS that improves the final action by running more rollouts at test time. More simulations buy better actions &mdash; but the same increase raises decision latency, and in real-time settings that delay is paid as progress in the world before the action lands.",
         },
         {
           type: "figure",
           src: "assets/figures/mcts_tree_scaling.gif",
-          alt: "Animated MCTS tree",
+          alt: "Animated MCTS tree and scaling curves",
           caption:
-            "More rollouts refine the search tree, but every extra rollout pushes the action further into the future. Planning quality and latency co-scale with the number of MCTS simulations: the blue curve tracks return or win rate, while the red curve tracks inference latency.",
+            "More rollouts refine the search tree, but every extra rollout pushes the action further into the future. Planning quality and latency co-scale with the number of MCTS simulations.",
         },
       ],
     },
     {
       id: "method",
-      title: "Variable-Delay Control",
+      title: "Learning When To Think",
       blocks: [
         {
           type: "prose",
           paragraphs: [
-            "We frame the problem as a semi-Markov decision process whose holding time is selected by the gate. Each meta-action chooses a budget K, collects discounted reward while the world advances, and then resumes planning from the state reached after that delay.",
+            "We train a lightweight gate on top of a frozen planner. It reads the current state and planner features and chooses a planning budget K before the MCTS action lands. We frame this as a semi-Markov decision process whose holding time is the chosen budget: each meta-action collects discounted reward while the world advances, then resumes planning from the state reached after that delay.",
           ],
+        },
+        {
+          type: "figure",
+          src: "assets/figures/rtrl_scene3.mp4",
+          alt: "The adaptive gate",
+          caption: "The gate oscillates: it thinks deeply when the ghosts are far and reacts instantly when one is close &mdash; deep, react, deep &mdash; spending compute only where it matters.",
         },
         {
           type: "equation",
@@ -94,23 +111,29 @@ a_t = mcts(s_t)`,
     },
     {
       id: "results",
-      title: "Results",
+      title: "Across Real-Time Games",
       blocks: [
         {
           type: "prose",
           paragraphs: [
-            "Across the benchmark suite, the learned gate beats fixed-budget and heuristic baselines because it adapts compute to the state. The policy is not merely averaging over budgets; it reallocates them based on danger, density, reachability, and clock pressure.",
+            "We deploy the gate across five real-time games &mdash; Pac-Man, Snake, real-time Tetris, Speed Hex, and Speed Go. The learned gate beats fixed-budget and heuristic baselines everywhere because it adapts compute to the state: danger, board density, reachability, and clock pressure.",
           ],
         },
         {
           type: "figure",
-          src: "assets/figures/main_results_horizontal.pdf",
-          alt: "Main results comparison",
-          caption: "Headline result: adaptive gating outperforms fixed budgets and heuristics across Pac-Man, real-time Tetris, Snake, Speed Hex, and Speed Go.",
+          src: "assets/figures/rtrl_scene5.mp4",
+          alt: "Results across four games",
+          caption: "Four of the five environments, with the per-game bar chart: the green adaptive-gate bar tops every fixed thinking budget.",
         },
         {
           type: "figure",
-          src: "assets/figures/strategy_band.pdf",
+          src: "assets/figures/main_results_horizontal.png",
+          alt: "Main results comparison",
+          caption: "Headline result: adaptive gating outperforms fixed budgets and heuristics across all five environments.",
+        },
+        {
+          type: "figure",
+          src: "assets/figures/strategy_band.png",
           alt: "Strategy allocation figure",
           caption: "The gate reallocates compute across budgets instead of collapsing to a single fixed K.",
         },
@@ -118,39 +141,38 @@ a_t = mcts(s_t)`,
           type: "figure",
           src: "assets/figures/pacman_gate.gif",
           alt: "Pac-Man gate animation",
-          caption: "Pac-Man makes the state dependence intuitive: as ghosts move closer, the gate shifts from deeper planning toward immediate reaction, and the selected budget follows the nearest-ghost distance.",
+          caption: "As ghosts move closer, the gate shifts from deeper planning toward immediate reaction, and the selected budget tracks the nearest-ghost distance.",
         },
       ],
     },
     {
       id: "deployment",
-      title: "Deployment",
+      title: "Real-Time Deployment",
       blocks: [
         {
           type: "prose",
           paragraphs: [
-            "The deployment story closes the loop. Training already simulates planning delay, so the learned gate transfers to a two-GPU setting where the environment keeps running while MCTS works on the second device.",
+            "Training already simulates the planning delay, so the learned gate transfers to a true two-GPU setup with no retraining: one GPU runs the environment at a fixed frame rate while the second runs MCTS, and committed reflex actions keep the agent moving until the planned action arrives.",
           ],
         },
         {
           type: "figure",
-          src: "assets/figures/deployment_timeline.gif",
-          alt: "Animated deployment timeline",
-          caption:
-            "A two-panel animation couples the two-GPU async loop with a Gantt-style execution timeline: state and action packets move between the GPUs while the playhead sweeps the K=4 + K=1 + start-of-K=2 sequence at about 9.4x slowdown.",
+          src: "assets/figures/rtrl_scene4.mp4",
+          alt: "Two-GPU real-time deployment",
+          caption: "One GPU holds the environment (it never pauses, 9 FPS); the other runs the MCTS planner. State and action packets cross between them while the execution timeline is drawn live.",
         },
         {
           type: "figure",
-          src: "assets/figures/deployment.pdf",
+          src: "assets/figures/deployment.png",
           alt: "Deployment summary figure",
-          caption: "Simulation-trained policies transfer to hardware deployment with small deadline misses only at the tightest frame budgets.",
+          caption: "Simulation-trained policies transfer to hardware deployment, with small deadline misses only at the tightest frame budgets.",
         },
       ],
     },
   ],
   footer: {
-    left: "Real-time RL project page built from the minimal paper template.",
+    left: "Finding the Time to Think in Real-Time RL.",
     right:
-      '<a href="https://github.com/Aneeshers/research-paper">This page is built from the minimal paper template.</a>',
+      '<a href="https://github.com/Aneeshers/realtime-rl-code">Code</a> &middot; <a href="assets/finding-the-time-to-think.pdf">Paper (PDF)</a>',
   },
 };

@@ -108,6 +108,14 @@
       .join("\n");
   }
 
+  function mediaTag(src, alt, extraClass) {
+    const cls = extraClass ? ` class="${extraClass}"` : "";
+    if (/\.(mp4|webm|mov)$/i.test(src)) {
+      return `<video${cls} src="${src}" autoplay loop muted playsinline preload="metadata" aria-label="${alt || ""}"></video>`;
+    }
+    return `<img${cls} src="${src}" alt="${alt || ""}" />`;
+  }
+
   function linkMarkup(link) {
     return `
       <a class="paper-link" href="${link.href}" aria-label="${link.label}" title="${link.label}">
@@ -125,7 +133,7 @@
             .map(
               (item) => `
                 <figure class="hero-media-item">
-                  <img src="${item.src}" alt="${item.alt}" />
+                  ${mediaTag(item.src, item.alt)}
                   <figcaption>${item.caption}</figcaption>
                 </figure>
               `
@@ -206,7 +214,7 @@
     if (block.type === "figure") {
       return `
         <figure class="block figure-block">
-          <img src="${block.src}" alt="${block.alt}" />
+          ${mediaTag(block.src, block.alt)}
           <figcaption>${block.caption}</figcaption>
         </figure>
       `;
@@ -219,7 +227,7 @@
             .map(
               (item) => `
                 <figure class="figure-block">
-                  <img src="${item.src}" alt="${item.alt}" />
+                  ${mediaTag(item.src, item.alt)}
                   <figcaption>${item.caption}</figcaption>
                 </figure>
               `
