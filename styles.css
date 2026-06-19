@@ -263,6 +263,21 @@ h2 {
   gap: 14px;
 }
 
+/* Grid items default to min-width: auto, so a wide child (a pre-formatted
+   code block, a KaTeX display equation, a figure) forces its track wider
+   than the viewport and pushes the whole page past device width. Capping the
+   tracks at minmax(0, 1fr) and letting items shrink keeps content on-screen;
+   anything genuinely wide scrolls inside its own box (overflow-x: auto). */
+.sections,
+.section-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.paper-section,
+.section-body > * {
+  min-width: 0;
+}
+
 .prose-block p {
   margin: 0 0 14px;
   color: var(--muted);
