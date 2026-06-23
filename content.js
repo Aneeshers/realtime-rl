@@ -18,6 +18,7 @@ window.PAPER_SITE = {
     links: [
       { label: "Paper (PDF)", href: "assets/finding-the-time-to-think.pdf", icon: "assets/icons/pdf.png" },
       { label: "Code", href: "https://github.com/Aneeshers/realtime-rl-code", icon: "assets/icons/github.png" },
+      { label: "Checkpoints", href: "https://huggingface.co/Aneesh19/realtime-rl-checkpoints", icon: "assets/icons/hf-mark.png" },
       { label: "Video", href: "assets/trailer_music.mp4", icon: "assets/icons/python.png" },
     ],
     openingMedia: [
