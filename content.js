@@ -16,8 +16,8 @@ window.PAPER_SITE = {
     ],
     authorsNote: "* indicates equal contribution",
     affiliations:
-      '<a href="https://bold-lab.ai/">British Open-ended Learning and Discovery Lab (BOLD)</a>, University of Oxford' +
-      ' &nbsp;&middot;&nbsp; ' +
+      '<a href="https://bold-lab.ai/">British Open-ended Learning and Discovery Lab (BOLD)</a>, University of Oxford,' +
+      '<br>' +
       '<a href="https://www.robots.ox.ac.uk/~vgg/">Visual Geometry Group (VGG)</a>, University of Oxford',
     links: [
       { label: "Paper (PDF)", href: "assets/finding-the-time-to-think.pdf", icon: "assets/icons/pdf.png" },
