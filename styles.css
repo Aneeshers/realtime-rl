@@ -120,6 +120,25 @@ h1 {
   line-height: 1.45;
 }
 
+.affil-line {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.affil-line a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.affil-line a:hover,
+.affil-line a:focus-visible {
+  border-bottom-color: currentColor;
+}
+
 .hero-links {
   display: grid;
   grid-template-columns: 1fr;

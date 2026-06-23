@@ -15,6 +15,10 @@ window.PAPER_SITE = {
       { name: "Jakob Nicolaus Foerster", href: "https://www.jakobfoerster.com" },
     ],
     authorsNote: "* indicates equal contribution",
+    affiliations:
+      '<a href="https://bold-lab.ai/">British Open-ended Learning and Discovery Lab (BOLD)</a>, University of Oxford' +
+      ' &nbsp;&middot;&nbsp; ' +
+      '<a href="https://www.robots.ox.ac.uk/~vgg/">Visual Geometry Group (VGG)</a>, University of Oxford',
     links: [
       { label: "Paper (PDF)", href: "assets/finding-the-time-to-think.pdf", icon: "assets/icons/pdf.png" },
       { label: "Code", href: "https://github.com/Aneeshers/realtime-rl-code", icon: "assets/icons/github.png" },
@@ -167,6 +171,18 @@ a_t = mcts(s_t)`,
           src: "assets/figures/deployment.png",
           alt: "Deployment summary figure",
           caption: "Simulation-trained policies transfer to hardware deployment, with small deadline misses only at the tightest frame budgets.",
+        },
+      ],
+    },
+    {
+      id: "acknowledgements",
+      title: "Acknowledgements",
+      blocks: [
+        {
+          type: "prose",
+          paragraphs: [
+            'We thank <a href="https://justinsvegliato.com">Justin Svegliato</a> for valuable feedback on our metareasoning definitions and framing, and <a href="https://scholar.google.com/citations?user=7TVJf1gAAAAJ&hl=en">Mattie Fellows</a> and <a href="https://uljad.com">Uljad Berdica</a> for helpful discussions and feedback on earlier drafts. A.&nbsp;Muppidi and F.&nbsp;Darwish are supported by the <a href="https://www.rhodeshouse.ox.ac.uk">Rhodes Scholarship</a> (Rhodes Trust). The authors declare no competing interests.',
+          ],
         },
       ],
     },
