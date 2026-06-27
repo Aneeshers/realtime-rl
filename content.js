@@ -18,7 +18,9 @@ window.PAPER_SITE = {
     affiliations:
       '<a href="https://bold-lab.ai/">British Open-ended Learning and Discovery Lab (BOLD)</a>, University of Oxford,' +
       '<br>' +
-      '<a href="https://www.robots.ox.ac.uk/~vgg/">Visual Geometry Group (VGG)</a>, University of Oxford',
+      '<a href="https://www.robots.ox.ac.uk/~vgg/">Visual Geometry Group (VGG)</a>, University of Oxford,' +
+      '<br>' +
+      '<a href="https://www.stats.ox.ac.uk/">Department of Statistics</a>, University of Oxford',
     links: [
       { label: "Paper (PDF)", href: "assets/finding-the-time-to-think.pdf", icon: "assets/icons/pdf.png" },
       { label: "Code", href: "https://github.com/Aneeshers/realtime-rl-code", icon: "assets/icons/github.png" },
