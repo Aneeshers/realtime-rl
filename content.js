@@ -22,7 +22,7 @@ window.PAPER_SITE = {
       '<br>' +
       '<a href="https://www.stats.ox.ac.uk/">Department of Statistics</a>, University of Oxford',
     links: [
-      { label: "Paper (PDF)", href: "assets/finding-the-time-to-think.pdf", icon: "assets/icons/pdf.png" },
+      { label: "arXiv", href: "https://arxiv.org/abs/2606.26463", icon: "assets/icons/arxiv-square.svg" },
       { label: "Code", href: "https://github.com/Aneeshers/realtime-rl-code", icon: "assets/icons/github.png" },
       { label: "Checkpoints", href: "https://huggingface.co/Aneesh19/realtime-rl-checkpoints", icon: "assets/icons/hf-mark.png" },
       { label: "Video", href: "assets/trailer_music.mp4", icon: "assets/icons/python.png" },
