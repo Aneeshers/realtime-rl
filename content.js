@@ -25,7 +25,7 @@ window.PAPER_SITE = {
       { label: "arXiv", href: "https://arxiv.org/abs/2606.26463", icon: "assets/icons/arxiv-square.svg" },
       { label: "Code", href: "https://github.com/Aneeshers/realtime-rl-code", icon: "assets/icons/github.png" },
       { label: "Checkpoints", href: "https://huggingface.co/Aneesh19/realtime-rl-checkpoints", icon: "assets/icons/hf-mark.png" },
-      { label: "Video", href: "assets/trailer_music.mp4", icon: "assets/icons/python.png" },
+      { label: "Video", href: "assets/trailer_music.mp4", icon: "assets/icons/video.svg" },
     ],
     openingMedia: [
       {
@@ -192,6 +192,6 @@ a_t = mcts(s_t)`,
   footer: {
     left: "Finding the Time to Think in Real-Time RL.",
     right:
-      '<a href="https://github.com/Aneeshers/realtime-rl-code">Code</a> &middot; <a href="assets/finding-the-time-to-think.pdf">Paper (PDF)</a>',
+      '<a href="https://github.com/Aneeshers/realtime-rl-code">Code</a> &middot; <a href="https://arxiv.org/abs/2606.26463">arXiv</a>',
   },
 };
