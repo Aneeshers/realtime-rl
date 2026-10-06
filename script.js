@@ -146,6 +146,7 @@
     hero.innerHTML = `
       <div class="hero-copy">
         <h1>${data.paper.title}</h1>
+        ${data.paper.venue ? `<p class="venue-line">${data.paper.venue}</p>` : ""}
         <p class="authors-line">${data.paper.authors.map(authorMarkup).join(", ")}</p>
         ${data.paper.affiliations ? `<p class="affil-line">${data.paper.affiliations}</p>` : ""}
         <div class="hero-links">

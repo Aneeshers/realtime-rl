@@ -2,11 +2,12 @@ window.PAPER_SITE = {
   meta: {
     title: "Finding the Time to Think in Real-Time RL",
     description:
-      "Project page for variable-delay real-time RL: a lightweight gate learns how long to run AlphaZero-style MCTS at each decision, on top of a frozen planner.",
+      "Project page for Finding the Time to Think in Real-Time RL (NeurIPS 2026): a lightweight gate learns how long to run AlphaZero-style MCTS at each decision, on top of a frozen planner.",
     ogImage: "assets/figures/main_results_horizontal.png",
   },
   paper: {
     title: "Finding the Time to Think in Real-Time RL",
+    venue: "NeurIPS 2026",
     authors: [
       { name: "Aneesh Muppidi", href: "https://aneeshers.github.io", equal: true },
       { name: "Firas Darwish", href: "https://firasdarwish.com", equal: true },
@@ -190,7 +191,7 @@ a_t = mcts(s_t)`,
     },
   ],
   footer: {
-    left: "Finding the Time to Think in Real-Time RL.",
+    left: "Finding the Time to Think in Real-Time RL. NeurIPS 2026.",
     right:
       '<a href="https://github.com/Aneeshers/realtime-rl-code">Code</a> &middot; <a href="https://arxiv.org/abs/2606.26463">arXiv</a>',
   },

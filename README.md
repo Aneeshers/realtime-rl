@@ -1,6 +1,6 @@
 # realtime-rl
 
-Static project page for **Learning Planning Budgets in Real-Time RL**.
+Static project page for **Finding the Time to Think in Real-Time RL** (NeurIPS 2026).
 
 ## Contents
 
