@@ -1,6 +1,6 @@
 # realtime-rl
 
-Static project page for **Finding the Time to Think in Real-Time RL** (NeurIPS 2026).
+Static project page for **Finding the Time to Think in Real-Time RL**, accepted to NeurIPS 2026.
 
 ## Contents
 
